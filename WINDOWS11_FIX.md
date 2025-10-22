@@ -167,5 +167,58 @@ with open("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat", 'w',
 ## Date Applied
 2025-10-22
 
+## 6. Error 322 Python/Reticulate Configuration Issues
+**Problem**: Error 322 occurred when reticulate tried to configure Python, with the message "Error 322 occurred running python.exe". This was caused by:
+- Incorrect encoding when reticulate executes config.py
+- Path issues with forward/backward slashes under Windows 11
+- Python stdout/stderr encoding mismatches
+- Reticulate trying to execute config.py without proper Windows encoding
+
+**Files affected**:
+- `global.R` (Python initialization)
+- `lib/Python/sitecustomize.py` (new file - auto-loaded by Python)
+
+**Solution**: Multi-layered approach to fix Python/R integration:
+
+1. **Set RETICULATE_PYTHON environment variable** before use_python():
+```r
+# Set environment variable to bypass config.py issues
+Sys.setenv(RETICULATE_PYTHON = python_path)
+
+# Use tryCatch to handle initialization gracefully
+suppressWarnings({
+  tryCatch({
+    use_python(python_path, required = FALSE)
+  }, error = function(e) {
+    message("Python initialization warning (non-critical): ", e$message)
+  })
+})
+```
+
+2. **Created sitecustomize.py** to fix Python encoding at startup:
+```python
+# Automatically loaded by Python on startup
+# Forces UTF-8 encoding for stdout/stderr
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    os.environ.setdefault('PYTHONIOENCODING', 'utf-8')
+```
+
+3. **Normalized paths** with forward slashes for Windows 11:
+```r
+python_path <- normalizePath(file.path(getwd(), "lib", "Python", "python.exe"),
+                             winslash = "/", mustWork = FALSE)
+```
+
+**Impact**:
+- Error 322 no longer occurs during Python initialization
+- reticulate can properly communicate with embedded Python
+- source_python() calls work correctly
+- Python scripts execute without encoding errors
+
+## Date Applied
+2025-10-22
+
 ## Version
-MSPANDA 1.1.0 - Windows 11 Compatibility Update (v3 - Error 232 Fix)
+MSPANDA 1.1.0 - Windows 11 Compatibility Update (v4 - Error 322 Fix)

@@ -31,14 +31,15 @@ This version includes comprehensive fixes for Windows 11 compatibility issues th
 
 Key improvements include:
 - **Fixed path handling** for Windows 11's enhanced security model
-- **Improved Python interpreter** initialization with absolute paths
+- **Improved Python interpreter** initialization with environment variables and encoding fixes
 - **Enhanced batch file execution** compatibility via cmd.exe
 - **Fixed CE-time correction dialog** crashes with multi-layer fallback system
 - **Improved PowerShell script** error handling with COM object fallback
 - **Enhanced folder selection** dialogs for Windows 11 security policies
 - **Fixed Error 232** batch file encoding issues with proper cp1252 encoding and CRLF line endings
+- **Fixed Error 322** Python/reticulate configuration with sitecustomize.py and UTF-8 encoding
 
-**Important**: All critical Windows 11 issues have been resolved, including Error 232, CE-time correction crashes, and path handling problems.
+**Important**: All critical Windows 11 issues have been resolved, including Error 232, Error 322, CE-time correction crashes, and Python integration problems.
 
 For detailed information about the Windows 11 fixes, see [WINDOWS11_FIX.md](WINDOWS11_FIX.md).
 
