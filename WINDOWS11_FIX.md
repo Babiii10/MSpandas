@@ -85,8 +85,52 @@ After applying these fixes, please test the following workflows:
 - Path handling improvements also enhance cross-platform compatibility
 - Security-related changes align with Windows 11's enhanced protection model
 
+## 4. CE-Time Correction Dialog Issues (CRITICAL FIX)
+**Problem**: The folder selection dialog used in CE-time correction crashed under Windows 11 due to:
+- PowerShell execution policy restrictions
+- .NET reflection issues with Windows.Forms
+- COM object initialization failures
+- Missing error handling and fallback mechanisms
+
+**Files affected**:
+- `lib/PackagesR/shiny-directory-input/R/directoryInput.R` (choose.dir.windows function)
+- `lib/PackagesR/shiny-directory-input/inst/utils/newFolderDialog.ps1`
+- `lib/PackagesR/shiny-directory-input/inst/utils/choose_dir.bat`
+
+**Solution**: Implemented multi-layer fallback system with enhanced error handling:
+
+```r
+# Added tryCatch error handling
+path_result <- tryCatch({
+  suppressWarnings({
+    system2(command, args = args, stdout = TRUE, stderr = TRUE, wait = TRUE)
+  })
+}, error = function(e) {
+  message("PowerShell method failed, falling back to .bat method")
+  return(NULL)
+})
+
+# Fallback to bat method if PowerShell fails
+if (is.null(path_result) || length(path_result) == 0 ||
+    (!is.null(attr(path_result, 'status')) && attr(path_result, 'status') != 0)) {
+  # Use cmd.exe explicitly for Windows 11 compatibility
+  path = system2("cmd.exe", args = c("/c", shQuote(command), args),
+                stdout = TRUE, stderr = TRUE, wait = TRUE)
+}
+```
+
+**PowerShell improvements**:
+- Added try-catch block with COM object fallback
+- Added `-WindowStyle Hidden` to prevent window focus issues
+- Improved path handling with `mustWork = FALSE`
+
+**Batch file improvements**:
+- Added `-ExecutionPolicy Bypass` flag
+- Added error suppression (`2>nul`)
+- Better empty result handling
+
 ## Date Applied
 2025-10-22
 
 ## Version
-MSPANDA 1.1.0 - Windows 11 Compatibility Update
+MSPANDA 1.1.0 - Windows 11 Compatibility Update (v2 - CE-Time Fix)

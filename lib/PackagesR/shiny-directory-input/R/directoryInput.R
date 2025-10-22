@@ -132,32 +132,62 @@ choose.dir.linux <- function(default = NA, caption = NA) {
 #' A length one character vector, character NA if 'Cancel' was selected.
 #'
 choose.dir.windows <- function(default = NA, caption = NA, useNew = TRUE) {
+  # Fix: Enhanced Windows 11 compatibility with fallback mechanism
   if(useNew){
     ## uses a powershell script rather than the bat version, gives a nicer interface
     ## and allows setting of the default directory and the caption
     whereisutils <- system.file("utils", 'newFolderDialog.ps1', package = "shinyDirectoryInput")
     command = 'powershell'
-    args = paste('-NoProfile -ExecutionPolicy Bypass -File',sprintf('"%s"',normalizePath(whereisutils)))
+    # Fix: Added -WindowStyle Hidden and improved error handling for Windows 11
+    args = paste('-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File',sprintf('"%s"',normalizePath(whereisutils)))
     if (!is.null(default) && !is.na(default) && nzchar(default)) {
-      args = paste(args, sprintf('-default "%s"', normalizePath(default)))
+      args = paste(args, sprintf('-default "%s"', normalizePath(default, mustWork = FALSE)))
     }
-    
+
     if (!is.null(caption) && !is.na(caption) && nzchar(caption)) {
       args = paste(args, sprintf('-caption "%s"', caption))
     }
-    
-    suppressWarnings({
-      path = system2(command, args = args, stdout = TRUE)
+
+    # Fix: Better error handling and fallback for Windows 11
+    path_result <- tryCatch({
+      suppressWarnings({
+        system2(command, args = args, stdout = TRUE, stderr = TRUE, wait = TRUE)
+      })
+    }, error = function(e) {
+      message("PowerShell method failed, falling back to .bat method")
+      return(NULL)
     })
+
+    # If PowerShell fails or returns empty, fallback to bat method
+    if (is.null(path_result) || length(path_result) == 0 ||
+        (!is.null(attr(path_result, 'status')) && attr(path_result, 'status') != 0)) {
+      message("Falling back to .bat method for folder selection")
+      whereisutils <- system.file("utils", 'choose_dir.bat', package = "shinyDirectoryInput")
+      command = normalizePath(whereisutils, winslash = "\\")
+      args = if (is.na(caption)) '' else sprintf('"%s"', caption)
+      suppressWarnings({
+        path = system2("cmd.exe", args = c("/c", shQuote(command), args),
+                      stdout = TRUE, stderr = TRUE, wait = TRUE)
+      })
+    } else {
+      path = path_result
+    }
   } else {
     whereisutils <- system.file("utils", 'choose_dir.bat', package = "shinyDirectoryInput")
-    command = normalizePath(whereisutils)
+    command = normalizePath(whereisutils, winslash = "\\")
     args = if (is.na(caption)) '' else sprintf('"%s"', caption)
+    # Fix: Use cmd.exe explicitly for Windows 11 compatibility
     suppressWarnings({
-      path = system2(command, args = args, stdout = TRUE)
+      path = system2("cmd.exe", args = c("/c", shQuote(command), args),
+                    stdout = TRUE, stderr = TRUE, wait = TRUE)
     })
-  }  
-  if (path == 'NONE') path = NA
+  }
+
+  # Fix: Better handling of empty or failed results
+  if (length(path) == 0 || is.null(path) || path == 'NONE' || path == '') {
+    path = NA
+  }
+
   return(path)
 }
 

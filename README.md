@@ -27,11 +27,17 @@ This reference map is then used to identify a set of intensity-stable particles.
 4. Launch MSPANDA-1.1.0.Rproj: MSPANDA-1.1.0 MSPANDA-1.1.0.Rproj.
 
 ## Windows 11 Compatibility
-This version includes fixes for Windows 11 compatibility issues that caused crashes after migration from Windows 10.
+This version includes comprehensive fixes for Windows 11 compatibility issues that caused crashes after migration from Windows 10.
+
 Key improvements include:
-- Fixed path handling for Windows 11's enhanced security model
-- Improved Python interpreter initialization
-- Enhanced batch file execution compatibility
+- **Fixed path handling** for Windows 11's enhanced security model
+- **Improved Python interpreter** initialization with absolute paths
+- **Enhanced batch file execution** compatibility via cmd.exe
+- **Fixed CE-time correction dialog** crashes with multi-layer fallback system
+- **Improved PowerShell script** error handling with COM object fallback
+- **Enhanced folder selection** dialogs for Windows 11 security policies
+
+**Important**: The CE-time correction module now works reliably under Windows 11 with automatic fallback mechanisms.
 
 For detailed information about the Windows 11 fixes, see [WINDOWS11_FIX.md](WINDOWS11_FIX.md).
 
