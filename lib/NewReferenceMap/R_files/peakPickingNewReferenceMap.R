@@ -52,9 +52,15 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
               Adduct_list = as.list(Adduct_list))
   
   findPeaksMsdial(input_files = input_files, output_files = output_files, output_export_param = output_export_param )
-  system2("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat")
-  
-  
+  # Fix: Use normalizePath and shell for Windows 11 compatibility
+  bat_file <- normalizePath("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat", winslash = "\\", mustWork = FALSE)
+  if (.Platform$OS.type == "windows") {
+    system2("cmd.exe", args = c("/c", shQuote(bat_file)), stdout = TRUE, stderr = TRUE, wait = TRUE)
+  } else {
+    system2(bat_file)
+  }
+
+
   message("--- EDN PEAK PICKING ---\n")
   
   incProgress(1/8, detail = paste("End peak detection...", round(4/8*100,0),"%",collapse=""))

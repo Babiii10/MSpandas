@@ -54,14 +54,16 @@ def findPeaksMsdial(input_files, output_files, output_export_param):
   #   print(paramMsdial.name)
   quote ="\""
   fileContent = peaksPicking.readlines()
-  fileContent[0] = fileContent[0].replace("directory_MSDIAL.exe",quote+os.getcwd()+"\lib\MSDIAL\MSDIAL ver.4.80 Windows\MsdialConsoleApp.exe"+quote)
+  # Fix: Use os.path.join for proper path handling across Windows versions
+  msdial_path = os.path.join(os.getcwd(), "lib", "MSDIAL", "MSDIAL ver.4.80 Windows", "MsdialConsoleApp.exe")
+  fileContent[0] = fileContent[0].replace("directory_MSDIAL.exe",quote+msdial_path+quote)
   fileContent[0] = fileContent[0].replace("inputfiles",quote+input_files+quote)
   fileContent[0] = fileContent[0].replace("outputfiles",quote+output_files+quote)
   fileContent[0] = fileContent[0].replace("param",quote+output_export_param+"/peakPicking_Parameters.txt"+quote)
   with open("lib/AnalysisNewSample/cmd/RunMsdialPeakPicking.bat", 'w') as temp_file:
     for item in fileContent:
       temp_file.write("%s" % item)
-  
+
   peaksPicking.close()
   
   
