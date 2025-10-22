@@ -178,15 +178,35 @@ namespace FolderSelect
 }
 "@
     
-Add-Type  -ReferencedAssemblies $Assem -TypeDefinition $BuildDialog -ErrorAction STOP
+# Fix: Enhanced error handling for Windows 11 compatibility
+try {
+    Add-Type  -ReferencedAssemblies $Assem -TypeDefinition $BuildDialog -ErrorAction Stop
 
-
-$fsd = New-Object FolderSelect.FolderSelectDialog
+    $fsd = New-Object FolderSelect.FolderSelectDialog
     $fsd.Title = $caption;
-    $fsd.InitialDirectory = $default.Trim('"')
-    $fsd.ShowDialog() | Out-Null
+    # Fix: Safer path handling for Windows 11
+    if ($default -and $default.Trim('"') -ne "") {
+        $fsd.InitialDirectory = $default.Trim('"')
+    }
+    $result = $fsd.ShowDialog()
 
-$fsd.FileName
+    if ($result) {
+        $fsd.FileName
+    } else {
+        # User cancelled
+        ""
+    }
+} catch {
+    # Fix: If .NET dialog fails, fall back to COM object method for Windows 11
+    Write-Host "Falling back to COM object folder browser" -ForegroundColor Yellow
+    $shell = New-Object -ComObject Shell.Application
+    $folder = $shell.BrowseForFolder(0, $caption, 0, $default.Trim('"'))
+    if ($folder) {
+        $folder.Self.Path
+    } else {
+        ""
+    }
+}
 
 # usage: powershell -NoProfile -ExecutionPolicy Bypass -File newFolderDialog.ps1 -caption test -default c:\Users
 # adapted to powershell script from: https://www.sapien.com/forums/viewtopic.php?t=8662 

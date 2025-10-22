@@ -75,13 +75,32 @@ if (!is.element("shinyDirectoryInput", installed.packages()[, 1])) {
 }
 
 ## Python exe
-# Fix: Use absolute path for Python to ensure compatibility with Windows 11
-python_path <- file.path(getwd(), "lib", "Python", "python.exe")
+# Fix: Enhanced Python configuration for Windows 11 compatibility
+# Set environment variable before loading reticulate to avoid Error 322
+python_path <- normalizePath(file.path(getwd(), "lib", "Python", "python.exe"),
+                             winslash = "/", mustWork = FALSE)
+
 if (file.exists(python_path)) {
-  use_python(python_path, required = TRUE)
+  # Fix: Set RETICULATE_PYTHON environment variable before use_python
+  # This prevents reticulate from trying to run config.py with wrong encoding
+  Sys.setenv(RETICULATE_PYTHON = python_path)
+
+  # Suppress py_config warnings during initialization
+  suppressWarnings({
+    tryCatch({
+      use_python(python_path, required = FALSE)
+    }, error = function(e) {
+      message("Python initialization warning (non-critical): ", e$message)
+    })
+  })
 } else {
-  # Fallback to relative path if absolute path doesn't work
-  use_python('lib/Python')
+  warning("Python executable not found at: ", python_path)
+  # Try fallback to relative path
+  tryCatch({
+    use_python('lib/Python/python.exe', required = FALSE)
+  }, error = function(e) {
+    warning("Python initialization failed: ", e$message)
+  })
 }
 
 initPackages <- function(session) {
