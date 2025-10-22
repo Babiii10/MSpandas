@@ -6288,3 +6288,106 @@ observe({
     })
   }
 })
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~ Download CE-time Corrected Data ~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+output$downloadCETimeCorrected <- downloadHandler(
+  filename = function() {
+    paste0("CE_time_corrected_peaks_",
+           format(Sys.time(), "%Y%m%d_%H%M%S"),
+           ".xlsx")
+  },
+  content = function(file) {
+    req(RvarsCorrectionTime$peakListAligned_KernelDensity)
+    
+    # Get corrected data
+    corrected_data <- RvarsCorrectionTime$peakListAligned_KernelDensity
+    
+    # Create workbook with multiple sheets
+    wb <- openxlsx::createWorkbook()
+    
+    # Sheet 1: Corrected peaks data
+    openxlsx::addWorksheet(wb, "Corrected_Peaks")
+    openxlsx::writeData(wb, "Corrected_Peaks", corrected_data, 
+                       startRow = 1, startCol = 1, 
+                       rowNames = FALSE)
+    
+    # Add header styling
+    header_style <- openxlsx::createStyle(
+      fontSize = 12,
+      fontColour = "#FFFFFF",
+      fgFill = "#4F81BD",
+      halign = "center",
+      valign = "center",
+      textDecoration = "bold",
+      border = "TopBottomLeftRight"
+    )
+    
+    openxlsx::addStyle(wb, "Corrected_Peaks", 
+                      style = header_style,
+                      rows = 1, 
+                      cols = 1:ncol(corrected_data),
+                      gridExpand = TRUE)
+    
+    # Freeze first row
+    openxlsx::freezePane(wb, "Corrected_Peaks", firstRow = TRUE)
+    
+    # Auto-size columns
+    openxlsx::setColWidths(wb, "Corrected_Peaks", 
+                          cols = 1:ncol(corrected_data), 
+                          widths = "auto")
+    
+    # Sheet 2: Metadata/Parameters (if available)
+    if (!is.null(RvarsCorrectionTime$pheno_Data_mzML)) {
+      openxlsx::addWorksheet(wb, "Sample_Info")
+      openxlsx::writeData(wb, "Sample_Info", 
+                         RvarsCorrectionTime$pheno_Data_mzML,
+                         rowNames = FALSE)
+      
+      openxlsx::addStyle(wb, "Sample_Info", 
+                        style = header_style,
+                        rows = 1, 
+                        cols = 1:ncol(RvarsCorrectionTime$pheno_Data_mzML),
+                        gridExpand = TRUE)
+      
+      openxlsx::freezePane(wb, "Sample_Info", firstRow = TRUE)
+    }
+    
+    # Sheet 3: Correction summary
+    openxlsx::addWorksheet(wb, "Correction_Summary")
+    
+    summary_info <- data.frame(
+      Parameter = c("Correction Method", 
+                   "Kernel Type", 
+                   "Bandwidth (Model)",
+                   "Bandwidth (Filter)",
+                   "Min Density",
+                   "Intensity Filter",
+                   "Export Date",
+                   "Number of Peaks",
+                   "Number of Samples"),
+      Value = c("Kernel Density",
+               ifelse(!is.null(input$KernelType), input$KernelType, "N/A"),
+               ifelse(!is.null(input$bandwidth_Model), input$bandwidth_Model, "N/A"),
+               ifelse(!is.null(input$bandwidth_Filter), input$bandwidth_Filter, "N/A"),
+               ifelse(!is.null(input$minDensity), input$minDensity, "N/A"),
+               ifelse(!is.null(input$intensityFilter), input$intensityFilter, "N/A"),
+               format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+               nrow(corrected_data),
+               length(unique(corrected_data$sample)))
+    )
+    
+    openxlsx::writeData(wb, "Correction_Summary", summary_info, rowNames = FALSE)
+    
+    openxlsx::addStyle(wb, "Correction_Summary", 
+                      style = header_style,
+                      rows = 1, 
+                      cols = 1:2,
+                      gridExpand = TRUE)
+    
+    # Save workbook
+    openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
+  },
+  contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
