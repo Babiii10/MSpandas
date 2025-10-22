@@ -36,8 +36,9 @@ Key improvements include:
 - **Fixed CE-time correction dialog** crashes with multi-layer fallback system
 - **Improved PowerShell script** error handling with COM object fallback
 - **Enhanced folder selection** dialogs for Windows 11 security policies
+- **Fixed Error 232** batch file encoding issues with proper cp1252 encoding and CRLF line endings
 
-**Important**: The CE-time correction module now works reliably under Windows 11 with automatic fallback mechanisms.
+**Important**: All critical Windows 11 issues have been resolved, including Error 232, CE-time correction crashes, and path handling problems.
 
 For detailed information about the Windows 11 fixes, see [WINDOWS11_FIX.md](WINDOWS11_FIX.md).
 

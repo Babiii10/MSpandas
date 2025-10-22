@@ -10,7 +10,8 @@ def convert_to_mzML(input_directory,output_directory):
   fileContent[0] = fileContent[0].replace("directory_msconverter.exe",quote+msconvert_path+quote)
   fileContent[0] = fileContent[0].replace("input_directory",quote+input_directory+"/*"+quote)
   fileContent[0] = fileContent[0].replace("output_directory",quote+output_directory+quote)
-  with open("lib/NewReferenceMap/cmd/convert_raw_data_to_mzML_centroid.bat", 'w') as temp_file:
+  # Fix: Write with proper encoding and newline for Windows 11 compatibility
+  with open("lib/NewReferenceMap/cmd/convert_raw_data_to_mzML_centroid.bat", 'w', encoding='cp1252', newline='\r\n') as temp_file:
     for item in fileContent:
       temp_file.write("%s" % item)
 

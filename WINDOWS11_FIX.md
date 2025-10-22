@@ -132,5 +132,40 @@ if (is.null(path_result) || length(path_result) == 0 ||
 ## Date Applied
 2025-10-22
 
+## 5. Batch File Encoding Issues (Error 232 Fix)
+**Problem**: Error 232 occurred when executing batch files, indicating "The pipe has been ended" or invalid executable format. This was caused by:
+- Incorrect file encoding when writing .bat files from Python
+- Wrong line endings (LF instead of CRLF) under Windows 11
+- Python's default text mode not handling Windows encoding properly
+
+**Files affected**:
+- `lib/NewReferenceMap/Python_files/msconverter_command_line.py`
+- `lib/AnalysisNewSample/Python_files/msconverter_command_line.py`
+- `lib/NewReferenceMap/Python_files/modify_ParamMsdialNewReferenceMap.py`
+- `lib/AnalysisNewSample/Python_files/modify_ParamMsdial.py`
+
+**Solution**: Explicitly specify Windows encoding (cp1252) and CRLF line endings when writing .bat files:
+
+```python
+# Before (INCORRECT):
+with open("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat", 'w') as temp_file:
+    for item in fileContent:
+        temp_file.write("%s" % item)
+
+# After (CORRECT):
+with open("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat", 'w',
+         encoding='cp1252', newline='\r\n') as temp_file:
+    for item in fileContent:
+        temp_file.write("%s" % item)
+```
+
+**Impact**:
+- Batch files are now correctly formatted for Windows 11
+- Error 232 no longer occurs during batch file execution
+- Proper Windows code page ensures special characters are handled correctly
+
+## Date Applied
+2025-10-22
+
 ## Version
-MSPANDA 1.1.0 - Windows 11 Compatibility Update (v2 - CE-Time Fix)
+MSPANDA 1.1.0 - Windows 11 Compatibility Update (v3 - Error 232 Fix)

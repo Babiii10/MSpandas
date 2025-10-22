@@ -60,7 +60,8 @@ def findPeaksMsdial(input_files, output_files, output_export_param):
   fileContent[0] = fileContent[0].replace("inputfiles",quote+input_files+quote)
   fileContent[0] = fileContent[0].replace("outputfiles",quote+output_files+quote)
   fileContent[0] = fileContent[0].replace("param",quote+output_export_param+"/peakPicking_Parameters.txt"+quote)
-  with open("lib/AnalysisNewSample/cmd/RunMsdialPeakPicking.bat", 'w') as temp_file:
+  # Fix: Write with proper encoding and newline for Windows 11 compatibility
+  with open("lib/AnalysisNewSample/cmd/RunMsdialPeakPicking.bat", 'w', encoding='cp1252', newline='\r\n') as temp_file:
     for item in fileContent:
       temp_file.write("%s" % item)
 
