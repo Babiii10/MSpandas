@@ -75,7 +75,14 @@ if (!is.element("shinyDirectoryInput", installed.packages()[, 1])) {
 }
 
 ## Python exe
-use_python('lib/Python')
+# Fix: Use absolute path for Python to ensure compatibility with Windows 11
+python_path <- file.path(getwd(), "lib", "Python", "python.exe")
+if (file.exists(python_path)) {
+  use_python(python_path, required = TRUE)
+} else {
+  # Fallback to relative path if absolute path doesn't work
+  use_python('lib/Python')
+}
 
 initPackages <- function(session) {
   #Bioconductor packages

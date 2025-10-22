@@ -18,11 +18,20 @@ This reference map is then used to identify a set of intensity-stable particles.
 3. Download the following applications:
 	MSDIAL ver.4.80 Windows: https://zenodo.org/records/12540725,
 	dotnet-sdk-6.0.301-win-x64.exe: https://dotnet.microsoft.com/en-us/download/dotnet/6.0.
-4. Change Vautre Computer Locale to: Etat-unis
+4. Change Your Computer Locale to: United States (Etat-unis)
 
 ### Launch the MSPANDA application:
 1. Install Microsoft dotnet-sdk-6.0.301-win-x64.exe.
 2. Unzip the downloaded MSPANDA-1.1.0 application.
 3. Unzip the MSDIAL ver.4.80 Windows application, then create a folder (MSDIAL) in MSPANDA-1.1.0 lib and copy in "MSDIAL ver.4.80 Windows".
 4. Launch MSPANDA-1.1.0.Rproj: MSPANDA-1.1.0 MSPANDA-1.1.0.Rproj.
+
+## Windows 11 Compatibility
+This version includes fixes for Windows 11 compatibility issues that caused crashes after migration from Windows 10.
+Key improvements include:
+- Fixed path handling for Windows 11's enhanced security model
+- Improved Python interpreter initialization
+- Enhanced batch file execution compatibility
+
+For detailed information about the Windows 11 fixes, see [WINDOWS11_FIX.md](WINDOWS11_FIX.md).
 
