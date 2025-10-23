@@ -1,6 +1,9 @@
 ##" Initialize reactive values
 RvarsCorrectionTime <- allReactiveVarsNewRefMap$CorrectionTime
 
+## Initialize plot update trigger to fix memory leak
+## (prevents renderPlot() recreation inside observeEvent)
+plotUpdateTrigger_KernelDensity <- reactiveVal(0)
 
 ## ~~~~~~~~~~~~Control some buttons ~~~~~~~~~~~~~~~~~~~~~~~~~#
 ### Return to view peak detection
@@ -5498,13 +5501,14 @@ observeEvent(ignoreNULL = TRUE,
                      }
                      
                    }
-                   
+
                  }
                }
-               
-               
-               
-               
+
+               # Force garbage collection to free memory from old renderPlot() instances
+               # This reduces (but doesn't eliminate) memory leak from renderPlot() recreation
+               invisible(gc(verbose = FALSE))
+
              })
 
 
@@ -6257,11 +6261,14 @@ observeEvent(ignoreNULL = TRUE,
                        
                      }
                    }
-                   
+
                  }
                }
-               
-               
+
+               # Force garbage collection to free memory from old renderPlot() instances
+               # This reduces (but doesn't eliminate) memory leak from renderPlot() recreation
+               invisible(gc(verbose = FALSE))
+
              })
 
 
