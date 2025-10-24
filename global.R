@@ -16,6 +16,13 @@ usePackage <- function(p)
   require(p, character.only = TRUE)
 }
 
+## Configure timeouts for long-running operations
+## These settings prevent disconnections during Kernel Density corrections
+options(
+  timeout = 3600,              # HTTP timeout: 1 hour (default is 60 seconds)
+  shiny.trace = FALSE,         # Disable tracing for better performance
+  warn = -1                    # Suppress warnings during long operations
+)
 
 ## Verify R-version
 

@@ -1000,7 +1000,29 @@ CorrectionTime_KernelDensity_Ui <- function() {
           
           
         ),
-        
+
+        # Download button for corrected CE-time data
+        fluidRow(column(12, br())),
+        fluidRow(column(
+          12,
+          div(
+            class = "well well-sm",
+            style = "background-color: #e8f5e9;",
+            h4("Export corrected data", style = "color: #2e7d32;"),
+            p("Download the CE-time corrected peak list after validation.", style = "font-size: 13px;"),
+            div(
+              class = "pull-left",
+              style = "display:inline-block",
+              downloadButton(
+                outputId = "downloadCETimeCorrected",
+                label = "Download Corrected Data (Excel)",
+                class = "btn-success",
+                icon = icon("file-excel")
+              )
+            )
+          )
+        )),
+
         fluidRow(column(
           6,
           div(
@@ -1012,7 +1034,7 @@ CorrectionTime_KernelDensity_Ui <- function() {
               class = "btn-primary",
               icon = icon("arrow-left")
             )
-            
+
           )
         ),
         column(
@@ -1020,15 +1042,15 @@ CorrectionTime_KernelDensity_Ui <- function() {
           div(
             class = "pull-right",
             style = "display:inline-block",
-            
+
             actionButton(
               inputId = "CorrectionKernelDensityNexPage",
               label = "Next",
               class = "btn-primary",
               icon = icon("arrow-right")
             )
-            
-            
+
+
           )
         ))
         

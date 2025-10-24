@@ -38,10 +38,17 @@ server <- function(input, output, session) {
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
   
-  
+
   ## Extend size for inputs files
   options(shiny.maxRequestSize = 60000 * 1024 ^ 2)
-  
+
+  ## Increase timeouts for long-running operations (Kernel Density with gc())
+  ## Disable session timeout (allow infinite processing time)
+  options(shiny.usecairo = FALSE)  # Disable Cairo for better performance
+
+  ## Allow session reconnection if disconnected during long operations
+  session$allowReconnect(TRUE)
+
   # Load necessaries packages
   initPackages(session = session)
   
