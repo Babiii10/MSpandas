@@ -1,5 +1,12 @@
-# Configure Traitement parallel 
-register(bpstart(SnowParam(1)))
+# Configure Traitement parallel
+# Only register if not already done (prevents socket connection leak)
+# This file is sourced multiple times (in renderPlot), causing cluster duplication
+if (!exists(".biocparallel_registered_ce_time", envir = .GlobalEnv)) {
+  # Use register() without bpstart() to avoid immediate cluster creation
+  # Cluster will be created on-demand by bplapply() when needed
+  register(SnowParam(workers = 1, type = "SOCK"), default = FALSE)
+  assign(".biocparallel_registered_ce_time", TRUE, envir = .GlobalEnv)
+}
 
 
 ## Define functions utils
