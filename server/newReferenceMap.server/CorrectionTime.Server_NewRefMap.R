@@ -5,6 +5,9 @@ RvarsCorrectionTime <- allReactiveVarsNewRefMap$CorrectionTime
 ## (prevents renderPlot() recreation inside observeEvent)
 plotUpdateTrigger_KernelDensity <- reactiveVal(0)
 
+## Track corrected samples for validation button
+correctedSamples_KernelDensity <- reactiveVal(character(0))
+
 ## ~~~~~~~~~~~~Control some buttons ~~~~~~~~~~~~~~~~~~~~~~~~~#
 ### Return to view peak detection
 observeEvent(ignoreNULL = TRUE,
@@ -5505,6 +5508,31 @@ observeEvent(ignoreNULL = TRUE,
                  }
                }
 
+               # Track corrected sample and check if all samples are done
+               if (!is.null(input$SelectSample_KernelDensity)) {
+                 # Add current sample to list of corrected samples
+                 current_corrected <- correctedSamples_KernelDensity()
+                 if (!input$SelectSample_KernelDensity %in% current_corrected) {
+                   correctedSamples_KernelDensity(c(current_corrected, input$SelectSample_KernelDensity))
+                 }
+
+                 # Check if all samples are corrected
+                 if (!is.null(RvarsCorrectionTime$peakListAligned)) {
+                   all_samples <- unique(RvarsCorrectionTime$peakListAligned$sample)
+                   corrected <- correctedSamples_KernelDensity()
+
+                   # Enable validation button if all samples are corrected
+                   if (length(corrected) > 0 && all(all_samples %in% corrected)) {
+                     shinyjs::enable("validateCETimeCorrection")
+                     showNotification(
+                       "All samples have been corrected! You can now validate and export the data.",
+                       type = "message",
+                       duration = 5
+                     )
+                   }
+                 }
+               }
+
                # Force garbage collection to free memory from old renderPlot() instances
                # This reduces (but doesn't eliminate) memory leak from renderPlot() recreation
                invisible(gc(verbose = FALSE))
@@ -6265,6 +6293,21 @@ observeEvent(ignoreNULL = TRUE,
                  }
                }
 
+               # Remove sample from corrected list and disable validation button
+               if (!is.null(input$SelectSample_KernelDensity)) {
+                 current_corrected <- correctedSamples_KernelDensity()
+                 # Remove this sample from corrected list
+                 correctedSamples_KernelDensity(current_corrected[current_corrected != input$SelectSample_KernelDensity])
+
+                 # Disable validation button since not all samples are corrected anymore
+                 shinyjs::disable("validateCETimeCorrection")
+                 showNotification(
+                   paste("Reset completed for sample:", input$SelectSample_KernelDensity),
+                   type = "warning",
+                   duration = 3
+                 )
+               }
+
                # Force garbage collection to free memory from old renderPlot() instances
                # This reduces (but doesn't eliminate) memory leak from renderPlot() recreation
                invisible(gc(verbose = FALSE))
@@ -6398,3 +6441,49 @@ output$downloadCETimeCorrected <- downloadHandler(
   },
   contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~ Validation Button Handler ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+observeEvent(input$validateCETimeCorrection, {
+  # Show confirmation message
+  showModal(modalDialog(
+    title = "CE-Time Correction Complete - Step 5 Done",
+    tags$div(
+      style = "font-size: 15px;",
+      tags$p(
+        icon("check-circle", style = "color: green; font-size: 24px;"),
+        tags$strong(" All samples have been successfully corrected!")
+      ),
+      tags$hr(),
+      tags$h4("Correction Summary:"),
+      tags$ul(
+        tags$li(tags$strong("Total samples corrected: "), length(correctedSamples_KernelDensity())),
+        tags$li(tags$strong("Correction method: "), "Kernel Density Estimation"),
+        tags$li(tags$strong("Status: "), tags$span("Ready for export", style = "color: green; font-weight: bold;"))
+      ),
+      tags$hr(),
+      tags$p(
+        "You can now download the corrected data using the ",
+        tags$strong("'Download Corrected Data (Excel)'"),
+        " button below."
+      ),
+      tags$p(
+        style = "color: #666; font-size: 13px;",
+        "The Excel file will contain 3 sheets: Corrected peaks, Sample info, and Correction summary."
+      )
+    ),
+    footer = tagList(
+      modalButton("Close")
+    ),
+    easyClose = TRUE,
+    size = "m"
+  ))
+
+  # Log validation event
+  cat(paste0(
+    "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
+    "CE-Time Correction Validated - ",
+    length(correctedSamples_KernelDensity()), " samples ready for export\n"
+  ))
+})

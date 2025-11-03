@@ -1010,6 +1010,23 @@ CorrectionTime_KernelDensity_Ui <- function() {
             style = "background-color: #e8f5e9;",
             h4("Export corrected data", style = "color: #2e7d32;"),
             p("Download the CE-time corrected peak list after validation.", style = "font-size: 13px;"),
+
+            # Validation button - enabled when all samples are corrected
+            div(
+              class = "pull-left",
+              style = "display:inline-block; margin-right: 15px;",
+              disabled(
+                actionButton(
+                  inputId = "validateCETimeCorrection",
+                  label = "All Adjustments Complete - Step 5 Done",
+                  class = "btn-warning",
+                  icon = icon("check-circle"),
+                  style = "font-weight: bold;"
+                )
+              )
+            ),
+
+            # Download button (existing)
             div(
               class = "pull-left",
               style = "display:inline-block",
