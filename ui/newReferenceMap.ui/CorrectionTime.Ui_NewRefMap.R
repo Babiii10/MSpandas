@@ -1026,15 +1026,19 @@ CorrectionTime_KernelDensity_Ui <- function() {
               )
             ),
 
-            # Download button (existing)
+            # Download button (existing) - replaced with shinySaveButton
             div(
               class = "pull-left",
               style = "display:inline-block",
-              downloadButton(
-                outputId = "downloadCETimeCorrected",
-                label = "Download Corrected Data (Excel)",
-                class = "btn-success",
-                icon = icon("file-excel")
+              shinySaveButton(
+                id = "SaveCETimeCorrected",
+                label = "Save Corrected Data (Excel)",
+                title = "Save CE-time corrected data as...",
+                filename = "CE_time_corrected_peaks",
+                filetype = list(Excel = "xlsx"),
+                viewtype = "icon",
+                icon = icon("file-excel"),
+                class = "btn-success"
               )
             )
           )
