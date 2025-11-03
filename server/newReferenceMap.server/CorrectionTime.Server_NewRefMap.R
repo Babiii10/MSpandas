@@ -6340,107 +6340,272 @@ observe({
 })
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-##~~~~~~~~~~~~~~~~~~ Download CE-time Corrected Data ~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~ Save CE-time Corrected Data with shinyFiles ~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-output$downloadCETimeCorrected <- downloadHandler(
-  filename = function() {
-    paste0("CE_time_corrected_peaks_",
-           format(Sys.time(), "%Y%m%d_%H%M%S"),
-           ".xlsx")
-  },
-  content = function(file) {
-    req(RvarsCorrectionTime$peakListAligned_KernelDensity)
-    
-    # Get corrected data
-    corrected_data <- RvarsCorrectionTime$peakListAligned_KernelDensity
-    
-    # Create workbook with multiple sheets
-    wb <- openxlsx::createWorkbook()
-    
-    # Sheet 1: Corrected peaks data
-    openxlsx::addWorksheet(wb, "Corrected_Peaks")
-    openxlsx::writeData(wb, "Corrected_Peaks", corrected_data, 
-                       startRow = 1, startCol = 1, 
-                       rowNames = FALSE)
-    
-    # Add header styling
-    header_style <- openxlsx::createStyle(
-      fontSize = 12,
-      fontColour = "#FFFFFF",
-      fgFill = "#4F81BD",
-      halign = "center",
-      valign = "center",
-      textDecoration = "bold",
-      border = "TopBottomLeftRight"
-    )
-    
-    openxlsx::addStyle(wb, "Corrected_Peaks", 
-                      style = header_style,
-                      rows = 1, 
-                      cols = 1:ncol(corrected_data),
-                      gridExpand = TRUE)
-    
-    # Freeze first row
-    openxlsx::freezePane(wb, "Corrected_Peaks", firstRow = TRUE)
-    
-    # Auto-size columns
-    openxlsx::setColWidths(wb, "Corrected_Peaks", 
-                          cols = 1:ncol(corrected_data), 
-                          widths = "auto")
-    
-    # Sheet 2: Metadata/Parameters (if available)
-    if (!is.null(RvarsCorrectionTime$pheno_Data_mzML)) {
-      openxlsx::addWorksheet(wb, "Sample_Info")
-      openxlsx::writeData(wb, "Sample_Info", 
-                         RvarsCorrectionTime$pheno_Data_mzML,
-                         rowNames = FALSE)
-      
-      openxlsx::addStyle(wb, "Sample_Info", 
-                        style = header_style,
-                        rows = 1, 
-                        cols = 1:ncol(RvarsCorrectionTime$pheno_Data_mzML),
-                        gridExpand = TRUE)
-      
-      openxlsx::freezePane(wb, "Sample_Info", firstRow = TRUE)
-    }
-    
-    # Sheet 3: Correction summary
-    openxlsx::addWorksheet(wb, "Correction_Summary")
-    
-    summary_info <- data.frame(
-      Parameter = c("Correction Method", 
-                   "Kernel Type", 
-                   "Bandwidth (Model)",
-                   "Bandwidth (Filter)",
-                   "Min Density",
-                   "Intensity Filter",
-                   "Export Date",
-                   "Number of Peaks",
-                   "Number of Samples"),
-      Value = c("Kernel Density",
-               ifelse(!is.null(input$KernelType), input$KernelType, "N/A"),
-               ifelse(!is.null(input$bandwidth_Model), input$bandwidth_Model, "N/A"),
-               ifelse(!is.null(input$bandwidth_Filter), input$bandwidth_Filter, "N/A"),
-               ifelse(!is.null(input$minDensity), input$minDensity, "N/A"),
-               ifelse(!is.null(input$intensityFilter), input$intensityFilter, "N/A"),
-               format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-               nrow(corrected_data),
-               length(unique(corrected_data$sample)))
-    )
-    
-    openxlsx::writeData(wb, "Correction_Summary", summary_info, rowNames = FALSE)
-    
-    openxlsx::addStyle(wb, "Correction_Summary", 
-                      style = header_style,
-                      rows = 1, 
-                      cols = 1:2,
-                      gridExpand = TRUE)
-    
-    # Save workbook
-    openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
-  },
-  contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-)
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$SaveCETimeCorrected
+             },
+             handlerExpr = {
+               # Open file save dialog
+               shinyFileSave(input,
+                             id = "SaveCETimeCorrected",
+                             roots = volumes,
+                             session = session)
+
+               # Get the selected file path
+               path_Save_File <- parseSavePath(volumes, input$SaveCETimeCorrected)$datapath
+
+               # Only proceed if user selected a valid path
+               if (length(path_Save_File) > 0) {
+
+                 # Check if data exists
+                 if (!is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
+
+                   # Show progress notification
+                   showNotification(
+                     "Creating Excel file with corrected data...",
+                     type = "message",
+                     duration = NULL,
+                     id = "save_progress"
+                   )
+
+                   tryCatch({
+                     # Get corrected data
+                     corrected_data <- RvarsCorrectionTime$peakListAligned_KernelDensity
+
+                     # Create workbook with multiple sheets
+                     wb <- openxlsx::createWorkbook()
+
+                     # Sheet 1: Corrected peaks data
+                     openxlsx::addWorksheet(wb, "Corrected_Peaks")
+                     openxlsx::writeData(wb, "Corrected_Peaks", corrected_data,
+                                        startRow = 1, startCol = 1,
+                                        rowNames = FALSE)
+
+                     # Add header styling
+                     header_style <- openxlsx::createStyle(
+                       fontSize = 12,
+                       fontColour = "#FFFFFF",
+                       fgFill = "#4F81BD",
+                       halign = "center",
+                       valign = "center",
+                       textDecoration = "bold",
+                       border = "TopBottomLeftRight"
+                     )
+
+                     openxlsx::addStyle(wb, "Corrected_Peaks",
+                                       style = header_style,
+                                       rows = 1,
+                                       cols = 1:ncol(corrected_data),
+                                       gridExpand = TRUE)
+
+                     # Freeze first row
+                     openxlsx::freezePane(wb, "Corrected_Peaks", firstRow = TRUE)
+
+                     # Auto-size columns
+                     openxlsx::setColWidths(wb, "Corrected_Peaks",
+                                           cols = 1:ncol(corrected_data),
+                                           widths = "auto")
+
+                     # Sheet 2: Metadata/Parameters (if available)
+                     if (!is.null(RvarsCorrectionTime$pheno_Data_mzML)) {
+                       openxlsx::addWorksheet(wb, "Sample_Info")
+                       openxlsx::writeData(wb, "Sample_Info",
+                                          RvarsCorrectionTime$pheno_Data_mzML,
+                                          rowNames = FALSE)
+
+                       openxlsx::addStyle(wb, "Sample_Info",
+                                         style = header_style,
+                                         rows = 1,
+                                         cols = 1:ncol(RvarsCorrectionTime$pheno_Data_mzML),
+                                         gridExpand = TRUE)
+
+                       openxlsx::freezePane(wb, "Sample_Info", firstRow = TRUE)
+                     }
+
+                     # Sheet 3: Correction summary
+                     openxlsx::addWorksheet(wb, "Correction_Summary")
+
+                     summary_info <- data.frame(
+                       Parameter = c("Correction Method",
+                                    "Kernel Type",
+                                    "Bandwidth (Model)",
+                                    "Bandwidth (Filter)",
+                                    "Min Density",
+                                    "Intensity Filter",
+                                    "Export Date",
+                                    "Number of Peaks",
+                                    "Number of Samples"),
+                       Value = c("Kernel Density",
+                                ifelse(!is.null(input$KernelType), input$KernelType, "N/A"),
+                                ifelse(!is.null(input$bandwidth_Model), input$bandwidth_Model, "N/A"),
+                                ifelse(!is.null(input$bandwidth_Filter), input$bandwidth_Filter, "N/A"),
+                                ifelse(!is.null(input$minDensity), input$minDensity, "N/A"),
+                                ifelse(!is.null(input$intensityFilter), input$intensityFilter, "N/A"),
+                                format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+                                nrow(corrected_data),
+                                length(unique(corrected_data$sample)))
+                     )
+
+                     openxlsx::writeData(wb, "Correction_Summary", summary_info, rowNames = FALSE)
+
+                     openxlsx::addStyle(wb, "Correction_Summary",
+                                       style = header_style,
+                                       rows = 1,
+                                       cols = 1:2,
+                                       gridExpand = TRUE)
+
+                     # Ensure the file has .xlsx extension
+                     if (!grepl("\\.xlsx$", path_Save_File, ignore.case = TRUE)) {
+                       path_Save_File <- paste0(path_Save_File, ".xlsx")
+                     }
+
+                     # Save workbook to selected path
+                     openxlsx::saveWorkbook(wb, path_Save_File, overwrite = TRUE)
+
+                     # Remove progress notification
+                     removeNotification(id = "save_progress")
+
+                     # Show success notification
+                     showNotification(
+                       paste0("File saved successfully to:\n", basename(path_Save_File)),
+                       type = "message",
+                       duration = 5
+                     )
+
+                     # Log save event
+                     cat(paste0(
+                       "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
+                       "CE-Time corrected data saved to: ", path_Save_File,
+                       " (", nrow(corrected_data), " peaks, ",
+                       length(unique(corrected_data$sample)), " samples)\n"
+                     ))
+
+                   }, error = function(e) {
+                     # Remove progress notification
+                     removeNotification(id = "save_progress")
+
+                     # Show error notification
+                     showNotification(
+                       paste0("Error saving file: ", e$message),
+                       type = "error",
+                       duration = 10
+                     )
+
+                     # Log error
+                     cat(paste0(
+                       "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
+                       "ERROR saving CE-Time data: ", e$message, "\n"
+                     ))
+                   })
+
+                 } else {
+                   # No data available
+                   showNotification(
+                     "No corrected data available. Please apply Kernel Density correction first.",
+                     type = "warning",
+                     duration = 5
+                   )
+                 }
+               }
+               # If path_Save_File is empty, user cancelled the dialog - no action needed
+             })
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~ Save CE-time Corrected Data as CSV ~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$SaveCETimeCorrectedCSV
+             },
+             handlerExpr = {
+               # Open file save dialog
+               shinyFileSave(input,
+                             id = "SaveCETimeCorrectedCSV",
+                             roots = volumes,
+                             session = session)
+
+               # Get the selected file path
+               path_Save_File <- parseSavePath(volumes, input$SaveCETimeCorrectedCSV)$datapath
+
+               # Only proceed if user selected a valid path
+               if (length(path_Save_File) > 0) {
+
+                 # Check if data exists
+                 if (!is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
+
+                   # Show progress notification
+                   showNotification(
+                     "Creating CSV file with corrected data...",
+                     type = "message",
+                     duration = NULL,
+                     id = "save_csv_progress"
+                   )
+
+                   tryCatch({
+                     # Get corrected data
+                     corrected_data <- RvarsCorrectionTime$peakListAligned_KernelDensity
+
+                     # Ensure the file has .csv extension
+                     if (!grepl("\\.csv$", path_Save_File, ignore.case = TRUE)) {
+                       path_Save_File <- paste0(path_Save_File, ".csv")
+                     }
+
+                     # Save as CSV
+                     write.csv(corrected_data,
+                               file = path_Save_File,
+                               row.names = FALSE,
+                               quote = TRUE,
+                               na = "")
+
+                     # Remove progress notification
+                     removeNotification(id = "save_csv_progress")
+
+                     # Show success notification
+                     showNotification(
+                       paste0("CSV file saved successfully to:\n", basename(path_Save_File)),
+                       type = "message",
+                       duration = 5
+                     )
+
+                     # Log save event
+                     cat(paste0(
+                       "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
+                       "CE-Time corrected data saved as CSV to: ", path_Save_File,
+                       " (", nrow(corrected_data), " peaks, ",
+                       length(unique(corrected_data$sample)), " samples)\n"
+                     ))
+
+                   }, error = function(e) {
+                     # Remove progress notification
+                     removeNotification(id = "save_csv_progress")
+
+                     # Show error notification
+                     showNotification(
+                       paste0("Error saving CSV file: ", e$message),
+                       type = "error",
+                       duration = 10
+                     )
+
+                     # Log error
+                     cat(paste0(
+                       "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
+                       "ERROR saving CE-Time data as CSV: ", e$message, "\n"
+                     ))
+                   })
+
+                 } else {
+                   # No data available
+                   showNotification(
+                     "No corrected data available. Please apply Kernel Density correction first.",
+                     type = "warning",
+                     duration = 5
+                   )
+                 }
+               }
+               # If path_Save_File is empty, user cancelled the dialog - no action needed
+             })
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~ Validation Button Handler ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
