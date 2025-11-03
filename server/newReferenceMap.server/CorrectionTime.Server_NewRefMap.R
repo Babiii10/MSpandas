@@ -6513,6 +6513,101 @@ observeEvent(ignoreNULL = TRUE,
              })
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~ Save CE-time Corrected Data as CSV ~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$SaveCETimeCorrectedCSV
+             },
+             handlerExpr = {
+               # Open file save dialog
+               shinyFileSave(input,
+                             id = "SaveCETimeCorrectedCSV",
+                             roots = volumes,
+                             session = session)
+
+               # Get the selected file path
+               path_Save_File <- parseSavePath(volumes, input$SaveCETimeCorrectedCSV)$datapath
+
+               # Only proceed if user selected a valid path
+               if (length(path_Save_File) > 0) {
+
+                 # Check if data exists
+                 if (!is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
+
+                   # Show progress notification
+                   showNotification(
+                     "Creating CSV file with corrected data...",
+                     type = "message",
+                     duration = NULL,
+                     id = "save_csv_progress"
+                   )
+
+                   tryCatch({
+                     # Get corrected data
+                     corrected_data <- RvarsCorrectionTime$peakListAligned_KernelDensity
+
+                     # Ensure the file has .csv extension
+                     if (!grepl("\\.csv$", path_Save_File, ignore.case = TRUE)) {
+                       path_Save_File <- paste0(path_Save_File, ".csv")
+                     }
+
+                     # Save as CSV
+                     write.csv(corrected_data,
+                               file = path_Save_File,
+                               row.names = FALSE,
+                               quote = TRUE,
+                               na = "")
+
+                     # Remove progress notification
+                     removeNotification(id = "save_csv_progress")
+
+                     # Show success notification
+                     showNotification(
+                       paste0("CSV file saved successfully to:\n", basename(path_Save_File)),
+                       type = "message",
+                       duration = 5
+                     )
+
+                     # Log save event
+                     cat(paste0(
+                       "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
+                       "CE-Time corrected data saved as CSV to: ", path_Save_File,
+                       " (", nrow(corrected_data), " peaks, ",
+                       length(unique(corrected_data$sample)), " samples)\n"
+                     ))
+
+                   }, error = function(e) {
+                     # Remove progress notification
+                     removeNotification(id = "save_csv_progress")
+
+                     # Show error notification
+                     showNotification(
+                       paste0("Error saving CSV file: ", e$message),
+                       type = "error",
+                       duration = 10
+                     )
+
+                     # Log error
+                     cat(paste0(
+                       "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
+                       "ERROR saving CE-Time data as CSV: ", e$message, "\n"
+                     ))
+                   })
+
+                 } else {
+                   # No data available
+                   showNotification(
+                     "No corrected data available. Please apply Kernel Density correction first.",
+                     type = "warning",
+                     duration = 5
+                   )
+                 }
+               }
+               # If path_Save_File is empty, user cancelled the dialog - no action needed
+             })
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~ Validation Button Handler ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 observeEvent(input$validateCETimeCorrection, {
