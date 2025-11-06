@@ -52,101 +52,52 @@ output$dynamicFileInputs_NewRefMap <- renderUI({
   if (length(filesToShow) > 0) {
     lapply(filesToShow, function(fileId) {
       fluidRow(
-
         column(
-
-          8,
-
+          6,
           fileInput(
-
             inputId = paste0("additionalDataFile_", fileId),
-
             label = paste0("Upload file ", fileId, " (CSV/XLSX)"),
-
             accept = c(".csv", ".xlsx", ".xls"),
-
             multiple = FALSE
-
           )
-
         ),
-
         column(
-
           4,
-
           div(
-
             style = "position:relative;top:25px",
-
             actionButton(
-
               inputId = paste0("removeFile_", fileId),
-
               label = "Remove",
-
               icon = icon("trash"),
-
               class = "btn-danger btn-sm"
-
             )
-
           )
-
         )
-
       )
-
     })
-
   }
-
 })
-
- 
 
 ## Dynamic observers for remove buttons
 
 observe({
-
   activeFiles <- additionalFilesState$activeFiles
-
- 
-
   # Create observers for each active file's remove button
-
   lapply(activeFiles, function(fileId) {
-
     if (fileId > 1) {  # Can't remove the first file
-
       observeEvent(input[[paste0("removeFile_", fileId)]], {
-
         # Remove this file ID from active files
-
         additionalFilesState$activeFiles <- additionalFilesState$activeFiles[
-
           additionalFilesState$activeFiles != fileId
-
         ]
-
- 
-
         showNotification(
-
           paste("File", fileId, "removed"),
-
           type = "message",
-
           duration = 2
-
         )
-
       }, ignoreInit = TRUE)
-
     }
-
   })
-
 })
 #})
 
