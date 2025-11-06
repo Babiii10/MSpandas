@@ -34,15 +34,83 @@ GenerateRefMapTabPanelNewRefrenceMap <- function() {
 GroupingMassif_NewRefMap_Ui <- function() {
   fluidRow(column(
     12,
-    
+
     HTML('<h4>Step 6 : Generate the refereance map </h4>'),
     hr(),
     fluidRow(column(
       6,
-      
+
       div(
         class = "well well-sm",
-        
+
+        h4("Additional data (optional):", icon("question-circle",
+                                                class = "ClassInfoBull",
+                                                title = "Upload additional peak data files (CSV/XLSX) to combine with existing data for grouping and map generation.")),
+
+        fluidRow(column(
+          12,
+
+          awesomeCheckbox(
+            inputId = "enableAdditionalData_NewRefMap",
+            label = "Enable additional data upload",
+            value = FALSE
+          )
+        )),
+
+        conditionalPanel(condition = "input.enableAdditionalData_NewRefMap==true",
+                         fluidRow(column(
+                           12,
+
+                           div(
+                             class = "well well-sm",
+                             style = "background-color: #f0f8ff; border: 1px solid #4682b4;",
+
+                             fluidRow(column(
+                               12,
+                               p(
+                                 style = "color: #2c5282; font-weight: bold;",
+                                 icon("info-circle"),
+                                 "Required columns: M+H, rt, Area, Height, sample"
+                               ),
+                               downloadButton(
+                                 outputId = "downloadTemplate_NewRefMap",
+                                 label = "Download CSV Template",
+                                 class = "btn-link btn-sm",
+                                 icon = icon("download")
+                               )
+                             ))
+                           ),
+
+                           div(
+                             id = "additionalFileInputContainer",
+
+                             fluidRow(column(
+                               8,
+                               fileInput(
+                                 inputId = "additionalDataFile_1",
+                                 label = "Upload file 1 (CSV/XLSX)",
+                                 accept = c(".csv", ".xlsx", ".xls"),
+                                 multiple = FALSE
+                               )
+                             ),
+                             column(
+                               4,
+                               div(
+                                 style = "position:relative;top:25px",
+                                 actionButton(
+                                   inputId = "addMoreFiles_NewRefMap",
+                                   label = "Add more files",
+                                   icon = icon("plus"),
+                                   class = "btn-info btn-sm"
+                                 )
+                               )
+                             )),
+
+                             uiOutput("dynamicFileInputs_NewRefMap")
+                           )
+                         ))),
+
+        hr(),
         h4("Parameters (grouping massif within and between samples):"),
         
         fluidRow(column(

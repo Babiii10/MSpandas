@@ -1,6 +1,152 @@
 ##" Initialize reactive values
 RvarsGrouping <- allReactiveVarsNewRefMap$Grouping
 
+## Track number of additional file inputs
+numAdditionalFiles <- reactiveVal(1)
+
+## Load additional data merge library
+source("lib/NewReferenceMap/R_files/AdditionalDataMerge.lib.R", local = TRUE)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~ Template Download Handler ~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+## Download CSV template for additional data
+output$downloadTemplate_NewRefMap <- downloadHandler(
+  filename = function() {
+    paste0("additional_data_template_", format(Sys.Date(), "%Y%m%d"), ".csv")
+  },
+  content = function(file) {
+    templatePath <- "docs/additional_data_template.csv"
+    if (file.exists(templatePath)) {
+      file.copy(templatePath, file)
+    } else {
+      # Generate template on the fly if file doesn't exist
+      template <- generateDataTemplate()
+      write.csv(template, file, row.names = FALSE)
+    }
+  }
+)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~ Dynamic File Inputs Management ~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+## Increment file input counter
+observeEvent(input$addMoreFiles_NewRefMap, {
+  current <- numAdditionalFiles()
+  numAdditionalFiles(current + 1)
+})
+
+## Render dynamic file inputs
+output$dynamicFileInputs_NewRefMap <- renderUI({
+  n <- numAdditionalFiles()
+
+  if (n > 1) {
+    lapply(2:n, function(i) {
+      fluidRow(column(
+        8,
+        fileInput(
+          inputId = paste0("additionalDataFile_", i),
+          label = paste0("Upload file ", i, " (CSV/XLSX)"),
+          accept = c(".csv", ".xlsx", ".xls"),
+          multiple = FALSE
+        )
+      ),
+      column(
+        4,
+        div(
+          style = "position:relative;top:25px",
+          actionButton(
+            inputId = paste0("removeFile_", i),
+            label = "Remove",
+            icon = icon("trash"),
+            class = "btn-danger btn-sm"
+          )
+        )
+      ))
+    })
+  }
+})
+
+## Handle file removal
+observeEvent({
+  lapply(2:numAdditionalFiles(), function(i) {
+    input[[paste0("removeFile_", i)]]
+  })
+}, {
+  # This will trigger when any remove button is clicked
+  # Reset file inputs if needed
+})
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~ Load and Combine Additional Data ~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+## Function to read uploaded files
+readAdditionalFile <- function(filePath) {
+  if (is.null(filePath) || !file.exists(filePath)) {
+    return(NULL)
+  }
+
+  fileExt <- tools::file_ext(filePath)
+
+  tryCatch({
+    if (fileExt %in% c("csv", "txt")) {
+      data <- read.csv(filePath, stringsAsFactors = FALSE)
+    } else if (fileExt %in% c("xlsx", "xls")) {
+      data <- openxlsx::read.xlsx(filePath)
+    } else {
+      return(NULL)
+    }
+    return(as.data.frame(data))
+  }, error = function(e) {
+    showNotification(
+      paste("Error reading file:", basename(filePath), "-", e$message),
+      type = "error",
+      duration = 5
+    )
+    return(NULL)
+  })
+}
+
+## Combine all uploaded files with existing data
+combineAdditionalData <- reactive({
+  if (!input$enableAdditionalData_NewRefMap) {
+    return(NULL)
+  }
+
+  allFiles <- list()
+  n <- numAdditionalFiles()
+
+  for (i in 1:n) {
+    fileInput <- input[[paste0("additionalDataFile_", i)]]
+    if (!is.null(fileInput)) {
+      fileData <- readAdditionalFile(fileInput$datapath)
+      if (!is.null(fileData)) {
+        allFiles[[i]] <- fileData
+      }
+    }
+  }
+
+  if (length(allFiles) == 0) {
+    return(NULL)
+  }
+
+  # Combine all uploaded files
+  tryCatch({
+    combinedData <- do.call("rbind", allFiles)
+    return(combinedData)
+  }, error = function(e) {
+    showNotification(
+      paste("Error combining files:", e$message),
+      type = "error",
+      duration = 5
+    )
+    return(NULL)
+  })
+})
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~ Control some buttons ~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#~
@@ -78,11 +224,74 @@ observeEvent(ignoreNULL = TRUE,
                  ## Load some functions:
                  source("lib/NewReferenceMap/R_files/GenerateMapRef.lib.R",
                         local = TRUE)
-                 
+
                  ## Change names of columns
-                 
+
                  Massif_List_ToGroup <-
                    RvarsCorrectionTime$peakListAligned_KernelDensity
+
+                 ## Combine with additional uploaded data if available
+                 additionalData <- combineAdditionalData()
+
+                 if (!is.null(additionalData) && nrow(additionalData) > 0) {
+                   # Validate that additional data has required columns
+                   requiredCols <- c("M+H", "rt", "Area", "Height", "sample")
+
+                   if (all(requiredCols %in% colnames(additionalData))) {
+                     # Standardize column names if needed
+                     colSelect <-
+                       c(
+                         "M+H",
+                         "M+H.min",
+                         "M+H.max",
+                         "rt",
+                         "rtmin",
+                         "rtmax",
+                         "Area",
+                         "Height",
+                         "SN",
+                         "sample",
+                         "iso.mass",
+                         "iso.mass.link",
+                         "mz_PeaksIsotopics_Group",
+                         "rt_PeaksIsotopics_Group",
+                         "Height_PeaksIsotopics_Group",
+                         "Adduct"
+                       )
+
+                     # Fill missing columns in additional data with default values
+                     for (col in colSelect) {
+                       if (!(col %in% colnames(additionalData))) {
+                         if (col %in% c("M+H.min", "M+H.max")) {
+                           additionalData[[col]] <- additionalData[["M+H"]]
+                         } else if (col %in% c("rtmin", "rtmax")) {
+                           additionalData[[col]] <- additionalData[["rt"]]
+                         } else if (col %in% c("SN")) {
+                           additionalData[[col]] <- 100
+                         } else if (col %in% c("iso.mass", "iso.mass.link", "mz_PeaksIsotopics_Group",
+                                                "rt_PeaksIsotopics_Group", "Height_PeaksIsotopics_Group", "Adduct")) {
+                           additionalData[[col]] <- ""
+                         }
+                       }
+                     }
+
+                     # Combine datasets
+                     Massif_List_ToGroup <- rbind(Massif_List_ToGroup, additionalData[, colSelect])
+
+                     showNotification(
+                       paste("Combined", nrow(additionalData), "additional peaks with existing data"),
+                       type = "message",
+                       duration = 5
+                     )
+                   } else {
+                     showNotification(
+                       paste("Additional data missing required columns:",
+                             paste(requiredCols[!requiredCols %in% colnames(additionalData)], collapse = ", ")),
+                       type = "warning",
+                       duration = 5
+                     )
+                   }
+                 }
                  colSelect <-
                    c(
                      "M+H",
