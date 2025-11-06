@@ -188,14 +188,23 @@ combineAdditionalData <- reactive({
   }
 
   allFiles <- list()
-  n <- numAdditionalFiles()
+  activeFiles <- additionalFilesState$activeFiles
 
-  for (i in 1:n) {
-    fileInput <- input[[paste0("additionalDataFile_", i)]]
+ 
+
+  # Loop through only active files
+
+  for (fileId in activeFiles) {
+
+    fileInput <- input[[paste0("additionalDataFile_", fileId)]]
+
     if (!is.null(fileInput)) {
+
       fileData <- readAdditionalFile(fileInput$datapath)
+
       if (!is.null(fileData)) {
-        allFiles[[i]] <- fileData
+
+        allFiles[[length(allFiles) + 1]] <- fileData
       }
     }
   }
