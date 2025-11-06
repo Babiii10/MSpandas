@@ -1,8 +1,11 @@
 ##" Initialize reactive values
 RvarsGrouping <- allReactiveVarsNewRefMap$Grouping
 
-## Track number of additional file inputs
-numAdditionalFiles <- reactiveVal(1)
+## Track additional file inputs with reactive values
+additionalFilesState <- reactiveValues(
+  counter = 1,           # Total number of files created
+  activeFiles = c(1)     # IDs of currently active/visible files
+)
 
 ## Load additional data merge library
 source("lib/NewReferenceMap/R_files/AdditionalDataMerge.lib.R", local = TRUE)
@@ -32,51 +35,69 @@ output$downloadTemplate_NewRefMap <- downloadHandler(
 ##~~~~~~~~~~~~~~~~~~~~ Dynamic File Inputs Management ~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-## Increment file input counter
+## Add more file inputs
 observeEvent(input$addMoreFiles_NewRefMap, {
-  current <- numAdditionalFiles()
-  numAdditionalFiles(current + 1)
+  additionalFilesState$counter <- additionalFilesState$counter + 1
+  additionalFilesState$activeFiles <- c(additionalFilesState$activeFiles, additionalFilesState$counter)
 })
 
 ## Render dynamic file inputs
 output$dynamicFileInputs_NewRefMap <- renderUI({
-  n <- numAdditionalFiles()
+  activeFiles <- additionalFilesState$activeFiles
 
-  if (n > 1) {
-    lapply(2:n, function(i) {
-      fluidRow(column(
-        8,
-        fileInput(
-          inputId = paste0("additionalDataFile_", i),
-          label = paste0("Upload file ", i, " (CSV/XLSX)"),
-          accept = c(".csv", ".xlsx", ".xls"),
-          multiple = FALSE
-        )
-      ),
-      column(
-        4,
-        div(
-          style = "position:relative;top:25px",
-          actionButton(
-            inputId = paste0("removeFile_", i),
-            label = "Remove",
-            icon = icon("trash"),
-            class = "btn-danger btn-sm"
+  # Only show files after the first one (first one is static in UI)
+  filesToShow <- activeFiles[activeFiles > 1]
+
+  if (length(filesToShow) > 0) {
+    lapply(filesToShow, function(fileId) {
+      fluidRow(
+        column(
+          8,
+          fileInput(
+            inputId = paste0("additionalDataFile_", fileId),
+            label = paste0("Upload file ", fileId, " (CSV/XLSX)"),
+            accept = c(".csv", ".xlsx", ".xls"),
+            multiple = FALSE
+          )
+        ),
+        column(
+          4,
+          div(
+            style = "position:relative;top:25px",
+            actionButton(
+              inputId = paste0("removeFile_", fileId),
+              label = "Remove",
+              icon = icon("trash"),
+              class = "btn-danger btn-sm"
+            )
           )
         )
-      ))
+      )
     })
   }
 })
 
-## Handle file removal
-observeEvent({
-  lapply(2:numAdditionalFiles(), function(i) {
-    input[[paste0("removeFile_", i)]]
+## Dynamic observers for remove buttons
+observe({
+  activeFiles <- additionalFilesState$activeFiles
+
+  # Create observers for each active file's remove button
+  lapply(activeFiles, function(fileId) {
+    if (fileId > 1) {  # Can't remove the first file
+      observeEvent(input[[paste0("removeFile_", fileId)]], {
+        # Remove this file ID from active files
+        additionalFilesState$activeFiles <- additionalFilesState$activeFiles[
+          additionalFilesState$activeFiles != fileId
+        ]
+
+        showNotification(
+          paste("File", fileId, "removed"),
+          type = "message",
+          duration = 2
+        )
+      }, ignoreInit = TRUE)
+    }
   })
-}, {
-  # This will trigger when any remove button is clicked
-  # Reset file inputs if needed
 })
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -117,14 +138,15 @@ combineAdditionalData <- reactive({
   }
 
   allFiles <- list()
-  n <- numAdditionalFiles()
+  activeFiles <- additionalFilesState$activeFiles
 
-  for (i in 1:n) {
-    fileInput <- input[[paste0("additionalDataFile_", i)]]
+  # Loop through only active files
+  for (fileId in activeFiles) {
+    fileInput <- input[[paste0("additionalDataFile_", fileId)]]
     if (!is.null(fileInput)) {
       fileData <- readAdditionalFile(fileInput$datapath)
       if (!is.null(fileData)) {
-        allFiles[[i]] <- fileData
+        allFiles[[length(allFiles) + 1]] <- fileData
       }
     }
   }
