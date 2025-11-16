@@ -2,10 +2,11 @@
 RvarsGrouping <- allReactiveVarsNewRefMap$Grouping
 
 ## Track additional file inputs with reactive values
-
 additionalFilesState <- reactiveValues(
   counter = 1,           # Total number of files created
-  activeFiles = c(1)     # IDs of currently active/visible files
+  activeFiles = c(1),    # IDs of currently active/visible files
+  validatedData = NULL,  # Store validated and combined data
+  isValidated = FALSE    # Track if files have been validated
 )
 
 ## Load additional data merge library
@@ -37,6 +38,7 @@ output$downloadTemplate_NewRefMap <- downloadHandler(
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~ Dynamic File Inputs Management ~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
 ## Add more file inputs
 observeEvent(input$addMoreFiles_NewRefMap, {
   additionalFilesState$counter <- additionalFilesState$counter + 1
@@ -46,14 +48,15 @@ observeEvent(input$addMoreFiles_NewRefMap, {
 ## Render dynamic file inputs
 output$dynamicFileInputs_NewRefMap <- renderUI({
   activeFiles <- additionalFilesState$activeFiles
-  # Only show files after the first one (first one is static in UI)
 
+  # Only show files after the first one (first one is static in UI)
   filesToShow <- activeFiles[activeFiles > 1]
+
   if (length(filesToShow) > 0) {
     lapply(filesToShow, function(fileId) {
       fluidRow(
         column(
-          6,
+          8,
           fileInput(
             inputId = paste0("additionalDataFile_", fileId),
             label = paste0("Upload file ", fileId, " (CSV/XLSX)"),
@@ -79,9 +82,9 @@ output$dynamicFileInputs_NewRefMap <- renderUI({
 })
 
 ## Dynamic observers for remove buttons
-
 observe({
   activeFiles <- additionalFilesState$activeFiles
+
   # Create observers for each active file's remove button
   lapply(activeFiles, function(fileId) {
     if (fileId > 1) {  # Can't remove the first file
@@ -90,6 +93,7 @@ observe({
         additionalFilesState$activeFiles <- additionalFilesState$activeFiles[
           additionalFilesState$activeFiles != fileId
         ]
+
         showNotification(
           paste("File", fileId, "removed"),
           type = "message",
@@ -98,6 +102,208 @@ observe({
       }, ignoreInit = TRUE)
     }
   })
+})
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~ Enable/Disable Validate Button ~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+## Monitor uploaded files and enable validation button
+observe({
+  if (!input$enableAdditionalData_NewRefMap) {
+    disable("validateFiles_NewRefMap")
+    return()
+  }
+
+  activeFiles <- additionalFilesState$activeFiles
+  hasUploadedFiles <- FALSE
+
+  # Check if at least one file is uploaded
+  for (fileId in activeFiles) {
+    fileInput <- input[[paste0("additionalDataFile_", fileId)]]
+    if (!is.null(fileInput)) {
+      hasUploadedFiles <- TRUE
+      break
+    }
+  }
+
+  if (hasUploadedFiles) {
+    enable("validateFiles_NewRefMap")
+  } else {
+    disable("validateFiles_NewRefMap")
+  }
+})
+
+## Reset validation status when files change
+observe({
+  # Trigger when activeFiles change or when a new file is uploaded
+  activeFiles <- additionalFilesState$activeFiles
+
+  # Reset validation
+  additionalFilesState$isValidated <- FALSE
+  additionalFilesState$validatedData <- NULL
+})
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~ Validate and Combine Files ~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+## Handle file validation and combination
+observeEvent(input$validateFiles_NewRefMap, {
+  if (!input$enableAdditionalData_NewRefMap) {
+    return()
+  }
+
+  withProgress(message = 'Validating and combining files...', value = 0, {
+    activeFiles <- additionalFilesState$activeFiles
+    allFiles <- list()
+    fileNames <- c()
+    errorMessages <- c()
+
+    incProgress(0.2, detail = "Reading files...")
+
+    # Read all uploaded files
+    for (fileId in activeFiles) {
+      fileInput <- input[[paste0("additionalDataFile_", fileId)]]
+      if (!is.null(fileInput)) {
+        fileData <- readAdditionalFile(fileInput$datapath)
+        if (!is.null(fileData)) {
+          allFiles[[length(allFiles) + 1]] <- fileData
+          fileNames <- c(fileNames, fileInput$name)
+        } else {
+          errorMessages <- c(errorMessages, paste("Failed to read:", fileInput$name))
+        }
+      }
+    }
+
+    if (length(allFiles) == 0) {
+      showNotification(
+        "No valid files to combine",
+        type = "error",
+        duration = 5
+      )
+      return()
+    }
+
+    incProgress(0.3, detail = "Validating columns...")
+
+    # Validate that all files have compatible columns
+    requiredCols <- c("M+H", "rt", "Area", "Height", "sample")
+    allColumnsValid <- TRUE
+    columnErrors <- c()
+
+    for (i in seq_along(allFiles)) {
+      missingCols <- requiredCols[!requiredCols %in% colnames(allFiles[[i]])]
+      if (length(missingCols) > 0) {
+        allColumnsValid <- FALSE
+        columnErrors <- c(
+          columnErrors,
+          paste0(fileNames[i], ": missing columns [", paste(missingCols, collapse = ", "), "]")
+        )
+      }
+    }
+
+    if (!allColumnsValid) {
+      showNotification(
+        HTML(paste(
+          "<strong>Column validation failed:</strong><br>",
+          paste(columnErrors, collapse = "<br>"),
+          "<br><br><strong>Required columns:</strong> M+H, rt, Area, Height, sample"
+        )),
+        type = "error",
+        duration = 10,
+        closeButton = TRUE
+      )
+      return()
+    }
+
+    incProgress(0.3, detail = "Combining files...")
+
+    # Try to combine all files
+    tryCatch({
+      # Get common columns across all files
+      commonCols <- Reduce(intersect, lapply(allFiles, colnames))
+
+      if (length(commonCols) == 0) {
+        showNotification(
+          "No common columns found between files",
+          type = "error",
+          duration = 5
+        )
+        return()
+      }
+
+      # Ensure required columns are in common columns
+      if (!all(requiredCols %in% commonCols)) {
+        showNotification(
+          "Required columns not consistent across all files",
+          type = "error",
+          duration = 5
+        )
+        return()
+      }
+
+      # Combine using only common columns
+      combinedData <- do.call("rbind", lapply(allFiles, function(df) df[, commonCols]))
+
+      # Store validated data
+      additionalFilesState$validatedData <- combinedData
+      additionalFilesState$isValidated <- TRUE
+
+      incProgress(0.2, detail = "Done!")
+
+      # Success notification with details
+      showNotification(
+        HTML(paste(
+          "<strong>✓ Files successfully combined!</strong><br>",
+          "Files processed:", length(allFiles), "<br>",
+          "Total rows:", nrow(combinedData), "<br>",
+          "Columns:", length(commonCols)
+        )),
+        type = "message",
+        duration = 7,
+        closeButton = TRUE
+      )
+
+    }, error = function(e) {
+      showNotification(
+        HTML(paste(
+          "<strong>Error combining files:</strong><br>",
+          e$message,
+          "<br><br>Please ensure all files have compatible data types and structure."
+        )),
+        type = "error",
+        duration = 10,
+        closeButton = TRUE
+      )
+      additionalFilesState$isValidated <- FALSE
+      additionalFilesState$validatedData <- NULL
+    })
+  })
+})
+
+## Display validation status
+output$fileValidationStatus_NewRefMap <- renderUI({
+  if (!input$enableAdditionalData_NewRefMap) {
+    return(NULL)
+  }
+
+  if (additionalFilesState$isValidated && !is.null(additionalFilesState$validatedData)) {
+    div(
+      class = "alert alert-success",
+      style = "text-align: center; font-weight: bold;",
+      icon("check-circle"),
+      " Files validated and ready for grouping (",
+      nrow(additionalFilesState$validatedData), " rows)"
+    )
+  } else {
+    div(
+      class = "alert alert-info",
+      style = "text-align: center;",
+      icon("info-circle"),
+      " Upload your files and click 'Validate & Combine Files' when ready"
+    )
+  }
 })
 #})
 
@@ -132,44 +338,18 @@ readAdditionalFile <- function(filePath) {
   })
 }
 
-## Combine all uploaded files with existing data
-combineAdditionalData <- reactive({
+## Get validated additional data (if available)
+getValidatedAdditionalData <- reactive({
   if (!input$enableAdditionalData_NewRefMap) {
     return(NULL)
   }
 
-  allFiles <- list()
-  activeFiles <- additionalFilesState$activeFiles
-
- 
-
-  # Loop through only active files
-  for (fileId in activeFiles) {
-    fileInput <- input[[paste0("additionalDataFile_", fileId)]]
-    if (!is.null(fileInput)) {
-      fileData <- readAdditionalFile(fileInput$datapath)
-      if (!is.null(fileData)) {
-        allFiles[[length(allFiles) + 1]] <- fileData
-      }
-    }
+  # Return validated data if available
+  if (additionalFilesState$isValidated && !is.null(additionalFilesState$validatedData)) {
+    return(additionalFilesState$validatedData)
   }
 
-  if (length(allFiles) == 0) {
-    return(NULL)
-  }
-
-  # Combine all uploaded files
-  tryCatch({
-    combinedData <- do.call("rbind", allFiles)
-    return(combinedData)
-  }, error = function(e) {
-    showNotification(
-      paste("Error combining files:", e$message),
-      type = "error",
-      duration = 5
-    )
-    return(NULL)
-  })
+  return(NULL)
 })
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -255,67 +435,64 @@ observeEvent(ignoreNULL = TRUE,
                  Massif_List_ToGroup <-
                    RvarsCorrectionTime$peakListAligned_KernelDensity
 
-                 ## Combine with additional uploaded data if available
-                 additionalData <- combineAdditionalData()
+                 ## Combine with validated additional data if available
+                 additionalData <- getValidatedAdditionalData()
 
                  if (!is.null(additionalData) && nrow(additionalData) > 0) {
-                   # Validate that additional data has required columns
-                   requiredCols <- c("M+H", "rt", "Area", "Height", "sample")
+                   # Data is already validated, just standardize columns
+                   colSelect <-
+                     c(
+                       "M+H",
+                       "M+H.min",
+                       "M+H.max",
+                       "rt",
+                       "rtmin",
+                       "rtmax",
+                       "Area",
+                       "Height",
+                       "SN",
+                       "sample",
+                       "iso.mass",
+                       "iso.mass.link",
+                       "mz_PeaksIsotopics_Group",
+                       "rt_PeaksIsotopics_Group",
+                       "Height_PeaksIsotopics_Group",
+                       "Adduct"
+                     )
 
-                   if (all(requiredCols %in% colnames(additionalData))) {
-                     # Standardize column names if needed
-                     colSelect <-
-                       c(
-                         "M+H",
-                         "M+H.min",
-                         "M+H.max",
-                         "rt",
-                         "rtmin",
-                         "rtmax",
-                         "Area",
-                         "Height",
-                         "SN",
-                         "sample",
-                         "iso.mass",
-                         "iso.mass.link",
-                         "mz_PeaksIsotopics_Group",
-                         "rt_PeaksIsotopics_Group",
-                         "Height_PeaksIsotopics_Group",
-                         "Adduct"
-                       )
-
-                     # Fill missing columns in additional data with default values
-                     for (col in colSelect) {
-                       if (!(col %in% colnames(additionalData))) {
-                         if (col %in% c("M+H.min", "M+H.max")) {
-                           additionalData[[col]] <- additionalData[["M+H"]]
-                         } else if (col %in% c("rtmin", "rtmax")) {
-                           additionalData[[col]] <- additionalData[["rt"]]
-                         } else if (col %in% c("SN")) {
-                           additionalData[[col]] <- 100
-                         } else if (col %in% c("iso.mass", "iso.mass.link", "mz_PeaksIsotopics_Group",
-                                                "rt_PeaksIsotopics_Group", "Height_PeaksIsotopics_Group", "Adduct")) {
-                           additionalData[[col]] <- ""
-                         }
+                   # Fill missing columns in additional data with default values
+                   for (col in colSelect) {
+                     if (!(col %in% colnames(additionalData))) {
+                       if (col %in% c("M+H.min", "M+H.max")) {
+                         additionalData[[col]] <- additionalData[["M+H"]]
+                       } else if (col %in% c("rtmin", "rtmax")) {
+                         additionalData[[col]] <- additionalData[["rt"]]
+                       } else if (col %in% c("SN")) {
+                         additionalData[[col]] <- 100
+                       } else if (col %in% c("iso.mass", "iso.mass.link", "mz_PeaksIsotopics_Group",
+                                              "rt_PeaksIsotopics_Group", "Height_PeaksIsotopics_Group", "Adduct")) {
+                         additionalData[[col]] <- ""
                        }
                      }
-
-                     # Combine datasets
-                     Massif_List_ToGroup <- rbind(Massif_List_ToGroup, additionalData[, colSelect])
-
-                     showNotification(
-                       paste("Combined", nrow(additionalData), "additional peaks with existing data"),
-                       type = "message",
-                       duration = 5
-                     )
-                   } else {
-                     showNotification(
-                       paste("Additional data missing required columns:",
-                             paste(requiredCols[!requiredCols %in% colnames(additionalData)], collapse = ", ")),
-                       type = "warning",
-                       duration = 5
-                     )
                    }
+
+                   # Get common columns between existing and additional data
+                   commonCols <- intersect(colnames(Massif_List_ToGroup), colnames(additionalData))
+
+                   # Combine datasets using common columns
+                   Massif_List_ToGroup <- rbind(
+                     Massif_List_ToGroup[, commonCols],
+                     additionalData[, commonCols]
+                   )
+
+                   showNotification(
+                     HTML(paste(
+                       "<strong>✓ Using validated additional data</strong><br>",
+                       nrow(additionalData), "additional peaks combined with existing data"
+                     )),
+                     type = "message",
+                     duration = 5
+                   )
                  }
                  colSelect <-
                    c(

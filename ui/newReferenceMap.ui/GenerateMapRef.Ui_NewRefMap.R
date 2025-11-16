@@ -106,7 +106,30 @@ GroupingMassif_NewRefMap_Ui <- function() {
                                )
                              )),
 
-                             uiOutput("dynamicFileInputs_NewRefMap")
+                             uiOutput("dynamicFileInputs_NewRefMap"),
+
+                             fluidRow(br()),
+
+                             fluidRow(column(
+                               12,
+                               div(
+                                 style = "text-align: center;",
+                                 disabled(
+                                   actionButton(
+                                     inputId = "validateFiles_NewRefMap",
+                                     label = "Validate & Combine Files",
+                                     icon = icon("check-circle"),
+                                     class = "btn-success btn-lg",
+                                     style = "font-weight: bold;"
+                                   )
+                                 )
+                               )
+                             )),
+
+                             fluidRow(br()),
+
+                             # Status indicator
+                             uiOutput("fileValidationStatus_NewRefMap")
                            )
                          ))),
 
