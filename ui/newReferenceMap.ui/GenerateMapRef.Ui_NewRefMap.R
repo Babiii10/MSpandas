@@ -142,9 +142,13 @@ GroupingMassif_NewRefMap_Ui <- function() {
 
                                    div(
                                      style = "display: inline-block; margin-right: 10px;",
-                                     downloadButton(
-                                       outputId = "exportCombinedData_CSV",
+                                     shinySaveButton(
+                                       id = "exportCombinedData_CSV",
                                        label = "Export as CSV",
+                                       title = "Save combined data as CSV",
+                                       filename = "combined_additional_data",
+                                       filetype = list(CSV = "csv"),
+                                       viewtype = "icon",
                                        icon = icon("file-csv"),
                                        class = "btn-info"
                                      )
@@ -152,9 +156,13 @@ GroupingMassif_NewRefMap_Ui <- function() {
 
                                    div(
                                      style = "display: inline-block;",
-                                     downloadButton(
-                                       outputId = "exportCombinedData_Excel",
+                                     shinySaveButton(
+                                       id = "exportCombinedData_Excel",
                                        label = "Export as Excel",
+                                       title = "Save combined data as Excel",
+                                       filename = "combined_additional_data",
+                                       filetype = list(Excel = "xlsx"),
+                                       viewtype = "icon",
                                        icon = icon("file-excel"),
                                        class = "btn-info"
                                      )

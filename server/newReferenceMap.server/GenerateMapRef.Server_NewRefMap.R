@@ -321,74 +321,124 @@ outputOptions(output, "showExportButton_NewRefMap", suspendWhenHidden = FALSE)
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 ## Export as CSV
-output$exportCombinedData_CSV <- downloadHandler(
-  filename = function() {
-    paste0("combined_additional_data_", format(Sys.Date(), "%Y%m%d"), "_",
-           format(Sys.time(), "%H%M%S"), ".csv")
-  },
-  content = function(file) {
-    if (!is.null(additionalFilesState$validatedData)) {
-      tryCatch({
-        write.csv(additionalFilesState$validatedData, file, row.names = FALSE)
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$exportCombinedData_CSV
+             },
+             handlerExpr = {
+               if (is.null(additionalFilesState$validatedData)) {
+                 showNotification(
+                   "No validated data to export",
+                   type = "warning",
+                   duration = 3
+                 )
+                 return()
+               }
 
-        showNotification(
-          HTML(paste(
-            "<strong>✓ Export successful!</strong><br>",
-            "File saved as CSV with", nrow(additionalFilesState$validatedData), "rows"
-          )),
-          type = "message",
-          duration = 5
-        )
-      }, error = function(e) {
-        showNotification(
-          paste("Error exporting CSV:", e$message),
-          type = "error",
-          duration = 5
-        )
-      })
-    }
-  }
-)
+               # Open file save dialog
+               shinyFileSave(input,
+                             id = "exportCombinedData_CSV",
+                             roots = volumes,
+                             session = session)
+
+               # Get selected save path
+               savePath <- parseSavePath(volumes, input$exportCombinedData_CSV)
+
+               if (nrow(savePath) > 0) {
+                 filePath <- as.character(savePath$datapath)
+
+                 tryCatch({
+                   # Export to CSV
+                   write.csv(additionalFilesState$validatedData,
+                             file = filePath,
+                             row.names = FALSE)
+
+                   showNotification(
+                     HTML(paste(
+                       "<strong>✓ Export successful!</strong><br>",
+                       "File saved as CSV with", nrow(additionalFilesState$validatedData), "rows<br>",
+                       "Location:", basename(filePath)
+                     )),
+                     type = "message",
+                     duration = 7
+                   )
+                 }, error = function(e) {
+                   showNotification(
+                     HTML(paste(
+                       "<strong>Error exporting CSV:</strong><br>",
+                       e$message
+                     )),
+                     type = "error",
+                     duration = 5
+                   )
+                 })
+               }
+             })
 
 ## Export as Excel
-output$exportCombinedData_Excel <- downloadHandler(
-  filename = function() {
-    paste0("combined_additional_data_", format(Sys.Date(), "%Y%m%d"), "_",
-           format(Sys.time(), "%H%M%S"), ".xlsx")
-  },
-  content = function(file) {
-    if (!is.null(additionalFilesState$validatedData)) {
-      tryCatch({
-        # Check if openxlsx is available
-        if (!requireNamespace("openxlsx", quietly = TRUE)) {
-          showNotification(
-            "Package 'openxlsx' is required for Excel export",
-            type = "error",
-            duration = 5
-          )
-          return()
-        }
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$exportCombinedData_Excel
+             },
+             handlerExpr = {
+               if (is.null(additionalFilesState$validatedData)) {
+                 showNotification(
+                   "No validated data to export",
+                   type = "warning",
+                   duration = 3
+                 )
+                 return()
+               }
 
-        openxlsx::write.xlsx(additionalFilesState$validatedData, file, rowNames = FALSE)
+               # Check if openxlsx is available
+               if (!requireNamespace("openxlsx", quietly = TRUE)) {
+                 showNotification(
+                   "Package 'openxlsx' is required for Excel export",
+                   type = "error",
+                   duration = 5
+                 )
+                 return()
+               }
 
-        showNotification(
-          HTML(paste(
-            "<strong>✓ Export successful!</strong><br>",
-            "File saved as Excel with", nrow(additionalFilesState$validatedData), "rows"
-          )),
-          type = "message",
-          duration = 5
-        )
-      }, error = function(e) {
-        showNotification(
-          paste("Error exporting Excel:", e$message),
-          type = "error",
-          duration = 5
-        )
-      })
-    }
-  }
-)
+               # Open file save dialog
+               shinyFileSave(input,
+                             id = "exportCombinedData_Excel",
+                             roots = volumes,
+                             session = session)
+
+               # Get selected save path
+               savePath <- parseSavePath(volumes, input$exportCombinedData_Excel)
+
+               if (nrow(savePath) > 0) {
+                 filePath <- as.character(savePath$datapath)
+
+                 tryCatch({
+                   # Export to Excel
+                   openxlsx::write.xlsx(additionalFilesState$validatedData,
+                                        file = filePath,
+                                        rowNames = FALSE)
+
+                   showNotification(
+                     HTML(paste(
+                       "<strong>✓ Export successful!</strong><br>",
+                       "File saved as Excel with", nrow(additionalFilesState$validatedData), "rows<br>",
+                       "Location:", basename(filePath)
+                     )),
+                     type = "message",
+                     duration = 7
+                   )
+                 }, error = function(e) {
+                   showNotification(
+                     HTML(paste(
+                       "<strong>Error exporting Excel:</strong><br>",
+                       e$message
+                     )),
+                     type = "error",
+                     duration = 5
+                   )
+                 })
+               }
+             })
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~ Load and Combine Additional Data ~~~~~~~~~~~~~~~~~~~~~~~~~#
