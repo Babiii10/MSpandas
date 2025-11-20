@@ -294,7 +294,8 @@ output$fileValidationStatus_NewRefMap <- renderUI({
       style = "text-align: center; font-weight: bold;",
       icon("check-circle"),
       " Files validated and ready for grouping (",
-      nrow(additionalFilesState$validatedData), " rows)"
+      nrow(additionalFilesState$validatedData), " rows, ",
+      ncol(additionalFilesState$validatedData), " columns)"
     )
   } else {
     div(
@@ -306,6 +307,88 @@ output$fileValidationStatus_NewRefMap <- renderUI({
   }
 })
 #})
+
+## Control export button visibility
+output$showExportButton_NewRefMap <- reactive({
+  input$enableAdditionalData_NewRefMap &&
+    additionalFilesState$isValidated &&
+    !is.null(additionalFilesState$validatedData)
+})
+outputOptions(output, "showExportButton_NewRefMap", suspendWhenHidden = FALSE)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~ Export Combined Data ~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+## Export as CSV
+output$exportCombinedData_CSV <- downloadHandler(
+  filename = function() {
+    paste0("combined_additional_data_", format(Sys.Date(), "%Y%m%d"), "_",
+           format(Sys.time(), "%H%M%S"), ".csv")
+  },
+  content = function(file) {
+    if (!is.null(additionalFilesState$validatedData)) {
+      tryCatch({
+        write.csv(additionalFilesState$validatedData, file, row.names = FALSE)
+
+        showNotification(
+          HTML(paste(
+            "<strong>✓ Export successful!</strong><br>",
+            "File saved as CSV with", nrow(additionalFilesState$validatedData), "rows"
+          )),
+          type = "message",
+          duration = 5
+        )
+      }, error = function(e) {
+        showNotification(
+          paste("Error exporting CSV:", e$message),
+          type = "error",
+          duration = 5
+        )
+      })
+    }
+  }
+)
+
+## Export as Excel
+output$exportCombinedData_Excel <- downloadHandler(
+  filename = function() {
+    paste0("combined_additional_data_", format(Sys.Date(), "%Y%m%d"), "_",
+           format(Sys.time(), "%H%M%S"), ".xlsx")
+  },
+  content = function(file) {
+    if (!is.null(additionalFilesState$validatedData)) {
+      tryCatch({
+        # Check if openxlsx is available
+        if (!requireNamespace("openxlsx", quietly = TRUE)) {
+          showNotification(
+            "Package 'openxlsx' is required for Excel export",
+            type = "error",
+            duration = 5
+          )
+          return()
+        }
+
+        openxlsx::write.xlsx(additionalFilesState$validatedData, file, rowNames = FALSE)
+
+        showNotification(
+          HTML(paste(
+            "<strong>✓ Export successful!</strong><br>",
+            "File saved as Excel with", nrow(additionalFilesState$validatedData), "rows"
+          )),
+          type = "message",
+          duration = 5
+        )
+      }, error = function(e) {
+        showNotification(
+          paste("Error exporting Excel:", e$message),
+          type = "error",
+          duration = 5
+        )
+      })
+    }
+  }
+)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~ Load and Combine Additional Data ~~~~~~~~~~~~~~~~~~~~~~~~~#
