@@ -294,7 +294,8 @@ output$fileValidationStatus_NewRefMap <- renderUI({
       style = "text-align: center; font-weight: bold;",
       icon("check-circle"),
       " Files validated and ready for grouping (",
-      nrow(additionalFilesState$validatedData), " rows)"
+      nrow(additionalFilesState$validatedData), " rows, ",
+      ncol(additionalFilesState$validatedData), " columns)"
     )
   } else {
     div(
@@ -306,6 +307,138 @@ output$fileValidationStatus_NewRefMap <- renderUI({
   }
 })
 #})
+
+## Control export button visibility
+output$showExportButton_NewRefMap <- reactive({
+  input$enableAdditionalData_NewRefMap &&
+    additionalFilesState$isValidated &&
+    !is.null(additionalFilesState$validatedData)
+})
+outputOptions(output, "showExportButton_NewRefMap", suspendWhenHidden = FALSE)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~ Export Combined Data ~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+## Export as CSV
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$exportCombinedData_CSV
+             },
+             handlerExpr = {
+               if (is.null(additionalFilesState$validatedData)) {
+                 showNotification(
+                   "No validated data to export",
+                   type = "warning",
+                   duration = 3
+                 )
+                 return()
+               }
+
+               # Open file save dialog
+               shinyFileSave(input,
+                             id = "exportCombinedData_CSV",
+                             roots = volumes,
+                             session = session)
+
+               # Get selected save path
+               savePath <- parseSavePath(volumes, input$exportCombinedData_CSV)
+
+               if (nrow(savePath) > 0) {
+                 filePath <- as.character(savePath$datapath)
+
+                 tryCatch({
+                   # Export to CSV
+                   write.csv(additionalFilesState$validatedData,
+                             file = filePath,
+                             row.names = FALSE)
+
+                   showNotification(
+                     HTML(paste(
+                       "<strong>✓ Export successful!</strong><br>",
+                       "File saved as CSV with", nrow(additionalFilesState$validatedData), "rows<br>",
+                       "Location:", basename(filePath)
+                     )),
+                     type = "message",
+                     duration = 7
+                   )
+                 }, error = function(e) {
+                   showNotification(
+                     HTML(paste(
+                       "<strong>Error exporting CSV:</strong><br>",
+                       e$message
+                     )),
+                     type = "error",
+                     duration = 5
+                   )
+                 })
+               }
+             })
+
+## Export as Excel
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$exportCombinedData_Excel
+             },
+             handlerExpr = {
+               if (is.null(additionalFilesState$validatedData)) {
+                 showNotification(
+                   "No validated data to export",
+                   type = "warning",
+                   duration = 3
+                 )
+                 return()
+               }
+
+               # Check if openxlsx is available
+               if (!requireNamespace("openxlsx", quietly = TRUE)) {
+                 showNotification(
+                   "Package 'openxlsx' is required for Excel export",
+                   type = "error",
+                   duration = 5
+                 )
+                 return()
+               }
+
+               # Open file save dialog
+               shinyFileSave(input,
+                             id = "exportCombinedData_Excel",
+                             roots = volumes,
+                             session = session)
+
+               # Get selected save path
+               savePath <- parseSavePath(volumes, input$exportCombinedData_Excel)
+
+               if (nrow(savePath) > 0) {
+                 filePath <- as.character(savePath$datapath)
+
+                 tryCatch({
+                   # Export to Excel
+                   openxlsx::write.xlsx(additionalFilesState$validatedData,
+                                        file = filePath,
+                                        rowNames = FALSE)
+
+                   showNotification(
+                     HTML(paste(
+                       "<strong>✓ Export successful!</strong><br>",
+                       "File saved as Excel with", nrow(additionalFilesState$validatedData), "rows<br>",
+                       "Location:", basename(filePath)
+                     )),
+                     type = "message",
+                     duration = 7
+                   )
+                 }, error = function(e) {
+                   showNotification(
+                     HTML(paste(
+                       "<strong>Error exporting Excel:</strong><br>",
+                       e$message
+                     )),
+                     type = "error",
+                     duration = 5
+                   )
+                 })
+               }
+             })
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~ Load and Combine Additional Data ~~~~~~~~~~~~~~~~~~~~~~~~~#

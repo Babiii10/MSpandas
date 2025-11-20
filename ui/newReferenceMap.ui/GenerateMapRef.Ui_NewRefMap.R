@@ -129,7 +129,47 @@ GroupingMassif_NewRefMap_Ui <- function() {
                              fluidRow(br()),
 
                              # Status indicator
-                             uiOutput("fileValidationStatus_NewRefMap")
+                             uiOutput("fileValidationStatus_NewRefMap"),
+
+                             # Export button (shown only when validated)
+                             conditionalPanel(
+                               condition = "output.showExportButton_NewRefMap",
+                               fluidRow(br()),
+                               fluidRow(column(
+                                 12,
+                                 div(
+                                   style = "text-align: center;",
+
+                                   div(
+                                     style = "display: inline-block; margin-right: 10px;",
+                                     shinySaveButton(
+                                       id = "exportCombinedData_CSV",
+                                       label = "Export as CSV",
+                                       title = "Save combined data as CSV",
+                                       filename = "combined_additional_data",
+                                       filetype = list(CSV = "csv"),
+                                       viewtype = "icon",
+                                       icon = icon("file-csv"),
+                                       class = "btn-info"
+                                     )
+                                   ),
+
+                                   div(
+                                     style = "display: inline-block;",
+                                     shinySaveButton(
+                                       id = "exportCombinedData_Excel",
+                                       label = "Export as Excel",
+                                       title = "Save combined data as Excel",
+                                       filename = "combined_additional_data",
+                                       filetype = list(Excel = "xlsx"),
+                                       viewtype = "icon",
+                                       icon = icon("file-excel"),
+                                       class = "btn-info"
+                                     )
+                                   )
+                                 )
+                               ))
+                             )
                            )
                          ))),
 
