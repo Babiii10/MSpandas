@@ -209,7 +209,7 @@ GroupingMassif_NewRefMap_Ui <- function() {
                            ),
                            column(
                              6,
-                             
+
                              numericInput(
                                inputId = "mzToleranceID",
                                label = "mass tolerance (Da)",
@@ -217,6 +217,34 @@ GroupingMassif_NewRefMap_Ui <- function() {
                                min = 0.1,
                                max = 0.5,
                                step = 0.001
+                             )
+                           )),
+
+                           fluidRow(column(
+                             6,
+                             sliderInput(
+                               inputId = "n_cores_grouping",
+                               label = HTML("Number of CPU cores for grouping <span style='color:blue;font-size:12px;'>(Multicore parallelization)</span>"),
+                               min = 1,
+                               max = max(1, parallel::detectCores()),
+                               value = max(1, parallel::detectCores() - 1),
+                               step = 1,
+                               ticks = TRUE
+                             )
+                           ),
+                           column(
+                             6,
+                             div(
+                               style = "margin-top: 10px; padding: 10px; background-color: #e8f4f8; border-left: 4px solid #2196F3; border-radius: 4px;",
+                               p(
+                                 style = "margin: 0; font-size: 12px; color: #555;",
+                                 icon("info-circle", style = "color: #2196F3;"),
+                                 strong(" Parallel Processing:"),
+                                 br(),
+                                 "Using multiple cores speeds up grouping significantly.",
+                                 br(),
+                                 sprintf("Available cores: %d", parallel::detectCores())
+                               )
                              )
                            ))
                          ))),

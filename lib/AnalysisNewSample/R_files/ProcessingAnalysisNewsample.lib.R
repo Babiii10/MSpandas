@@ -218,62 +218,108 @@ ProcessPeaks.msdial.NewSample<-function(path.peaks.msdial,
   
   
   # Compute number of isotope and, sum Height and Area within an isotope massif
-  pb7 <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
+  # OPTIMIZED: Using vectorized operations with parallel backend
   cat("Compute number of isotope and, sum Height and Area within an isotope massif...4/6 \n")
-  for (i in 1:nrow(table_filtered)){
-    setTxtProgressBar(pb7, i)
-    table_filtered[i,"mz_PeaksIsotopics"] <- toString(c(table_filtered[i,"Precursor.mz"],
-                                                        toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"mz_PeaksIsotopics_group"][[1]])))
-    table_filtered[i,"rt_PeaksIsotopics"] <- toString(c(table_filtered[i,"rt"],
-                                                        toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"rt_PeaksIsotopics_group"][[1]])))
-    table_filtered[i,"Height_PeaksIsotopics"] <- toString(c(table_filtered[i,"Height"],
-                                                            toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"Height_PeaksIsotopics_group"][[1]])))
-    
-    table_filtered[i,"nb_isotope"] <- x[which(x$isotope==table_filtered[i,"PeakID"] ),"nb_isotope"][[1]]+1
-    table_filtered[i,"Height"] <- table_filtered[i,"Height"]+ x[which(x$isotope==table_filtered[i,"PeakID"]),"somme_Height"][[1]]
-    table_filtered[i,"Area"] <- table_filtered[i,"Area"]+ x[which(x$isotope==table_filtered[i,"PeakID"]),"somme_Area"][[1]]
-    
-    
-  }
-  close(pb7)
-  
-  
-  ### Filter Massif
-  
-  pb_filterMassif <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
-  cat("Filter massif...4/6 \n")
-  ## Filter massif
-  idxDeleteMassifTowPeaks<-c()
-  idxDeleteCharge4<-c()
-  idxDeleteCharge5<-c()
-  for(i in 1:nrow(table_filtered)){
-    setTxtProgressBar(pb_filterMassif, i)
-    
-    ## Delete massif contains only 2 (n) peaks
-    nmbPeakTest<-length(as.numeric(unlist(str_split(table_filtered[i,"mz_PeaksIsotopics"], pattern = ","))))
-    if(nmbPeakTest < min_PeaksMassif){
-      idxDeleteMassifTowPeaks[i]<-i
+
+  # Prepare the computation using parallel processing for large datasets
+  if (nrow(table_filtered) > 50) {
+    # Use parallel processing for larger datasets
+    if (!require(parallel)) {
+      cat("Package 'parallel' not available, using sequential processing\n")
+      use_parallel <- FALSE
+    } else {
+      use_parallel <- TRUE
+      n_cores <- max(1, detectCores() - 1)
+      cat(paste("Using", n_cores, "cores for isotope computation...\n"))
     }
-    
-    ## Delete massif 4+ contains less than 3 peaks
-    if(table_filtered[i,]$charge == 4){
-      nmbPeak<-length(as.numeric(unlist(str_split(table_filtered[i,"mz_PeaksIsotopics"], pattern = ","))))
-      if(nmbPeak<3){
-        idxDeleteCharge4[i]<-i
+
+    if (use_parallel) {
+      # Create cluster
+      cl <- makeCluster(n_cores)
+      clusterExport(cl, c("x", "table_filtered"), envir = environment())
+      clusterEvalQ(cl, library(dplyr))
+      clusterEvalQ(cl, library(stringr))
+
+      # Process in parallel
+      pb7 <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
+      results <- parLapply(cl, 1:nrow(table_filtered), function(i) {
+        mz_iso <- toString(c(table_filtered[i,"Precursor.mz"],
+                            toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"mz_PeaksIsotopics_group"][[1]])))
+        rt_iso <- toString(c(table_filtered[i,"rt"],
+                            toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"rt_PeaksIsotopics_group"][[1]])))
+        height_iso <- toString(c(table_filtered[i,"Height"],
+                                toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"Height_PeaksIsotopics_group"][[1]])))
+        nb_iso <- x[which(x$isotope==table_filtered[i,"PeakID"]),"nb_isotope"][[1]]+1
+        height_sum <- table_filtered[i,"Height"] + x[which(x$isotope==table_filtered[i,"PeakID"]),"somme_Height"][[1]]
+        area_sum <- table_filtered[i,"Area"] + x[which(x$isotope==table_filtered[i,"PeakID"]),"somme_Area"][[1]]
+
+        list(mz_iso = mz_iso, rt_iso = rt_iso, height_iso = height_iso,
+             nb_iso = nb_iso, height_sum = height_sum, area_sum = area_sum)
+      })
+      close(pb7)
+      stopCluster(cl)
+
+      # Apply results back to table_filtered
+      for (i in 1:nrow(table_filtered)) {
+        table_filtered[i,"mz_PeaksIsotopics"] <- results[[i]]$mz_iso
+        table_filtered[i,"rt_PeaksIsotopics"] <- results[[i]]$rt_iso
+        table_filtered[i,"Height_PeaksIsotopics"] <- results[[i]]$height_iso
+        table_filtered[i,"nb_isotope"] <- results[[i]]$nb_iso
+        table_filtered[i,"Height"] <- results[[i]]$height_sum
+        table_filtered[i,"Area"] <- results[[i]]$area_sum
       }
-    }
-    
-    ## Delete massif 5+ contains less than 4 peaks
-    if(table_filtered[i,]$charge >= 5){
-      nmbPeak<-length(as.numeric(unlist(str_split(table_filtered[i,"mz_PeaksIsotopics"], pattern = ","))))
-      if(nmbPeak<4){
-        idxDeleteCharge5[i]<-i
+    } else {
+      # Fallback to sequential
+      pb7 <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
+      for (i in 1:nrow(table_filtered)){
+        setTxtProgressBar(pb7, i)
+        table_filtered[i,"mz_PeaksIsotopics"] <- toString(c(table_filtered[i,"Precursor.mz"],
+                                                            toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"mz_PeaksIsotopics_group"][[1]])))
+        table_filtered[i,"rt_PeaksIsotopics"] <- toString(c(table_filtered[i,"rt"],
+                                                            toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"rt_PeaksIsotopics_group"][[1]])))
+        table_filtered[i,"Height_PeaksIsotopics"] <- toString(c(table_filtered[i,"Height"],
+                                                                toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"Height_PeaksIsotopics_group"][[1]])))
+        table_filtered[i,"nb_isotope"] <- x[which(x$isotope==table_filtered[i,"PeakID"] ),"nb_isotope"][[1]]+1
+        table_filtered[i,"Height"] <- table_filtered[i,"Height"]+ x[which(x$isotope==table_filtered[i,"PeakID"]),"somme_Height"][[1]]
+        table_filtered[i,"Area"] <- table_filtered[i,"Area"]+ x[which(x$isotope==table_filtered[i,"PeakID"]),"somme_Area"][[1]]
       }
+      close(pb7)
     }
-    
+  } else {
+    # For small datasets, use sequential processing
+    pb7 <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
+    for (i in 1:nrow(table_filtered)){
+      setTxtProgressBar(pb7, i)
+      table_filtered[i,"mz_PeaksIsotopics"] <- toString(c(table_filtered[i,"Precursor.mz"],
+                                                          toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"mz_PeaksIsotopics_group"][[1]])))
+      table_filtered[i,"rt_PeaksIsotopics"] <- toString(c(table_filtered[i,"rt"],
+                                                          toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"rt_PeaksIsotopics_group"][[1]])))
+      table_filtered[i,"Height_PeaksIsotopics"] <- toString(c(table_filtered[i,"Height"],
+                                                              toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"Height_PeaksIsotopics_group"][[1]])))
+      table_filtered[i,"nb_isotope"] <- x[which(x$isotope==table_filtered[i,"PeakID"] ),"nb_isotope"][[1]]+1
+      table_filtered[i,"Height"] <- table_filtered[i,"Height"]+ x[which(x$isotope==table_filtered[i,"PeakID"]),"somme_Height"][[1]]
+      table_filtered[i,"Area"] <- table_filtered[i,"Area"]+ x[which(x$isotope==table_filtered[i,"PeakID"]),"somme_Area"][[1]]
+    }
+    close(pb7)
   }
   
-  close(pb_filterMassif)
+  
+  ### Filter Massif - OPTIMIZED with vectorized operations
+
+  cat("Filter massif...4/6 (vectorized)\n")
+  ## Filter massif using vectorized operations
+
+  # Vectorized computation of peak counts
+  peak_counts <- sapply(table_filtered[,"mz_PeaksIsotopics"], function(x) {
+    length(as.numeric(unlist(str_split(x, pattern = ","))))
+  })
+
+  # Vectorized filtering logic
+  idxDeleteMassifTowPeaks <- which(peak_counts < min_PeaksMassif)
+
+  idxDeleteCharge4 <- which(table_filtered$charge == 4 & peak_counts < 3)
+
+  idxDeleteCharge5 <- which(table_filtered$charge >= 5 & peak_counts < 4)
   
   idxDelete<-c(idxDeleteCharge4,idxDeleteCharge5,idxDeleteMassifTowPeaks)
   idxDelete<-idxDelete[!is.na(idxDelete)]
@@ -281,25 +327,75 @@ ProcessPeaks.msdial.NewSample<-function(path.peaks.msdial,
   table_filtered<-table_filtered[-idxDelete,]
   
   
-  #Compute mz without adduct
-  
+  #Compute mz without adduct - OPTIMIZED with parallel processing
+
   cat("Computing M+H ... 5/6 \n")
   adduct <-read.csv(file_adduct)
-  
+
   adduct_extracted <- str_extract(table_filtered[,"Adduct"],"\\[[[:alnum:]]+\\+[[:alnum:]]+\\]")
   adduct_number <- as.numeric(ifelse(is.na(str_extract(adduct_extracted,"[:digit:]"))==FALSE,str_extract(adduct_extracted,"[:digit:]"),1))
   adduct_extracted <- str_replace_all(table_filtered[,"Adduct"],"[:digit:]","")
-  
-  
-  pb4 <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
-  for (i in 1:nrow(table_filtered)){
-    setTxtProgressBar(pb4, i)
-    
-    table_filtered[i,"M+H"] <- (table_filtered[i,"Precursor.mz"] - adduct[which(adduct$name==adduct_extracted[i]),"massdiff"]/table_filtered[i,"charge"]*adduct_number[i])*table_filtered[i,]$charge+1.007276
-    table_filtered[i,"iso.mass"] <- toString((as.numeric(unlist(str_split(table_filtered[i,"mz_PeaksIsotopics"], pattern = ","))) - adduct[which(adduct$name==adduct_extracted[i]),"massdiff"]/table_filtered[i,"charge"]*adduct_number[i])*table_filtered[i,]$charge+1.007276)
-    
+
+  # Use parallel processing for large datasets
+  if (nrow(table_filtered) > 100) {
+    if (!require(parallel)) {
+      cat("Package 'parallel' not available, using sequential processing\n")
+      use_parallel_mh <- FALSE
+    } else {
+      use_parallel_mh <- TRUE
+      n_cores <- max(1, detectCores() - 1)
+      cat(paste("Using", n_cores, "cores for M+H computation...\n"))
+    }
+
+    if (use_parallel_mh) {
+      # Create cluster
+      cl <- makeCluster(n_cores)
+      clusterExport(cl, c("adduct", "table_filtered", "adduct_extracted", "adduct_number"), envir = environment())
+      clusterEvalQ(cl, library(stringr))
+
+      # Process in parallel
+      pb4 <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
+      results <- parLapply(cl, 1:nrow(table_filtered), function(i) {
+        massdiff_val <- adduct[which(adduct$name == adduct_extracted[i]), "massdiff"]
+        charge_val <- table_filtered[i, "charge"]
+        precursor_mz <- table_filtered[i, "Precursor.mz"]
+        adduct_num <- adduct_number[i]
+
+        mh_val <- (precursor_mz - massdiff_val / charge_val * adduct_num) * charge_val + 1.007276
+
+        mz_peaks <- as.numeric(unlist(str_split(table_filtered[i, "mz_PeaksIsotopics"], pattern = ",")))
+        iso_mass_val <- toString((mz_peaks - massdiff_val / charge_val * adduct_num) * charge_val + 1.007276)
+
+        list(mh = mh_val, iso_mass = iso_mass_val)
+      })
+      close(pb4)
+      stopCluster(cl)
+
+      # Apply results
+      for (i in 1:nrow(table_filtered)) {
+        table_filtered[i, "M+H"] <- results[[i]]$mh
+        table_filtered[i, "iso.mass"] <- results[[i]]$iso_mass
+      }
+    } else {
+      # Fallback to sequential
+      pb4 <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
+      for (i in 1:nrow(table_filtered)){
+        setTxtProgressBar(pb4, i)
+        table_filtered[i,"M+H"] <- (table_filtered[i,"Precursor.mz"] - adduct[which(adduct$name==adduct_extracted[i]),"massdiff"]/table_filtered[i,"charge"]*adduct_number[i])*table_filtered[i,]$charge+1.007276
+        table_filtered[i,"iso.mass"] <- toString((as.numeric(unlist(str_split(table_filtered[i,"mz_PeaksIsotopics"], pattern = ","))) - adduct[which(adduct$name==adduct_extracted[i]),"massdiff"]/table_filtered[i,"charge"]*adduct_number[i])*table_filtered[i,]$charge+1.007276)
+      }
+      close(pb4)
+    }
+  } else {
+    # For small datasets, use sequential
+    pb4 <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
+    for (i in 1:nrow(table_filtered)){
+      setTxtProgressBar(pb4, i)
+      table_filtered[i,"M+H"] <- (table_filtered[i,"Precursor.mz"] - adduct[which(adduct$name==adduct_extracted[i]),"massdiff"]/table_filtered[i,"charge"]*adduct_number[i])*table_filtered[i,]$charge+1.007276
+      table_filtered[i,"iso.mass"] <- toString((as.numeric(unlist(str_split(table_filtered[i,"mz_PeaksIsotopics"], pattern = ","))) - adduct[which(adduct$name==adduct_extracted[i]),"massdiff"]/table_filtered[i,"charge"]*adduct_number[i])*table_filtered[i,]$charge+1.007276)
+    }
+    close(pb4)
   }
-  close(pb4)
   
   
   

@@ -1542,6 +1542,200 @@ Grouping.Between.Sample <- function(X,
 }
 
 
+########~~~~~~~~~~~~~~~~~~~~~~ Grouping Between Samples - PARALLEL VERSION ~~~~~~~~~~~~~~~~~~########
+###################################################################################################
+#######~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+Grouping.Between.Sample.Parallel <- function(X,
+                                              ppm.tolerance = 0,
+                                              mz.tolerance = 0.150,
+                                              rt.tolerance = 180,
+                                              n_cores = NULL,
+                                              use_parallel = TRUE) {
+
+  # Check if parallel processing is requested and available
+  if (!use_parallel) {
+    message("Parallel processing disabled. Using sequential Grouping.Between.Sample...")
+    return(Grouping.Between.Sample(X = X,
+                                    ppm.tolerance = ppm.tolerance,
+                                    mz.tolerance = mz.tolerance,
+                                    rt.tolerance = rt.tolerance))
+  }
+
+  # Determine number of cores
+  if (is.null(n_cores)) {
+    n_cores <- max(1, parallel::detectCores() - 1)
+  }
+
+  # For small datasets, use sequential processing
+  if (nrow(X) < 100 || n_cores == 1) {
+    message("Dataset too small or only 1 core available. Using sequential processing...")
+    return(Grouping.Between.Sample(X = X,
+                                    ppm.tolerance = ppm.tolerance,
+                                    mz.tolerance = mz.tolerance,
+                                    rt.tolerance = rt.tolerance))
+  }
+
+  '%ni%' <- Negate('%in%')
+  X <- as.data.frame(X)
+  X <- X[order(X$`M+H`), ]
+
+  message(paste("Starting parallel grouping with", n_cores, "cores..."))
+
+  # Try-catch for error handling
+  result <- tryCatch({
+
+    # Check required packages
+    if (!require(BiocParallel)) {
+      warning("BiocParallel package not available. Falling back to sequential processing.")
+      return(Grouping.Between.Sample(X = X,
+                                      ppm.tolerance = ppm.tolerance,
+                                      mz.tolerance = mz.tolerance,
+                                      rt.tolerance = rt.tolerance))
+    }
+
+    # Divide data into blocks by m/z with overlap
+    n_blocks <- min(n_cores * 2, nrow(X))  # 2x blocks vs cores for better load balancing
+    mz_overlap <- 50  # Overlap in Da to handle features at block boundaries
+
+    # Create block assignments
+    X$block_id <- cut(1:nrow(X), breaks = n_blocks, labels = FALSE)
+
+    # Create blocks list with overlap
+    blocks_list <- list()
+    for (block_num in 1:n_blocks) {
+      block_data <- X[X$block_id == block_num, ]
+
+      if (nrow(block_data) == 0) next
+
+      # Add overlap with previous block
+      if (block_num > 1) {
+        prev_block <- X[X$block_id == (block_num - 1), ]
+        if (nrow(prev_block) > 0) {
+          mz_min <- min(block_data$`M+H`, na.rm = TRUE)
+          overlap_prev <- prev_block[prev_block$`M+H` >= (mz_min - mz_overlap), ]
+          if (nrow(overlap_prev) > 0) {
+            overlap_prev$is_overlap <- TRUE
+            block_data$is_overlap <- FALSE
+            block_data <- rbind(overlap_prev, block_data)
+          }
+        }
+      }
+
+      # Add overlap with next block
+      if (block_num < n_blocks) {
+        next_block <- X[X$block_id == (block_num + 1), ]
+        if (nrow(next_block) > 0) {
+          mz_max <- max(block_data$`M+H`, na.rm = TRUE)
+          overlap_next <- next_block[next_block$`M+H` <= (mz_max + mz_overlap), ]
+          if (nrow(overlap_next) > 0) {
+            overlap_next$is_overlap <- TRUE
+            if (!"is_overlap" %in% colnames(block_data)) {
+              block_data$is_overlap <- FALSE
+            }
+            block_data <- rbind(block_data, overlap_next)
+          }
+        }
+      }
+
+      # Mark core features (not overlap) if not already marked
+      if (!"is_overlap" %in% colnames(block_data)) {
+        block_data$is_overlap <- FALSE
+      }
+
+      blocks_list[[length(blocks_list) + 1]] <- block_data
+    }
+
+    # Remove empty blocks
+    blocks_list <- blocks_list[sapply(blocks_list, function(x) !is.null(x) && nrow(x) > 0)]
+
+    message(paste("Processing", length(blocks_list), "blocks in parallel..."))
+
+    # Setup parallel backend
+    if (.Platform$OS.type == "unix") {
+      # Use MulticoreParam on Unix (more efficient)
+      param <- MulticoreParam(workers = n_cores, progressbar = FALSE)
+    } else {
+      # Use SnowParam on Windows
+      param <- SnowParam(workers = n_cores, type = "SOCK", progressbar = FALSE)
+    }
+
+    # Process each block in parallel
+    process_block <- function(block_data) {
+      if (is.null(block_data) || nrow(block_data) == 0) return(NULL)
+
+      # Remove block_id and is_overlap columns before processing
+      block_data$block_id <- NULL
+      is_overlap_col <- block_data$is_overlap
+      block_data$is_overlap <- NULL
+
+      # Apply original grouping logic to this block
+      result <- Grouping.Between.Sample(
+        X = block_data,
+        ppm.tolerance = ppm.tolerance,
+        mz.tolerance = mz.tolerance,
+        rt.tolerance = rt.tolerance
+      )
+
+      # Mark which rows were from overlap regions
+      if (!is.null(result) && nrow(result) > 0) {
+        result$was_overlap <- FALSE  # Will be filtered later if needed
+      }
+
+      return(result)
+    }
+
+    # Execute parallel processing
+    results_list <- bplapply(blocks_list, process_block, BPPARAM = param)
+
+    # Combine results
+    results_combined <- do.call("rbind", results_list[!sapply(results_list, is.null)])
+
+    # Remove helper columns
+    if ("was_overlap" %in% colnames(results_combined)) {
+      results_combined$was_overlap <- NULL
+    }
+    if ("block_id" %in% colnames(results_combined)) {
+      results_combined$block_id <- NULL
+    }
+    if ("is_overlap" %in% colnames(results_combined)) {
+      results_combined$is_overlap <- NULL
+    }
+
+    # Remove duplicate features that may have been grouped in multiple blocks
+    # Keep unique features based on FeaturesIDx or ID
+    if ("FeaturesIDx" %in% colnames(results_combined)) {
+      # Extract unique features based on their grouped IDs
+      # Split the concatenated IDs and get unique groups
+      results_combined <- results_combined[!duplicated(results_combined$FeaturesIDx), ]
+    }
+
+    # Re-order by M+H
+    results_combined <- results_combined[order(results_combined$`M+H`), ]
+    rownames(results_combined) <- 1:nrow(results_combined)
+
+    message(paste("Parallel grouping completed.", nrow(results_combined), "features grouped."))
+
+    return(results_combined)
+
+  }, error = function(e) {
+    warning(paste("Parallel grouping failed with error:", e$message))
+    warning("Falling back to sequential Grouping.Between.Sample...")
+
+    # Fallback to sequential processing
+    X_clean <- X
+    if ("block_id" %in% colnames(X_clean)) X_clean$block_id <- NULL
+    if ("is_overlap" %in% colnames(X_clean)) X_clean$is_overlap <- NULL
+
+    return(Grouping.Between.Sample(X = X_clean,
+                                    ppm.tolerance = ppm.tolerance,
+                                    mz.tolerance = mz.tolerance,
+                                    rt.tolerance = rt.tolerance))
+  })
+
+  return(result)
+}
+
 
 ########~~~~~~~~~~~~~~~~~~~~~~ Extract the reference map ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~########
 ###################################################################################################

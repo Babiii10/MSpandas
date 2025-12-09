@@ -689,13 +689,22 @@ observeEvent(ignoreNULL = TRUE,
                    incProgress(1 / 4, detail = "finish")
                  })
                  
-                 #### Grouping massif between samples
+                 #### Grouping massif between samples - PARALLEL VERSION
+                 # Determine number of cores to use
+                 n_cores_to_use <- if (!is.null(input$n_cores_grouping)) {
+                   input$n_cores_grouping
+                 } else {
+                   NULL  # Auto-detect: uses detectCores() - 1
+                 }
+
                  RvarsGrouping$FeaturesListGroupingBetweenSamples <-
-                   Grouping.Between.Sample(
+                   Grouping.Between.Sample.Parallel(
                      X = RvarsGrouping$FeaturesList,
                      ppm.tolerance = 0,
                      mz.tolerance = input$mzToleranceID,
-                     rt.tolerance = input$rt_tolGroupingRefMap
+                     rt.tolerance = input$rt_tolGroupingRefMap,
+                     n_cores = n_cores_to_use,
+                     use_parallel = TRUE
                    )
                  
                  #"~~~~~~~ Enable Generate reference map button ~~~~~~~~#
