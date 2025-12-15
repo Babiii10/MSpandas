@@ -1,6 +1,131 @@
 ##" Initialize reactive values
 RvarsInternalStandard<-allReactiveVarsNewRefMap$InternalStandard
 
+##~~~~~~~~~~~~~~~~~~ Upload Matrix Handling ~~~~~~~~~~~~~~~~~~##
+
+# Reactive value to store uploaded matrix
+uploadedMatrix_IS <- reactiveVal(NULL)
+
+# Handle file upload
+observeEvent(input$uploadMatrix_IS, {
+  req(input$uploadMatrix_IS)
+
+  tryCatch({
+    file_path <- input$uploadMatrix_IS$datapath
+    file_ext <- tools::file_ext(input$uploadMatrix_IS$name)
+
+    # Read the file based on extension
+    if (file_ext == "csv") {
+      uploaded_data <- read.csv(file_path, check.names = FALSE, stringsAsFactors = FALSE)
+    } else if (file_ext %in% c("xlsx", "xls")) {
+      if (!require(readxl)) {
+        stop("Package 'readxl' is required to read Excel files")
+      }
+      uploaded_data <- as.data.frame(readxl::read_excel(file_path))
+    } else {
+      stop("Unsupported file format. Please upload CSV or Excel file.")
+    }
+
+    # Validate the data structure
+    if (ncol(uploaded_data) < 2) {
+      stop("Matrix must have at least 2 columns (Feature ID + at least 1 sample)")
+    }
+
+    # Store the uploaded matrix
+    uploadedMatrix_IS(uploaded_data)
+
+    # Show success message
+    output$uploadStatus_IS <- renderUI({
+      div(
+        style = "margin-top: 10px; padding: 10px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;",
+        p(
+          style = "margin: 0; color: #155724;",
+          icon("check-circle", style = "color: #28a745;"),
+          strong(" File loaded successfully!"),
+          br(),
+          sprintf("Dimensions: %d features × %d samples", nrow(uploaded_data), ncol(uploaded_data) - 1)
+        )
+      )
+    })
+
+    # Enable preview
+    output$showMatrixPreview_IS <- reactive({ TRUE })
+    outputOptions(output, "showMatrixPreview_IS", suspendWhenHidden = FALSE)
+
+  }, error = function(e) {
+    uploadedMatrix_IS(NULL)
+
+    output$uploadStatus_IS <- renderUI({
+      div(
+        style = "margin-top: 10px; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;",
+        p(
+          style = "margin: 0; color: #721c24;",
+          icon("exclamation-triangle", style = "color: #dc3545;"),
+          strong(" Error loading file:"),
+          br(),
+          e$message
+        )
+      )
+    })
+
+    output$showMatrixPreview_IS <- reactive({ FALSE })
+    outputOptions(output, "showMatrixPreview_IS", suspendWhenHidden = FALSE)
+  })
+})
+
+# Initialize preview flag
+output$showMatrixPreview_IS <- reactive({ FALSE })
+outputOptions(output, "showMatrixPreview_IS", suspendWhenHidden = FALSE)
+
+# Handle matrix preview button
+observeEvent(input$previewMatrix_IS, {
+  req(uploadedMatrix_IS())
+
+  showModal(modalDialog(
+    title = div(icon("table"), "Matrix Preview", style = "color: #2c5282; font-weight: bold;"),
+    size = "l",
+    easyClose = TRUE,
+    footer = modalButton("Close"),
+
+    fluidRow(
+      column(12,
+             div(
+               class = "small",
+               style = "max-height: 500px; overflow: auto;",
+               DTOutput("matrixPreviewTable_IS")
+             )
+      )
+    )
+  ))
+})
+
+# Render preview table
+output$matrixPreviewTable_IS <- renderDT({
+  req(uploadedMatrix_IS())
+
+  datatable(
+    uploadedMatrix_IS(),
+    options = list(
+      pageLength = 10,
+      scrollX = TRUE,
+      scrollY = "400px",
+      dom = 'frtip'
+    ),
+    class = 'cell-border stripe',
+    rownames = FALSE
+  )
+})
+
+# Reset upload status when switching back to generated matrix
+observe({
+  if (!is.null(input$dataSourceChoice_IS) && input$dataSourceChoice_IS == "generated") {
+    output$uploadStatus_IS <- renderUI({ NULL })
+    output$showMatrixPreview_IS <- reactive({ FALSE })
+    outputOptions(output, "showMatrixPreview_IS", suspendWhenHidden = FALSE)
+    uploadedMatrix_IS(NULL)
+  }
+})
+
 ## Controle some button
 
 ### Return generate reference map page
@@ -95,16 +220,100 @@ observeEvent(
       source("lib/NewReferenceMap/R_files/InternalStandard.lib_NewRefMap.R", local=TRUE)
       
       #### Method ratios
-      
-      input_Matrix<-as.data.frame(RvarsGrouping$MatrixAbundance_selected)[,4:ncol(RvarsGrouping$MatrixAbundance_selected)]
-      
-      colnames(input_Matrix)<-RvarsCorrectionTime$pheno_Data_mzML$Filenames
-      
-      
+
+      # Determine which matrix to use based on user choice
+      if (!is.null(input$dataSourceChoice_IS) && input$dataSourceChoice_IS == "upload") {
+        # Use uploaded matrix
+        if (is.null(uploadedMatrix_IS())) {
+          sendSweetAlert(
+            session = session,
+            title = "Error!",
+            text = "Please upload a matrix file first.",
+            type = "error",
+            closeOnClickOutside = TRUE,
+            html = TRUE
+          )
+
+          # Re-enable buttons
+          enable("id_InternalStandardsParametersPanel")
+          enable("IdentifyNormalizers")
+          enable("ValidRefrenceMap")
+          enable("PreviousPageGenerateRefMap")
+
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Match reference map"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Analysis new samples"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Peak detection"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Generate the reference map"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Database"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Statistical analysis"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
+
+          return(NULL)
+        }
+
+        # Get the uploaded matrix and prepare it
+        uploaded_data <- uploadedMatrix_IS()
+
+        # Assume first column is ID, rest are samples
+        input_Matrix <- uploaded_data[, -1, drop = FALSE]
+
+        # Store the IDs for later use
+        RvarsInternalStandard$uploadedFeatureIDs <- uploaded_data[, 1]
+
+        cat("Using UPLOADED matrix for normalizer search\n")
+        cat(paste("Matrix dimensions:", nrow(input_Matrix), "features x", ncol(input_Matrix), "samples\n"))
+
+      } else {
+        # Use generated matrix (original behavior)
+        if (is.null(RvarsGrouping$MatrixAbundance_selected)) {
+          sendSweetAlert(
+            session = session,
+            title = "Error!",
+            text = "No matrix available. Please generate a reference map first.",
+            type = "error",
+            closeOnClickOutside = TRUE,
+            html = TRUE
+          )
+
+          # Re-enable buttons
+          enable("id_InternalStandardsParametersPanel")
+          enable("IdentifyNormalizers")
+          enable("ValidRefrenceMap")
+          enable("PreviousPageGenerateRefMap")
+
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Match reference map"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Analysis new samples"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Peak detection"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Generate the reference map"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Database"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Statistical analysis"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
+
+          return(NULL)
+        }
+
+        input_Matrix <- as.data.frame(RvarsGrouping$MatrixAbundance_selected)[,4:ncol(RvarsGrouping$MatrixAbundance_selected)]
+
+        colnames(input_Matrix) <- RvarsCorrectionTime$pheno_Data_mzML$Filenames
+
+        RvarsInternalStandard$uploadedFeatureIDs <- NULL
+
+        cat("Using GENERATED matrix for normalizer search\n")
+        cat(paste("Matrix dimensions:", nrow(input_Matrix), "features x", ncol(input_Matrix), "samples\n"))
+      }
+
+
       RvarsInternalStandard$OjectNormalizers<-Search_normalizers(Matrix = input_Matrix,
                                                             pFeatures = input$pFeatures,
                                                             pSample = input$pSample,
                                                             minNormalizersParam = input$minNormalizers)
+
+      # Store the data source type
+      RvarsInternalStandard$dataSourceUsed <- ifelse(
+        !is.null(input$dataSourceChoice_IS) && input$dataSourceChoice_IS == "upload",
+        "uploaded",
+        "generated"
+      )
       
       
 
@@ -163,19 +372,51 @@ observeEvent(
       
       
       RvarsInternalStandard$names_normalizers<-RvarsInternalStandard$OjectNormalizers$ID_normalizres
-      
+
       ID_Normalizers<-RvarsInternalStandard$names_normalizers
       ref_intensity<-log2(RvarsInternalStandard$OjectNormalizers$ref_intensity)
-      
-      map_ref<-data.frame(RvarsGrouping$MatrixAbundance_selected[1:3],
-                          intensity = ref_intensity,
-                          Type = "Not a Normalizer"
-                          )
-      
-      map_ref[ID_Normalizers,"Type"]<-"Normalizer"
-      
-      map_ref$Type<-factor(map_ref$Type, levels = c("Not a Normalizer", "Normalizer"))
-      colnames(map_ref)<-c("ID","M+H","CE-time","intensity", "Type")
+
+      # Create map_ref based on data source
+      if (RvarsInternalStandard$dataSourceUsed == "uploaded") {
+        # For uploaded data, create a simple map_ref with generated indices
+        # Since we don't have M+H and CE-time metadata, we use indices
+
+        if (is.null(RvarsInternalStandard$uploadedFeatureIDs)) {
+          feature_ids <- paste0("Feature_", 1:length(ref_intensity))
+        } else {
+          feature_ids <- RvarsInternalStandard$uploadedFeatureIDs
+        }
+
+        map_ref <- data.frame(
+          ID = feature_ids,
+          Index = 1:length(ref_intensity),  # Use index as pseudo M+H
+          Row = 1:length(ref_intensity),     # Use row number as pseudo CE-time
+          intensity = ref_intensity,
+          Type = "Not a Normalizer",
+          stringsAsFactors = FALSE
+        )
+
+        map_ref[ID_Normalizers, "Type"] <- "Normalizer"
+        map_ref$Type <- factor(map_ref$Type, levels = c("Not a Normalizer", "Normalizer"))
+
+        colnames(map_ref) <- c("ID", "M+H", "CE-time", "intensity", "Type")
+
+        cat("Created map_ref for UPLOADED data (using indices for M+H and CE-time)\n")
+
+      } else {
+        # For generated data, use the original approach
+        map_ref <- data.frame(
+          RvarsGrouping$MatrixAbundance_selected[1:3],
+          intensity = ref_intensity,
+          Type = "Not a Normalizer"
+        )
+
+        map_ref[ID_Normalizers, "Type"] <- "Normalizer"
+        map_ref$Type <- factor(map_ref$Type, levels = c("Not a Normalizer", "Normalizer"))
+        colnames(map_ref) <- c("ID", "M+H", "CE-time", "intensity", "Type")
+
+        cat("Created map_ref for GENERATED data\n")
+      }
       
       normalizers_ref<-data.frame(
         ID = ID_Normalizers,
@@ -190,6 +431,21 @@ observeEvent(
         ### Distribution of normalizers
         #par(fig = c(0,0.80,0,1),mar=c(4,4,3,1))
         par(fig = c(0,1,0,1),mar=c(4,4,5,0))
+
+        # Create title based on data source
+        if (RvarsInternalStandard$dataSourceUsed == "uploaded") {
+          plot_title <- paste("Distribution of the normalizers (Feature Index Plot)","\n",
+                              "Number of normalizers:", length(ID_Normalizers),
+                              "\n[Using UPLOADED matrix]")
+          xlab_text <- "Feature row index"
+          ylab_text <- "Feature column index"
+        } else {
+          plot_title <- paste("Distribution of the nomalizers (Mass ~ CE-time )","\n",
+                              "Number of normalizers:", length(ID_Normalizers))
+          xlab_text <- "Ce-time(second)"
+          ylab_text <- "M+H(Da)"
+        }
+
         plot(
              # x = map_ref[map_ref$ID %ni% ID_Normalizers,]$`CE-time`,
              # y = map_ref[map_ref$ID %ni% ID_Normalizers,]$`M+H`,
@@ -200,10 +456,9 @@ observeEvent(
              # ylab = "M+H(Da)",
              xlab = "",
              ylab = "",
-             main = paste("Distribution of the nomalizers (Mass ~ CE-time ) ","\n",
-                          "Number of normalizers :",length(ID_Normalizers)),
+             main = plot_title,
              col.main = "#760001",
-             
+
              font.main = 2,
              cex.lab = 1.3, #1.3
              font.lab = 2,
@@ -213,11 +468,11 @@ observeEvent(
         
         axis(1,col="black",col.axis="black",ylim=c(min(map_ref$`CE-time`), max(map_ref$`CE-time`)),
              font = 2, cex.lab = 1.3, cex.axis = 1.2, lwd = 2, line = 0, pos = 0)
-        mtext("Ce-time(second)",side=1,line=3,col="black", font = 2, cex=1.2)
-        
+        mtext(xlab_text,side=1,line=3,col="black", font = 2, cex=1.2)
+
         axis(2,col="black",col.axis="black",ylim=c(min(map_ref$`M+H`), max(map_ref$`M+H`), pos = 0),
              font = 2, cex.lab = 1.3, cex.axis = 1.2, lwd = 2, line = 0)
-        mtext("M+H(Da)",side=2,line=3,col="black", font = 2, cex=1.2)
+        mtext(ylab_text,side=2,line=3,col="black", font = 2, cex=1.2)
         
         
         points(x = map_ref[ID_Normalizers,]$`CE-time` ,
