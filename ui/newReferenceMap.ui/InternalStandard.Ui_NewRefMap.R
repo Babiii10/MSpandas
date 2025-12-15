@@ -47,6 +47,74 @@ IndentificationInternalStandards<-function(){
                            div(
                              id = "id_InternalStandardsParametersPanel",
                              class = "well well-sm",
+                             h4("Data source selection"),
+
+                             fluidRow(column(12,
+                                             awesomeRadio(
+                                               inputId="dataSourceChoice_IS",
+                                               label = '',
+                                               inline=TRUE,
+                                               checkbox = TRUE,
+                                               choices=list(
+                                                 "Use generated matrix"="generated",
+                                                 "Upload external matrix"="upload"
+                                               ),
+                                               selected = "generated"
+                                             )
+                             )),
+
+                             conditionalPanel(
+                               condition="input.dataSourceChoice_IS=='upload'",
+                               fluidRow(column(12,
+
+                                               div(
+                                                 class = "well well-sm",
+                                                 style = "background-color: #f0f8ff; border: 1px solid #4682b4;",
+
+                                                 h5(icon("upload"), "Upload Matrix File", style = "color: #2c5282; font-weight: bold;"),
+
+                                                 p(
+                                                   style = "color: #2c5282; font-size: 12px;",
+                                                   icon("info-circle"),
+                                                   "Upload a CSV or Excel file containing your abundance matrix.",
+                                                   br(),
+                                                   strong("Format required:"),
+                                                   "Rows = Features, Columns = Samples",
+                                                   br(),
+                                                   "First column should contain Feature IDs."
+                                                 ),
+
+                                                 fluidRow(column(12,
+                                                                 fileInput(
+                                                                   inputId = "uploadMatrix_IS",
+                                                                   label = "Select matrix file (CSV/XLSX)",
+                                                                   accept = c(".csv", ".xlsx", ".xls"),
+                                                                   multiple = FALSE,
+                                                                   buttonLabel = "Browse...",
+                                                                   placeholder = "No file selected"
+                                                                 )
+                                                 )),
+
+                                                 # Status indicator
+                                                 uiOutput("uploadStatus_IS"),
+
+                                                 # Preview button
+                                                 conditionalPanel(
+                                                   condition = "output.showMatrixPreview_IS",
+                                                   fluidRow(column(12,
+                                                                   actionButton(
+                                                                     inputId = "previewMatrix_IS",
+                                                                     label = "Preview Matrix",
+                                                                     icon = icon("eye"),
+                                                                     class = "btn-info btn-sm"
+                                                                   )
+                                                   ))
+                                                 )
+                                               )
+                               ))
+                             ),
+
+                             hr(),
                              h4("Internal standards parameters"),
                              fluidRow(column(12,
                                              
