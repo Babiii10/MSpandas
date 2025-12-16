@@ -12,6 +12,139 @@ additionalFilesState <- reactiveValues(
 ## Load additional data merge library
 source("lib/NewReferenceMap/R_files/AdditionalDataMerge.lib.R", local = TRUE)
 
+##~~~~~~~~~~~~~~~~~~ Upload Grouped Data for Map Generation ~~~~~~~~~~~~~~~~~~##
+
+# Reactive value to store uploaded grouped data
+uploadedGroupedData_MapGen <- reactiveVal(NULL)
+
+# Handle file upload for grouped data
+observeEvent(input$uploadGroupedData_MapGen, {
+  req(input$uploadGroupedData_MapGen)
+
+  tryCatch({
+    file_path <- input$uploadGroupedData_MapGen$datapath
+    file_ext <- tools::file_ext(input$uploadGroupedData_MapGen$name)
+
+    # Read the file based on extension
+    if (file_ext == "csv") {
+      uploaded_data <- read.csv(file_path, check.names = FALSE, stringsAsFactors = FALSE)
+    } else if (file_ext %in% c("xlsx", "xls")) {
+      if (!require(readxl)) {
+        stop("Package 'readxl' is required to read Excel files")
+      }
+      uploaded_data <- as.data.frame(readxl::read_excel(file_path))
+    } else {
+      stop("Unsupported file format. Please upload CSV or Excel file.")
+    }
+
+    # Validate required columns
+    required_cols <- c("ID", "M+H", "rt")
+    missing_cols <- setdiff(required_cols, colnames(uploaded_data))
+
+    if (length(missing_cols) > 0) {
+      stop(paste("Missing required columns:", paste(missing_cols, collapse = ", ")))
+    }
+
+    # Store the uploaded data
+    uploadedGroupedData_MapGen(uploaded_data)
+
+    # Store it also in the standard grouping variable for seamless integration
+    RvarsGrouping$FeaturesListGroupingBetweenSamples <- uploaded_data
+
+    # Show success message
+    output$uploadStatusMapGen <- renderUI({
+      div(
+        style = "margin-top: 10px; padding: 10px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;",
+        p(
+          style = "margin: 0; color: #155724;",
+          icon("check-circle", style = "color: #28a745;"),
+          strong(" File loaded successfully!"),
+          br(),
+          sprintf("Features: %d, Columns: %d", nrow(uploaded_data), ncol(uploaded_data))
+        )
+      )
+    })
+
+    # Enable preview and Generate Map button
+    output$showGroupedDataPreview <- reactive({ TRUE })
+    outputOptions(output, "showGroupedDataPreview", suspendWhenHidden = FALSE)
+
+    enable("GenerateMapRefButtonID")
+
+  }, error = function(e) {
+    uploadedGroupedData_MapGen(NULL)
+
+    output$uploadStatusMapGen <- renderUI({
+      div(
+        style = "margin-top: 10px; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;",
+        p(
+          style = "margin: 0; color: #721c24;",
+          icon("exclamation-triangle", style = "color: #dc3545;"),
+          strong(" Error loading file:"),
+          br(),
+          e$message
+        )
+      )
+    })
+
+    output$showGroupedDataPreview <- reactive({ FALSE })
+    outputOptions(output, "showGroupedDataPreview", suspendWhenHidden = FALSE)
+  })
+})
+
+# Initialize preview flag
+output$showGroupedDataPreview <- reactive({ FALSE })
+outputOptions(output, "showGroupedDataPreview", suspendWhenHidden = FALSE)
+
+# Handle data preview button
+observeEvent(input$previewGroupedData, {
+  req(uploadedGroupedData_MapGen())
+
+  showModal(modalDialog(
+    title = div(icon("table"), "Grouped Data Preview", style = "color: #856404; font-weight: bold;"),
+    size = "l",
+    easyClose = TRUE,
+    footer = modalButton("Close"),
+
+    fluidRow(
+      column(12,
+             div(
+               class = "small",
+               style = "max-height: 500px; overflow: auto;",
+               DTOutput("groupedDataPreviewTable")
+             )
+      )
+    )
+  ))
+})
+
+# Render preview table
+output$groupedDataPreviewTable <- renderDT({
+  req(uploadedGroupedData_MapGen())
+
+  datatable(
+    uploadedGroupedData_MapGen(),
+    options = list(
+      pageLength = 10,
+      scrollX = TRUE,
+      scrollY = "400px",
+      dom = 'frtip'
+    ),
+    class = 'cell-border stripe',
+    rownames = FALSE
+  )
+})
+
+# Reset upload status when switching back to pipeline
+observe({
+  if (!is.null(input$dataSourceMapGen) && input$dataSourceMapGen == "pipeline") {
+    output$uploadStatusMapGen <- renderUI({ NULL })
+    output$showGroupedDataPreview <- reactive({ FALSE })
+    outputOptions(output, "showGroupedDataPreview", suspendWhenHidden = FALSE)
+    uploadedGroupedData_MapGen(NULL)
+  }
+})
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~ Template Download Handler ~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -723,12 +856,73 @@ observeEvent(ignoreNULL = TRUE,
                    closeOnClickOutside = FALSE,
                    html = TRUE
                  )
-                 
+
                  enable("GenerateMapRefButtonID")
+                 enable("exportGroupingResults")
                }
-               
-               
+
+
              })
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~ Export Grouping Results ~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+# Handle export of grouping results to CSV
+shinyFileSave(input, "exportGroupingResults", roots = c(home = "~"), session = session)
+
+observeEvent(input$exportGroupingResults, {
+  req(RvarsGrouping$FeaturesListGroupingBetweenSamples)
+
+  file_path <- parseSavePath(roots = c(home = "~"), input$exportGroupingResults)
+
+  if (nrow(file_path) > 0) {
+    tryCatch({
+      # Get the selected file path
+      save_path <- as.character(file_path$datapath)
+
+      # Determine file extension
+      file_ext <- tools::file_ext(save_path)
+
+      # Prepare data for export
+      export_data <- RvarsGrouping$FeaturesListGroupingBetweenSamples
+
+      # Export based on file type
+      if (file_ext == "csv") {
+        write.csv(export_data, file = save_path, row.names = FALSE)
+      } else if (file_ext == "xlsx") {
+        if (!require(writexl)) {
+          stop("Package 'writexl' is required to export Excel files")
+        }
+        writexl::write_xlsx(export_data, path = save_path)
+      }
+
+      sendSweetAlert(
+        session = session,
+        title = "Export successful!",
+        text = HTML(paste0(
+          "Grouping results exported successfully!<br>",
+          "File: ", basename(save_path), "<br>",
+          "Rows: ", nrow(export_data), "<br>",
+          "Columns: ", ncol(export_data)
+        )),
+        type = "success",
+        closeOnClickOutside = TRUE,
+        html = TRUE
+      )
+
+    }, error = function(e) {
+      sendSweetAlert(
+        session = session,
+        title = "Export failed!",
+        text = HTML(paste0("Error: ", e$message)),
+        type = "error",
+        closeOnClickOutside = TRUE,
+        html = TRUE
+      )
+    })
+  }
+})
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~ Generate Reference map ~~~~~~~~~~~~~~~~~~~~~~~~~#

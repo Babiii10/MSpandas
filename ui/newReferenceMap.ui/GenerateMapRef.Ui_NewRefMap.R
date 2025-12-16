@@ -43,6 +43,75 @@ GroupingMassif_NewRefMap_Ui <- function() {
       div(
         class = "well well-sm",
 
+        h4("Data source for map generation:"),
+
+        fluidRow(column(12,
+                        awesomeRadio(
+                          inputId="dataSourceMapGen",
+                          label = '',
+                          inline=TRUE,
+                          checkbox = TRUE,
+                          choices=list(
+                            "Use pipeline grouping results"="pipeline",
+                            "Upload pre-grouped features"="upload"
+                          ),
+                          selected = "pipeline"
+                        )
+        )),
+
+        conditionalPanel(
+          condition="input.dataSourceMapGen=='upload'",
+          fluidRow(column(12,
+
+                          div(
+                            class = "well well-sm",
+                            style = "background-color: #fff3cd; border: 1px solid #ffc107;",
+
+                            h5(icon("upload"), "Upload Pre-Grouped Features", style = "color: #856404; font-weight: bold;"),
+
+                            p(
+                              style = "color: #856404; font-size: 12px;",
+                              icon("info-circle"),
+                              "Upload a CSV or Excel file with already grouped features.",
+                              br(),
+                              strong("Required columns:"),
+                              "ID, M+H, rt, and sample intensity columns",
+                              br(),
+                              "This will bypass the grouping step and use your data directly."
+                            ),
+
+                            fluidRow(column(12,
+                                            fileInput(
+                                              inputId = "uploadGroupedData_MapGen",
+                                              label = "Select grouped features file (CSV/XLSX)",
+                                              accept = c(".csv", ".xlsx", ".xls"),
+                                              multiple = FALSE,
+                                              buttonLabel = "Browse...",
+                                              placeholder = "No file selected"
+                                            )
+                            )),
+
+                            # Status indicator
+                            uiOutput("uploadStatusMapGen"),
+
+                            # Preview button
+                            conditionalPanel(
+                              condition = "output.showGroupedDataPreview",
+                              fluidRow(column(12,
+                                              actionButton(
+                                                inputId = "previewGroupedData",
+                                                label = "Preview Data",
+                                                icon = icon("eye"),
+                                                class = "btn-info btn-sm"
+                                              )
+                              ))
+                            )
+                          )
+          ))
+        ),
+
+        hr(),
+
         h4("Additional data (optional):", icon("question-circle",
                                                 class = "ClassInfoBull",
                                                 title = "Upload additional peak data files (CSV/XLSX) to combine with existing data for grouping and map generation.")),
@@ -260,6 +329,25 @@ GroupingMassif_NewRefMap_Ui <- function() {
               label = "Start grouping",
               icon = icon("rocket"),
               class = "btn-primary"
+            )
+          )
+        ),
+        column(
+          6,
+          div(
+            class = "pull-right",
+            style = "display:inline-block",
+            disabled(
+              shinySaveButton(
+                id = "exportGroupingResults",
+                label = "Export grouping results",
+                title = "Save grouping results as...",
+                filename = "grouping_results",
+                filetype = list(CSV = "csv", Excel = "xlsx"),
+                viewtype = "icon",
+                icon = icon("download"),
+                class = "btn-success"
+              )
             )
           )
         )),
