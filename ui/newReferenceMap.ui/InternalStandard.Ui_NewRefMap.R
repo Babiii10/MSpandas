@@ -56,15 +56,16 @@ IndentificationInternalStandards<-function(){
                                                inline=TRUE,
                                                checkbox = TRUE,
                                                choices=list(
-                                                 "Use generated matrix"="generated",
-                                                 "Upload external matrix"="upload"
+                                                 "Use generated data"="generated",
+                                                 "Upload matrix only"="upload_matrix",
+                                                 "Upload complete reference map"="upload_refmap"
                                                ),
                                                selected = "generated"
                                              )
                              )),
 
                              conditionalPanel(
-                               condition="input.dataSourceChoice_IS=='upload'",
+                               condition="input.dataSourceChoice_IS=='upload_matrix'",
                                fluidRow(column(12,
 
                                                div(
@@ -105,6 +106,57 @@ IndentificationInternalStandards<-function(){
                                                                    actionButton(
                                                                      inputId = "previewMatrix_IS",
                                                                      label = "Preview Matrix",
+                                                                     icon = icon("eye"),
+                                                                     class = "btn-info btn-sm"
+                                                                   )
+                                                   ))
+                                                 )
+                                               )
+                               ))
+                             ),
+
+                             conditionalPanel(
+                               condition="input.dataSourceChoice_IS=='upload_refmap'",
+                               fluidRow(column(12,
+
+                                               div(
+                                                 class = "well well-sm",
+                                                 style = "background-color: #e8f5e9; border: 1px solid #4caf50;",
+
+                                                 h5(icon("upload"), "Upload Reference Map", style = "color: #2e7d32; font-weight: bold;"),
+
+                                                 p(
+                                                   style = "color: #2e7d32; font-size: 12px;",
+                                                   icon("info-circle"),
+                                                   "Upload a complete reference map CSV or Excel file.",
+                                                   br(),
+                                                   strong("Required columns:"),
+                                                   "ID, M+H, rt, and sample intensity columns",
+                                                   br(),
+                                                   "This will bypass matrix generation and use your complete reference map."
+                                                 ),
+
+                                                 fluidRow(column(12,
+                                                                 fileInput(
+                                                                   inputId = "uploadRefMap_IS",
+                                                                   label = "Select reference map file (CSV/XLSX)",
+                                                                   accept = c(".csv", ".xlsx", ".xls"),
+                                                                   multiple = FALSE,
+                                                                   buttonLabel = "Browse...",
+                                                                   placeholder = "No file selected"
+                                                                 )
+                                                 )),
+
+                                                 # Status indicator
+                                                 uiOutput("uploadStatusRefMap_IS"),
+
+                                                 # Preview button
+                                                 conditionalPanel(
+                                                   condition = "output.showRefMapPreview_IS",
+                                                   fluidRow(column(12,
+                                                                   actionButton(
+                                                                     inputId = "previewRefMap_IS",
+                                                                     label = "Preview Reference Map",
                                                                      icon = icon("eye"),
                                                                      class = "btn-info btn-sm"
                                                                    )

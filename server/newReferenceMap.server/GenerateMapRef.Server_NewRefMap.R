@@ -925,6 +925,69 @@ observeEvent(input$exportGroupingResults, {
 })
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~ Export Reference Map ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+# Handle export of reference map to CSV/Excel
+shinyFileSave(input, "exportReferenceMap", roots = c(home = "~"), session = session)
+
+observeEvent(input$exportReferenceMap, {
+  req(RvarsGrouping$RefereanceMap_selected)
+
+  file_path <- parseSavePath(roots = c(home = "~"), input$exportReferenceMap)
+
+  if (nrow(file_path) > 0) {
+    tryCatch({
+      # Get the selected file path
+      save_path <- as.character(file_path$datapath)
+
+      # Determine file extension
+      file_ext <- tools::file_ext(save_path)
+
+      # Prepare data for export (combine map with matrix)
+      export_data <- cbind(
+        RvarsGrouping$RefereanceMap_selected,
+        RvarsGrouping$MatrixAbundance_selected
+      )
+
+      # Export based on file type
+      if (file_ext == "csv") {
+        write.csv(export_data, file = save_path, row.names = FALSE)
+      } else if (file_ext == "xlsx") {
+        if (!require(writexl)) {
+          stop("Package 'writexl' is required to export Excel files")
+        }
+        writexl::write_xlsx(export_data, path = save_path)
+      }
+
+      sendSweetAlert(
+        session = session,
+        title = "Export successful!",
+        text = HTML(paste0(
+          "Reference map exported successfully!<br>",
+          "File: ", basename(save_path), "<br>",
+          "Features: ", nrow(export_data), "<br>",
+          "Columns: ", ncol(export_data)
+        )),
+        type = "success",
+        closeOnClickOutside = TRUE,
+        html = TRUE
+      )
+
+    }, error = function(e) {
+      sendSweetAlert(
+        session = session,
+        title = "Export failed!",
+        text = HTML(paste0("Error: ", e$message)),
+        type = "error",
+        closeOnClickOutside = TRUE,
+        html = TRUE
+      )
+    })
+  }
+})
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~ Generate Reference map ~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
@@ -1075,10 +1138,11 @@ observe({
         rownames(RvarsGrouping$MatrixAbundance_selected) <-
           rownames(RvarsGrouping$RefereanceMap_selected)
         ##########
-        
-        
-        
-        
+
+        # Enable export button after map generation
+        enable("exportReferenceMap")
+
+
         output$ReferenceMapViewer <- renderPlot({
           referenceMap %>%
             

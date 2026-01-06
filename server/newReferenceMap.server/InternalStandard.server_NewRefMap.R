@@ -126,6 +126,140 @@ observe({
   }
 })
 
+##~~~~~~~~~~~~~~~~~~ Upload Reference Map Handling ~~~~~~~~~~~~~~~~~~##
+
+# Reactive value to store uploaded reference map
+uploadedRefMap_IS <- reactiveVal(NULL)
+
+# Handle file upload for reference map
+observeEvent(input$uploadRefMap_IS, {
+  req(input$uploadRefMap_IS)
+
+  tryCatch({
+    file_path <- input$uploadRefMap_IS$datapath
+    file_ext <- tools::file_ext(input$uploadRefMap_IS$name)
+
+    # Read the file based on extension
+    if (file_ext == "csv") {
+      uploaded_data <- read.csv(file_path, check.names = FALSE, stringsAsFactors = FALSE)
+    } else if (file_ext %in% c("xlsx", "xls")) {
+      if (!require(readxl)) {
+        stop("Package 'readxl' is required to read Excel files")
+      }
+      uploaded_data <- as.data.frame(readxl::read_excel(file_path))
+    } else {
+      stop("Unsupported file format. Please upload CSV or Excel file.")
+    }
+
+    # Validate required columns
+    required_cols <- c("ID", "M+H", "rt")
+    missing_cols <- setdiff(required_cols, colnames(uploaded_data))
+
+    if (length(missing_cols) > 0) {
+      stop(paste("Missing required columns:", paste(missing_cols, collapse = ", ")))
+    }
+
+    # Validate at least one sample column
+    sample_cols <- setdiff(colnames(uploaded_data), c("ID", "M+H", "rt"))
+    if (length(sample_cols) < 1) {
+      stop("Reference map must have at least one sample column")
+    }
+
+    # Store the uploaded reference map
+    uploadedRefMap_IS(uploaded_data)
+
+    # Show success message
+    output$uploadStatusRefMap_IS <- renderUI({
+      div(
+        style = "margin-top: 10px; padding: 10px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;",
+        p(
+          style = "margin: 0; color: #155724;",
+          icon("check-circle", style = "color: #28a745;"),
+          strong(" Reference map loaded successfully!"),
+          br(),
+          sprintf("Features: %d, Sample columns: %d", nrow(uploaded_data), length(sample_cols))
+        )
+      )
+    })
+
+    # Enable preview
+    output$showRefMapPreview_IS <- reactive({ TRUE })
+    outputOptions(output, "showRefMapPreview_IS", suspendWhenHidden = FALSE)
+
+  }, error = function(e) {
+    uploadedRefMap_IS(NULL)
+
+    output$uploadStatusRefMap_IS <- renderUI({
+      div(
+        style = "margin-top: 10px; padding: 10px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;",
+        p(
+          style = "margin: 0; color: #721c24;",
+          icon("exclamation-triangle", style = "color: #dc3545;"),
+          strong(" Error loading file:"),
+          br(),
+          e$message
+        )
+      )
+    })
+
+    output$showRefMapPreview_IS <- reactive({ FALSE })
+    outputOptions(output, "showRefMapPreview_IS", suspendWhenHidden = FALSE)
+  })
+})
+
+# Initialize preview flag for reference map
+output$showRefMapPreview_IS <- reactive({ FALSE })
+outputOptions(output, "showRefMapPreview_IS", suspendWhenHidden = FALSE)
+
+# Handle reference map preview button
+observeEvent(input$previewRefMap_IS, {
+  req(uploadedRefMap_IS())
+
+  showModal(modalDialog(
+    title = div(icon("table"), "Reference Map Preview", style = "color: #2e7d32; font-weight: bold;"),
+    size = "l",
+    easyClose = TRUE,
+    footer = modalButton("Close"),
+
+    fluidRow(
+      column(12,
+             div(
+               class = "small",
+               style = "max-height: 500px; overflow: auto;",
+               DTOutput("refMapPreviewTable_IS")
+             )
+      )
+    )
+  ))
+})
+
+# Render reference map preview table
+output$refMapPreviewTable_IS <- renderDT({
+  req(uploadedRefMap_IS())
+
+  datatable(
+    uploadedRefMap_IS(),
+    options = list(
+      pageLength = 10,
+      scrollX = TRUE,
+      scrollY = "400px",
+      dom = 'frtip'
+    ),
+    class = 'cell-border stripe',
+    rownames = FALSE
+  )
+})
+
+# Reset upload status when switching back to generated
+observe({
+  if (!is.null(input$dataSourceChoice_IS) && input$dataSourceChoice_IS == "generated") {
+    output$uploadStatusRefMap_IS <- renderUI({ NULL })
+    output$showRefMapPreview_IS <- reactive({ FALSE })
+    outputOptions(output, "showRefMapPreview_IS", suspendWhenHidden = FALSE)
+    uploadedRefMap_IS(NULL)
+  }
+})
+
 ## Controle some button
 
 ### Return generate reference map page
@@ -221,9 +355,54 @@ observeEvent(
       
       #### Method ratios
 
-      # Determine which matrix to use based on user choice
-      if (!is.null(input$dataSourceChoice_IS) && input$dataSourceChoice_IS == "upload") {
-        # Use uploaded matrix
+      # Determine which data to use based on user choice
+      if (!is.null(input$dataSourceChoice_IS) && input$dataSourceChoice_IS == "upload_refmap") {
+        # Use uploaded complete reference map
+        if (is.null(uploadedRefMap_IS())) {
+          sendSweetAlert(
+            session = session,
+            title = "Error!",
+            text = "Please upload a reference map file first.",
+            type = "error",
+            closeOnClickOutside = TRUE,
+            html = TRUE
+          )
+
+          # Re-enable buttons
+          enable("id_InternalStandardsParametersPanel")
+          enable("IdentifyNormalizers")
+          enable("ValidRefrenceMap")
+          enable("PreviousPageGenerateRefMap")
+
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Match reference map"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Analysis new samples"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Peak detection"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Generate the reference map"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Database"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Statistical analysis"')
+          shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
+
+          return(NULL)
+        }
+
+        # Get the uploaded reference map
+        uploaded_data <- uploadedRefMap_IS()
+
+        # Extract metadata columns
+        metadata_cols <- c("ID", "M+H", "rt")
+        sample_cols <- setdiff(colnames(uploaded_data), metadata_cols)
+
+        # Extract matrix (only sample columns)
+        input_Matrix <- uploaded_data[, sample_cols, drop = FALSE]
+
+        # Store metadata for later use
+        RvarsInternalStandard$uploadedRefMapMetadata <- uploaded_data[, metadata_cols]
+
+        cat("Using UPLOADED REFERENCE MAP for normalizer search\n")
+        cat(paste("Matrix dimensions:", nrow(input_Matrix), "features x", ncol(input_Matrix), "samples\n"))
+
+      } else if (!is.null(input$dataSourceChoice_IS) && input$dataSourceChoice_IS == "upload_matrix") {
+        # Use uploaded matrix only
         if (is.null(uploadedMatrix_IS())) {
           sendSweetAlert(
             session = session,
@@ -309,11 +488,17 @@ observeEvent(
                                                             minNormalizersParam = input$minNormalizers)
 
       # Store the data source type
-      RvarsInternalStandard$dataSourceUsed <- ifelse(
-        !is.null(input$dataSourceChoice_IS) && input$dataSourceChoice_IS == "upload",
-        "uploaded",
-        "generated"
-      )
+      if (!is.null(input$dataSourceChoice_IS)) {
+        if (input$dataSourceChoice_IS == "upload_refmap") {
+          RvarsInternalStandard$dataSourceUsed <- "uploaded_refmap"
+        } else if (input$dataSourceChoice_IS == "upload_matrix") {
+          RvarsInternalStandard$dataSourceUsed <- "uploaded"
+        } else {
+          RvarsInternalStandard$dataSourceUsed <- "generated"
+        }
+      } else {
+        RvarsInternalStandard$dataSourceUsed <- "generated"
+      }
       
       
 
@@ -377,7 +562,26 @@ observeEvent(
       ref_intensity<-log2(RvarsInternalStandard$OjectNormalizers$ref_intensity)
 
       # Create map_ref based on data source
-      if (RvarsInternalStandard$dataSourceUsed == "uploaded") {
+      if (RvarsInternalStandard$dataSourceUsed == "uploaded_refmap") {
+        # For uploaded reference map, use actual metadata (ID, M+H, rt)
+        metadata <- RvarsInternalStandard$uploadedRefMapMetadata
+
+        map_ref <- data.frame(
+          ID = metadata$ID,
+          `M+H` = metadata$`M+H`,
+          `CE-time` = metadata$rt,  # Map rt column to CE-time
+          intensity = ref_intensity,
+          Type = "Not a Normalizer",
+          stringsAsFactors = FALSE,
+          check.names = FALSE
+        )
+
+        map_ref[ID_Normalizers, "Type"] <- "Normalizer"
+        map_ref$Type <- factor(map_ref$Type, levels = c("Not a Normalizer", "Normalizer"))
+
+        cat("Created map_ref for UPLOADED REFERENCE MAP (using real M+H and CE-time)\n")
+
+      } else if (RvarsInternalStandard$dataSourceUsed == "uploaded") {
         # For uploaded data, create a simple map_ref with generated indices
         # Since we don't have M+H and CE-time metadata, we use indices
 
@@ -433,7 +637,13 @@ observeEvent(
         par(fig = c(0,1,0,1),mar=c(4,4,5,0))
 
         # Create title based on data source
-        if (RvarsInternalStandard$dataSourceUsed == "uploaded") {
+        if (RvarsInternalStandard$dataSourceUsed == "uploaded_refmap") {
+          plot_title <- paste("Distribution of the normalizers (Mass ~ CE-time)","\n",
+                              "Number of normalizers:", length(ID_Normalizers),
+                              "\n[Using UPLOADED reference map]")
+          xlab_text <- "CE-time (second)"
+          ylab_text <- "M+H (Da)"
+        } else if (RvarsInternalStandard$dataSourceUsed == "uploaded") {
           plot_title <- paste("Distribution of the normalizers (Feature Index Plot)","\n",
                               "Number of normalizers:", length(ID_Normalizers),
                               "\n[Using UPLOADED matrix]")

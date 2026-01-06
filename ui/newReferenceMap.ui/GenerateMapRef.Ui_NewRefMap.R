@@ -415,6 +415,25 @@ GroupingMassif_NewRefMap_Ui <- function() {
               )
             )
           )
+        ),
+        column(
+          6,
+          div(
+            class = "pull-right",
+            style = "display:inline-block",
+            disabled(
+              shinySaveButton(
+                id = "exportReferenceMap",
+                label = "Export reference map",
+                title = "Save reference map as...",
+                filename = "reference_map",
+                filetype = list(CSV = "csv", Excel = "xlsx"),
+                viewtype = "icon",
+                icon = icon("download"),
+                class = "btn-success"
+              )
+            )
+          )
         ))
       ),
       
