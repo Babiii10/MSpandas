@@ -973,9 +973,14 @@ Search_normalizers<-function(Matrix,
   })
   
   ## Parallel parameters
-  
+
+  # Clean up any previous implicit clusters before creating new one
+  tryCatch(doParallel::stopImplicitCluster(), error = function(e) NULL)
+
   workers = ceiling((detectCores())-1)
   cl <- parallel::makeCluster(getOption("cl.cores", workers))
+  # Ensure cluster is always closed, even if an error occurs
+  on.exit(parallel::stopCluster(cl), add = TRUE)
   doParallel::registerDoParallel(cl)
   
   ##Initializing varCacul
