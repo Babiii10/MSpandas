@@ -236,6 +236,8 @@ ProcessPeaks.msdial.NewSample<-function(path.peaks.msdial,
     if (use_parallel) {
       # Create cluster
       cl <- makeCluster(n_cores)
+      # Ensure cluster is always closed, even if an error occurs
+      on.exit(stopCluster(cl), add = TRUE)
       clusterExport(cl, c("x", "table_filtered"), envir = environment())
       clusterEvalQ(cl, library(dplyr))
       clusterEvalQ(cl, library(stringr))
@@ -350,6 +352,8 @@ ProcessPeaks.msdial.NewSample<-function(path.peaks.msdial,
     if (use_parallel_mh) {
       # Create cluster
       cl <- makeCluster(n_cores)
+      # Ensure cluster is always closed, even if an error occurs
+      on.exit(stopCluster(cl), add = TRUE)
       clusterExport(cl, c("adduct", "table_filtered", "adduct_extracted", "adduct_number"), envir = environment())
       clusterEvalQ(cl, library(stringr))
 
