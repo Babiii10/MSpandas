@@ -234,10 +234,17 @@ ProcessPeaks.msdial.NewSample<-function(path.peaks.msdial,
     }
 
     if (use_parallel) {
-      # Create cluster
-      cl <- makeCluster(n_cores)
+      # Create cluster with explicit type and timeout to prevent deadlocks
+      cl <- makeCluster(n_cores, type = "PSOCK", timeout = 300)
       # Ensure cluster is always closed, even if an error occurs
-      on.exit(stopCluster(cl), add = TRUE)
+      on.exit({
+        tryCatch({
+          stopCluster(cl)
+          gc(verbose = FALSE)
+        }, error = function(e) {
+          message("Isotope cluster cleanup warning: ", e$message)
+        })
+      }, add = TRUE)
       clusterExport(cl, c("x", "table_filtered"), envir = environment())
       clusterEvalQ(cl, library(dplyr))
       clusterEvalQ(cl, library(stringr))
@@ -350,10 +357,17 @@ ProcessPeaks.msdial.NewSample<-function(path.peaks.msdial,
     }
 
     if (use_parallel_mh) {
-      # Create cluster
-      cl <- makeCluster(n_cores)
+      # Create cluster with explicit type and timeout to prevent deadlocks
+      cl <- makeCluster(n_cores, type = "PSOCK", timeout = 300)
       # Ensure cluster is always closed, even if an error occurs
-      on.exit(stopCluster(cl), add = TRUE)
+      on.exit({
+        tryCatch({
+          stopCluster(cl)
+          gc(verbose = FALSE)
+        }, error = function(e) {
+          message("M+H cluster cleanup warning: ", e$message)
+        })
+      }, add = TRUE)
       clusterExport(cl, c("adduct", "table_filtered", "adduct_extracted", "adduct_number"), envir = environment())
       clusterEvalQ(cl, library(stringr))
 
