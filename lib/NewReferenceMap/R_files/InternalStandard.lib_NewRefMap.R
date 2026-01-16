@@ -972,15 +972,46 @@ Search_normalizers<-function(Matrix,
     
   })
   
-  ## Parallel parameters
+  ## Parallel parameters with dynamic worker allocation
 
   # Clean up any previous implicit clusters before creating new one
   tryCatch(doParallel::stopImplicitCluster(), error = function(e) NULL)
 
-  workers = ceiling((detectCores())-1)
-  cl <- parallel::makeCluster(getOption("cl.cores", workers))
-  # Ensure cluster is always closed, even if an error occurs
-  on.exit(parallel::stopCluster(cl), add = TRUE)
+  # Calculate optimal workers based on dataset size to prevent resource exhaustion
+  n_samples <- ncol(Matrix_filter_BySample)
+  max_workers <- detectCores() - 1
+
+  # Dynamic worker allocation to prevent socket/memory exhaustion with large datasets
+  workers <- if (n_samples < 50) {
+    max_workers  # Small datasets: use all available workers
+  } else if (n_samples < 150) {
+    max(2, floor(max_workers * 0.75))  # Medium datasets: 75% workers
+  } else if (n_samples < 300) {
+    max(2, floor(max_workers * 0.5))  # Large datasets: 50% workers
+  } else {
+    max(2, min(4, floor(max_workers * 0.25)))  # Very large datasets (300+): max 4 workers
+  }
+
+  cat(sprintf("Search_normalizers: Processing %d samples with %d parallel workers (max available: %d)\n",
+              n_samples, workers, max_workers))
+
+  # Create cluster with explicit PSOCK type and timeout
+  cl <- parallel::makeCluster(
+    workers,
+    type = "PSOCK",
+    timeout = 300  # 5 minutes timeout to prevent deadlocks
+  )
+
+  # Triple-safety cleanup mechanism
+  on.exit({
+    tryCatch({
+      parallel::stopCluster(cl)
+      gc(verbose = FALSE)  # Force garbage collection to free memory
+    }, error = function(e) {
+      message("Cluster cleanup warning: ", e$message)
+    })
+  }, add = TRUE)
+
   doParallel::registerDoParallel(cl)
   
   ##Initializing varCacul
