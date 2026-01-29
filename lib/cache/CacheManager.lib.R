@@ -18,6 +18,12 @@ if (!require(digest)) install.packages("digest")
 library(jsonlite)
 library(digest)
 
+# Load DatabaseManager for SQLite integration
+DB_INTEGRATION_ENABLED <- file.exists("lib/cache/DatabaseManager.lib.R")
+if (DB_INTEGRATION_ENABLED) {
+  source("lib/cache/DatabaseManager.lib.R")
+}
+
 
 #' Initialize Cache System
 #'
@@ -99,6 +105,41 @@ init_cache_system <- function(project_name,
   cat(sprintf("   Project ID: %s\n", project_id))
   cat(sprintf("   Cache directory: %s\n", cache_dir))
   cat(sprintf("   Metadata file: %s\n", metadata_file))
+
+  # Register project in SQLite database
+  db_project_id <- NULL
+  if (DB_INTEGRATION_ENABLED) {
+    tryCatch({
+      # Initialize database if needed
+      db_path <- "cache_projects/mspandas.sqlite"
+      if (!file.exists(db_path)) {
+        init_database(db_path)
+      }
+
+      # Register project
+      db_project_id <- register_project(
+        project_name = project_name,
+        data_directory = normalizePath(data_dir, mustWork = FALSE),
+        total_files = 0,  # Will be updated later
+        cache_directory = cache_dir,
+        cache_id = project_id,
+        db_path = db_path
+      )
+
+      # Update project status
+      update_project_status(
+        project_id = db_project_id,
+        status = "initialized",
+        processing_stage = "none",
+        db_path = db_path
+      )
+
+      cat(sprintf("   Database ID: %d\n", db_project_id))
+    }, error = function(e) {
+      warning("SQLite registration failed: ", e$message)
+    })
+  }
+
   cat("═══════════════════════════════════════════════════════\n\n")
 
   return(list(
@@ -106,7 +147,9 @@ init_cache_system <- function(project_name,
     project_dir = project_dir,
     cache_dir = cache_dir,
     metadata_file = metadata_file,
-    data_dir = data_dir
+    data_dir = data_dir,
+    db_project_id = db_project_id,
+    db_path = if(DB_INTEGRATION_ENABLED) "cache_projects/mspandas.sqlite" else NULL
   ))
 }
 
@@ -230,6 +273,44 @@ save_checkpoint <- function(checkpoint_id,
 
     write_json(metadata, cache_info$metadata_file,
                pretty = TRUE, auto_unbox = TRUE)
+
+    # Register checkpoint in SQLite database
+    if (DB_INTEGRATION_ENABLED && !is.null(cache_info$db_project_id)) {
+      tryCatch({
+        register_checkpoint(
+          project_id = cache_info$db_project_id,
+          step_id = checkpoint_id,
+          step_name = step_name,
+          checkpoint_file_path = checkpoint_file,
+          file_size_mb = file_size_mb,
+          checksum_md5 = checksum,
+          variables_stored = names(variables),
+          next_step = next_step,
+          execution_time_seconds = NULL,
+          db_path = cache_info$db_path
+        )
+
+        # Update project status
+        update_project_status(
+          project_id = cache_info$db_project_id,
+          status = "running",
+          processing_stage = checkpoint_id,
+          db_path = cache_info$db_path
+        )
+
+        # Log event
+        log_processing_event(
+          project_id = cache_info$db_project_id,
+          step_name = step_name,
+          log_level = "INFO",
+          message = paste0("Checkpoint saved: ", checkpoint_id),
+          execution_time_seconds = NULL,
+          db_path = cache_info$db_path
+        )
+      }, error = function(e) {
+        warning("SQLite checkpoint registration failed: ", e$message)
+      })
+    }
 
     cat("✅ Checkpoint saved successfully!\n")
     cat(sprintf("   Variables saved: %s\n",

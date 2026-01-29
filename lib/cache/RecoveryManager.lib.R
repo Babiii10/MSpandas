@@ -20,16 +20,23 @@ if (!exists("init_cache_system")) {
   source("lib/cache/CacheManager.lib.R")
 }
 
+# Load DatabaseManager for SQLite integration
+DB_INTEGRATION_ENABLED <- file.exists("lib/cache/DatabaseManager.lib.R")
+if (DB_INTEGRATION_ENABLED && !exists("detect_crash_from_db")) {
+  source("lib/cache/DatabaseManager.lib.R")
+}
+
 
 #' Detect Crash and Recovery Mode
 #'
 #' Détecte si une session précédente existe et si on peut reprendre
 #'
-#' @param cache_info Info du cache
+#' @param cache_info Info du cache (peut être NULL pour détection depuis projet name)
+#' @param project_name Project name (si cache_info est NULL)
 #' @param verbose Afficher messages détaillés
 #' @return Liste avec mode ("fresh" ou "resume") et informations
 #' @export
-detect_crash_and_recover <- function(cache_info, verbose = TRUE) {
+detect_crash_and_recover <- function(cache_info = NULL, project_name = NULL, verbose = TRUE) {
 
   if (verbose) {
     cat("═══════════════════════════════════════════════════════\n")
@@ -37,38 +44,105 @@ detect_crash_and_recover <- function(cache_info, verbose = TRUE) {
     cat("═══════════════════════════════════════════════════════\n")
   }
 
-  # Vérifier si reprise possible
-  resume_info <- can_resume_from_cache(cache_info)
+  # Try SQLite database detection first (more reliable)
+  if (DB_INTEGRATION_ENABLED && !is.null(project_name)) {
+    tryCatch({
+      db_crash_info <- detect_crash_from_db(
+        project_name = project_name,
+        db_path = "cache_projects/mspandas.sqlite"
+      )
 
-  if (!resume_info$can_resume) {
+      if (db_crash_info$project_exists && db_crash_info$crashed && db_crash_info$can_resume) {
+        last_cp <- db_crash_info$last_checkpoint
+
+        if (verbose) {
+          cat("🎯 Crash detected in database!\n")
+          cat(sprintf("   Project: %s (ID: %d)\n", project_name, db_crash_info$project_id))
+          cat(sprintf("   Status: %s\n", db_crash_info$status))
+          cat(sprintf("   Last checkpoint: %s\n", last_cp$step_name))
+          cat(sprintf("   Next step: %s\n", last_cp$next_step))
+          cat(sprintf("   Total checkpoints: %d\n", db_crash_info$checkpoint_count))
+          cat("═══════════════════════════════════════════════════════\n\n")
+        }
+
+        return(list(
+          mode = "resume",
+          should_prompt = TRUE,
+          can_resume = TRUE,
+          crashed = TRUE,
+          last_checkpoint = last_cp$step_id,
+          checkpoint_name = last_cp$step_name,
+          next_step = last_cp$next_step,
+          saved_time = last_cp$created_at,
+          n_checkpoints = db_crash_info$checkpoint_count,
+          checkpoint_file_path = last_cp$checkpoint_file_path,
+          project_id = db_crash_info$project_id,
+          db_detection = TRUE
+        ))
+      }
+
+      if (verbose && db_crash_info$project_exists) {
+        cat(sprintf("ℹ️  Project exists in database (status: %s)\n", db_crash_info$status))
+      }
+    }, error = function(e) {
+      if (verbose) {
+        cat(sprintf("⚠️  Database detection failed: %s\n", e$message))
+        cat("   Falling back to JSON metadata detection\n")
+      }
+    })
+  }
+
+  # Fall back to JSON metadata detection
+  if (!is.null(cache_info)) {
+    resume_info <- can_resume_from_cache(cache_info)
+
+    if (!resume_info$can_resume) {
+      if (verbose) {
+        cat(sprintf("ℹ️  Starting fresh workflow\n"))
+        cat(sprintf("   Reason: %s\n", resume_info$reason))
+        cat("═══════════════════════════════════════════════════════\n\n")
+      }
+
+      return(list(
+        mode = "fresh",
+        should_prompt = FALSE,
+        can_resume = FALSE,
+        reason = resume_info$reason,
+        db_detection = FALSE
+      ))
+    }
+
     if (verbose) {
-      cat(sprintf("ℹ️  Starting fresh workflow\n"))
-      cat(sprintf("   Reason: %s\n", resume_info$reason))
+      cat("🎯 Previous session detected in JSON metadata!\n")
+      cat(sprintf("   Last completed: %s\n", resume_info$last_checkpoint))
+      cat(sprintf("   Next step: %s\n", resume_info$next_step))
+      cat(sprintf("   Total checkpoints: %d\n", resume_info$n_checkpoints))
       cat("═══════════════════════════════════════════════════════\n\n")
     }
 
     return(list(
-      mode = "fresh",
-      resume = FALSE,
-      reason = resume_info$reason
+      mode = "resume",
+      should_prompt = TRUE,
+      can_resume = TRUE,
+      last_checkpoint = resume_info$last_checkpoint,
+      next_step = resume_info$next_step,
+      completed_steps = resume_info$completed_steps,
+      n_checkpoints = resume_info$n_checkpoints,
+      db_detection = FALSE
     ))
   }
 
+  # No detection possible
   if (verbose) {
-    cat("🎯 Previous session detected!\n")
-    cat(sprintf("   Last completed: %s\n", resume_info$last_checkpoint))
-    cat(sprintf("   Next step: %s\n", resume_info$next_step))
-    cat(sprintf("   Total checkpoints: %d\n", resume_info$n_checkpoints))
+    cat("ℹ️  No previous session detected\n")
     cat("═══════════════════════════════════════════════════════\n\n")
   }
 
   return(list(
-    mode = "resume",
-    resume = TRUE,
-    last_checkpoint = resume_info$last_checkpoint,
-    next_step = resume_info$next_step,
-    completed_steps = resume_info$completed_steps,
-    n_checkpoints = resume_info$n_checkpoints
+    mode = "fresh",
+    should_prompt = FALSE,
+    can_resume = FALSE,
+    reason = "No cache_info or project_name provided"
   ))
 }
 
