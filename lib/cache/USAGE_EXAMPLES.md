@@ -704,6 +704,569 @@ observeEvent(input$run_export, {
 
 ---
 
+## 7. SQLite Database Integration
+
+### Overview
+
+The cache system now includes **SQLite database integration** for robust metadata tracking. This provides:
+
+- **Crash detection** based on project status in database
+- **Complete audit trail** of all processing events
+- **Fast queries** for project history and statistics
+- **Reliable persistence** even if JSON metadata gets corrupted
+
+### Architecture
+
+```
+cache_projects/
+├── mspandas.sqlite          ← SQLite database (metadata, logs, tracking)
+└── Project1_20260123/
+    └── cache/
+        ├── metadata.json    ← Backup JSON metadata
+        ├── step_01.rds      ← RDS checkpoint (large data)
+        ├── step_02.rds
+        └── step_03.rds
+```
+
+**Division of responsibilities:**
+- **SQLite**: Project tracking, checkpoint registry, logs, status
+- **RDS files**: Actual checkpoint data (matrices, lists, etc.)
+- **JSON**: Backup metadata (human-readable)
+
+---
+
+### A. Automatic Integration
+
+The SQLite integration is **automatic** if `DatabaseManager.lib.R` exists. No code changes needed!
+
+When you use the existing cache functions, SQLite is automatically updated:
+
+```r
+# 1. Initialize cache (automatically registers in SQLite)
+cache_info <- init_cache_system(
+  project_name = "MyProject",
+  data_dir = "/data/raw"
+)
+
+# cache_info now contains:
+# - $db_project_id: Project ID in SQLite database
+# - $db_path: Path to SQLite database file
+
+# 2. Save checkpoint (automatically registers in SQLite)
+save_checkpoint(
+  checkpoint_id = "step_01_peaks",
+  cache_info = cache_info,
+  variables = list(peaks = peaks_data),
+  step_name = "Peak Picking Complete",
+  next_step = "Isotope Annotation"
+)
+
+# Behind the scenes, this:
+# - Saves RDS file with checkpoint data
+# - Registers checkpoint in SQLite database
+# - Updates project status to "running"
+# - Logs the event with timestamp
+```
+
+---
+
+### B. Database-Driven Crash Detection
+
+Use SQLite for more reliable crash detection:
+
+```r
+observeEvent(input$load_project, {
+  req(input$project_name)
+
+  # Method 1: SQLite-based crash detection (recommended)
+  crash_info <- detect_crash_and_recover(
+    project_name = input$project_name,  # Detection by name
+    verbose = TRUE
+  )
+
+  # crash_info contains:
+  # $crashed = TRUE/FALSE (was project status "running"?)
+  # $can_resume = TRUE/FALSE (valid checkpoints exist?)
+  # $last_checkpoint = "step_03_grouping"
+  # $checkpoint_name = "Grouping Complete"
+  # $checkpoint_file_path = "/path/to/checkpoint.rds"
+  # $project_id = 5 (database ID)
+  # $db_detection = TRUE (detection method used)
+
+  if (crash_info$crashed && crash_info$can_resume) {
+    show_recovery_modal(
+      session = session,
+      recovery_info = crash_info,
+      on_resume = function() {
+        # Load checkpoint directly from file path
+        restored_data <- readRDS(crash_info$checkpoint_file_path)
+
+        # Restore to Rvars
+        for (var_name in names(restored_data$variables)) {
+          Rvars[[var_name]] <- restored_data$variables[[var_name]]
+        }
+
+        showNotification(
+          paste0("✅ Resumed from: ", crash_info$checkpoint_name),
+          type = "message"
+        )
+      },
+      on_restart = function() {
+        # Update database status
+        if (!is.null(crash_info$project_id)) {
+          update_project_status(
+            project_id = crash_info$project_id,
+            status = "initialized",
+            processing_stage = "none"
+          )
+        }
+      }
+    )
+  }
+})
+```
+
+---
+
+### C. Viewing Project History
+
+Query the database for project statistics and history:
+
+```r
+# Get comprehensive project statistics
+observeEvent(input$show_project_stats, {
+  req(Rvars$cache_info)
+  req(Rvars$cache_info$db_project_id)
+
+  stats <- get_project_statistics(
+    project_id = Rvars$cache_info$db_project_id
+  )
+
+  # stats contains:
+  # $project: Project info (name, status, dates)
+  # $checkpoints: Checkpoint stats (count, total size, last time)
+  # $logs: Log stats (total, errors, warnings, execution time)
+  # $recent_logs: Last 10 log entries
+
+  # Display in UI
+  output$project_stats <- renderUI({
+    HTML(paste0(
+      "<h4>Project: ", stats$project$project_name, "</h4>",
+      "<p><strong>Status:</strong> ", stats$project$status, "</p>",
+      "<p><strong>Stage:</strong> ", stats$project$processing_stage, "</p>",
+      "<p><strong>Checkpoints:</strong> ", stats$checkpoints$total_checkpoints,
+      " (", sprintf("%.1f MB", stats$checkpoints$total_size_mb), ")</p>",
+      "<p><strong>Total logs:</strong> ", stats$logs$total_logs,
+      " (", stats$logs$error_count, " errors, ",
+      stats$logs$warning_count, " warnings)</p>",
+      "<p><strong>Total execution time:</strong> ",
+      sprintf("%.1f seconds", stats$logs$total_execution_time), "</p>"
+    ))
+  })
+})
+```
+
+---
+
+### D. Viewing Processing Logs
+
+Access detailed processing logs from the database:
+
+```r
+# Get all logs for project
+logs <- get_processing_logs(
+  project_id = Rvars$cache_info$db_project_id,
+  limit = 100
+)
+
+# Filter by log level
+error_logs <- get_processing_logs(
+  project_id = Rvars$cache_info$db_project_id,
+  log_level = "ERROR",
+  limit = 50
+)
+
+# Filter by step
+peak_picking_logs <- get_processing_logs(
+  project_id = Rvars$cache_info$db_project_id,
+  step_name = "peak_picking",
+  limit = 50
+)
+
+# Display in Shiny table
+output$logs_table <- renderDT({
+  datatable(
+    logs,
+    options = list(
+      pageLength = 25,
+      order = list(list(1, 'desc'))  # Sort by timestamp descending
+    )
+  )
+})
+```
+
+---
+
+### E. Manual Logging
+
+Add custom log entries during processing:
+
+```r
+observeEvent(input$run_peak_picking, {
+  req(Rvars$cache_info)
+
+  start_time <- Sys.time()
+
+  tryCatch({
+    # Your peak picking code
+    Rvars$peaks <- process_peak_picking(...)
+
+    # Log success
+    execution_time <- as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+
+    log_processing_event(
+      project_id = Rvars$cache_info$db_project_id,
+      step_name = "peak_picking",
+      log_level = "INFO",
+      message = paste0("Peak picking completed successfully. ",
+                      nrow(Rvars$peaks), " peaks detected."),
+      execution_time_seconds = execution_time
+    )
+
+  }, error = function(e) {
+    # Log error
+    log_processing_event(
+      project_id = Rvars$cache_info$db_project_id,
+      step_name = "peak_picking",
+      log_level = "ERROR",
+      message = paste0("Peak picking failed: ", e$message),
+      error_details = toString(e)
+    )
+
+    showNotification(
+      paste0("❌ Peak picking failed: ", e$message),
+      type = "error",
+      duration = 10
+    )
+  })
+})
+```
+
+---
+
+### F. Listing All Projects
+
+View all projects in the database:
+
+```r
+# Get all projects
+all_projects <- get_all_projects()
+
+# Display in table
+output$projects_table <- renderDT({
+  datatable(
+    all_projects[, c("project_name", "status", "processing_stage",
+                     "total_files", "last_modified")],
+    options = list(pageLength = 10)
+  )
+})
+
+# Load a specific project
+observeEvent(input$load_selected_project, {
+  req(input$projects_table_rows_selected)
+
+  selected_row <- input$projects_table_rows_selected
+  project_name <- all_projects$project_name[selected_row]
+
+  # Check for crash
+  crash_info <- detect_crash_from_db(project_name)
+
+  if (crash_info$crashed) {
+    show_recovery_modal(session, crash_info, ...)
+  } else {
+    # Load project normally
+    load_project(project_name)
+  }
+})
+```
+
+---
+
+### G. Cleaning Up Database
+
+Remove old or completed projects:
+
+```r
+# Delete a specific project from database
+observeEvent(input$delete_project, {
+  req(input$confirm_delete)
+  req(Rvars$cache_info$db_project_id)
+
+  result <- delete_project(
+    project_id = Rvars$cache_info$db_project_id,
+    delete_files = TRUE  # Also delete checkpoint files
+  )
+
+  if (result) {
+    showNotification(
+      "✅ Project deleted successfully",
+      type = "message"
+    )
+  }
+})
+
+# Invalidate a corrupted checkpoint
+invalidate_checkpoint(
+  checkpoint_id = 123,  # Database checkpoint ID
+  db_path = "cache_projects/mspandas.sqlite"
+)
+
+# Clean up invalid checkpoints (remove files)
+cleanup_invalid_checkpoints(
+  project_id = Rvars$cache_info$db_project_id
+)
+```
+
+---
+
+### H. Database Queries (Advanced)
+
+Direct SQL queries for custom reporting:
+
+```r
+library(RSQLite)
+library(DBI)
+
+# Open connection
+con <- dbConnect(RSQLite::SQLite(), "cache_projects/mspandas.sqlite")
+
+# Example: Find all crashed projects
+crashed_projects <- dbGetQuery(con, "
+  SELECT project_name, processing_stage, last_modified
+  FROM projects
+  WHERE status = 'running'
+  ORDER BY last_modified DESC
+")
+
+# Example: Find projects with errors
+projects_with_errors <- dbGetQuery(con, "
+  SELECT DISTINCT p.project_name, COUNT(l.log_id) as error_count
+  FROM projects p
+  JOIN processing_logs l ON p.project_id = l.project_id
+  WHERE l.log_level = 'ERROR'
+  GROUP BY p.project_id
+  HAVING error_count > 0
+  ORDER BY error_count DESC
+")
+
+# Example: Average execution time per step
+avg_execution_times <- dbGetQuery(con, "
+  SELECT step_name,
+         COUNT(*) as count,
+         AVG(execution_time_seconds) as avg_time,
+         MIN(execution_time_seconds) as min_time,
+         MAX(execution_time_seconds) as max_time
+  FROM processing_logs
+  WHERE execution_time_seconds IS NOT NULL
+  GROUP BY step_name
+  ORDER BY avg_time DESC
+")
+
+# Close connection
+dbDisconnect(con)
+```
+
+---
+
+### I. Complete Example with SQLite
+
+Here's a complete workflow with full SQLite integration:
+
+```r
+server <- function(input, output, session) {
+
+  Rvars <- reactiveValues()
+
+  # ═══════════════════════════════════════════════════════════
+  # Initialize SQLite database at app startup
+  # ═══════════════════════════════════════════════════════════
+
+  # This runs once when app starts
+  db_path <- init_database("cache_projects/mspandas.sqlite")
+
+
+  # ═══════════════════════════════════════════════════════════
+  # Load project with SQLite-based crash detection
+  # ═══════════════════════════════════════════════════════════
+
+  observeEvent(input$load_project, {
+    req(input$project_name)
+
+    # SQLite-based crash detection
+    crash_info <- detect_crash_and_recover(
+      project_name = input$project_name,
+      verbose = TRUE
+    )
+
+    if (crash_info$crashed && crash_info$can_resume) {
+      # Show recovery modal
+      show_recovery_modal(
+        session = session,
+        recovery_info = crash_info,
+        on_resume = function() {
+          # Initialize cache with existing project_id
+          Rvars$cache_info <- list(
+            db_project_id = crash_info$project_id,
+            cache_dir = dirname(crash_info$checkpoint_file_path),
+            db_path = db_path
+          )
+
+          # Load checkpoint
+          checkpoint_data <- readRDS(crash_info$checkpoint_file_path)
+          for (var in names(checkpoint_data$variables)) {
+            Rvars[[var]] <- checkpoint_data$variables[[var]]
+          }
+
+          # Update status
+          update_project_status(
+            project_id = crash_info$project_id,
+            status = "running",
+            processing_stage = crash_info$last_checkpoint
+          )
+
+          showNotification("✅ Session restored!", type = "message")
+        },
+        on_restart = function() {
+          start_new_session()
+        }
+      )
+    } else {
+      start_new_session()
+    }
+  })
+
+
+  # ═══════════════════════════════════════════════════════════
+  # Start new session
+  # ═══════════════════════════════════════════════════════════
+
+  start_new_session <- function() {
+    # Initialize cache (auto-registers in SQLite)
+    Rvars$cache_info <- init_cache_system(
+      project_name = input$project_name,
+      data_dir = input$data_directory
+    )
+
+    showNotification("✅ New session started", type = "message")
+  }
+
+
+  # ═══════════════════════════════════════════════════════════
+  # Processing with automatic SQLite logging
+  # ═══════════════════════════════════════════════════════════
+
+  observeEvent(input$run_peak_picking, {
+    req(Rvars$cache_info)
+
+    start_time <- Sys.time()
+
+    withProgress(message = "Peak Picking...", {
+
+      tryCatch({
+        # Process
+        Rvars$peaks <- process_peak_picking(...)
+
+        # Save checkpoint (auto-registers in SQLite)
+        save_checkpoint_with_progress(
+          checkpoint_id = "step_01_peak_picking",
+          cache_info = Rvars$cache_info,
+          variables = list(peaks = Rvars$peaks),
+          step_name = "Peak Picking Complete",
+          next_step = "Isotope Annotation"
+        )
+
+        # Checkpoint save automatically:
+        # - Registers in SQLite
+        # - Updates project status to "running"
+        # - Logs the event
+
+      }, error = function(e) {
+        # Errors are automatically logged if save_checkpoint is called
+        showNotification(paste0("Error: ", e$message), type = "error")
+      })
+    })
+  })
+
+
+  # ═══════════════════════════════════════════════════════════
+  # Mark workflow as completed
+  # ═══════════════════════════════════════════════════════════
+
+  observeEvent(input$export_results, {
+    req(Rvars$cache_info)
+
+    # Mark as completed
+    update_project_status(
+      project_id = Rvars$cache_info$db_project_id,
+      status = "completed",
+      processing_stage = "export"
+    )
+
+    log_processing_event(
+      project_id = Rvars$cache_info$db_project_id,
+      step_name = "export",
+      log_level = "INFO",
+      message = "Workflow completed successfully"
+    )
+
+    showNotification("✅ Analysis complete!", type = "message")
+  })
+}
+```
+
+---
+
+### J. Benefits of SQLite Integration
+
+| Feature | Without SQLite | With SQLite |
+|---------|----------------|-------------|
+| **Crash detection** | Check JSON file | Query database status |
+| **Project history** | Parse all JSON files | Single SQL query |
+| **Logs** | Print to console (lost) | Persistent in database |
+| **Search** | Manual file scanning | Fast SQL queries |
+| **Corruption recovery** | JSON must be valid | Database transaction-safe |
+| **Audit trail** | Limited | Complete with timestamps |
+| **Statistics** | Recalculate each time | Aggregated queries |
+| **Multi-user** | File locks | Database transactions |
+
+---
+
+### K. Testing SQLite Integration
+
+Run the test suite to validate SQLite functionality:
+
+```r
+source("lib/cache/test_database_manager.R")
+
+# Run all tests
+run_database_tests()
+
+# Or quick validation
+quick_database_test()
+```
+
+Tests cover:
+- Database initialization
+- Project registration
+- Checkpoint registration
+- Status updates
+- Processing logs
+- Crash detection
+- Checkpoint management
+- Project statistics
+
+---
+
 ## Summary
 
 ### Key Integration Points
