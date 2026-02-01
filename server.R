@@ -17,7 +17,7 @@ server <- function(input, output, session) {
   #   check_credentials = check_credentials(
   #     "data/Secure/database.sqlite",
   #     passphrase = "passphrase_wihtout_keyring"
-  
+
   #   )
   # )
   #
@@ -37,10 +37,29 @@ server <- function(input, output, session) {
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-  
+
 
   ## Extend size for inputs files
   options(shiny.maxRequestSize = 60000 * 1024 ^ 2)
+
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+  #~~~~~~~~~~~~~~~~~~~ GLOBAL CACHE SYSTEM INITIALIZATION ~~~~~~~~~~~~~~~~~~~~~#
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+  # Load Global Cache Controller
+  source("lib/cache/GlobalCacheController.lib.R", local = FALSE)
+
+  # Reactive value to store the cache controller
+  globalCacheController <- reactiveVal(NULL)
+
+  # Reactive value to track cache initialization state
+  cacheState <- reactiveValues(
+    initialized = FALSE,
+    project_name = NULL,
+    can_resume = FALSE,
+    recovery_pending = FALSE,
+    auto_save_enabled = TRUE
+  )
 
   ## Increase timeouts for long-running operations (Kernel Density with gc())
   ## Disable session timeout (allow infinite processing time)
@@ -58,9 +77,16 @@ server <- function(input, output, session) {
   allReactiveVarsNewRefMap <- initReactiveVarsNewRefMap()
   # Initialize all the reactive variables used for Analysis new sample...
   source("server/analysisNewSamples.server/reactiveVarsAnalysisNewSample.R")
-  
+
   # Initialize all the reactive variables used for Database reference map...
   source("server/database.server/reactiveValuesDatabase.server.R")
+
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+  #~~~~~~~~~~~~~~~~~~~ CACHE SYSTEM SERVER INTEGRATION ~~~~~~~~~~~~~~~~~~~~~~~~#
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+  # Source cache management server
+  source("server/cache.server/cacheManagement.server.R", local = TRUE)
   
   
   ###~~~~~~~~~~~~~~~~~~~~~New reference map~~~~~~~~~~~~~~~~~~~~~~~~~#######

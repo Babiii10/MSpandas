@@ -28,6 +28,9 @@ source("ui/database.ui/database.ui.R")
 ## About MSPANDA
 source("ui/About.ui/about.ui.R")
 
+## Cache Management UI
+source("ui/cache.ui/cacheManagement.ui.R")
+
 
 # Extract alll them for shiny
 allThemes <- function() {
@@ -106,8 +109,10 @@ ui <- fluidPage(
   ),
   
   includeCSS("www/style.css"),
-  
-  
+
+  ## Cache Management Styles
+  cache_ui_styles(),
+
   #### Suppression the warning an error message in console shiny
   tags$style(
     type = "text/css",
@@ -200,9 +205,10 @@ ui <- fluidPage(
              aboutTabPanel())
     
   ),
-  
-  
-  
+
+  ## Cache Floating Controls Button
+  cache_floating_button_ui(),
+
   # Footer
   fluidRow(br()),
   fluidRow(br()),
