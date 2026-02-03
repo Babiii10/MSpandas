@@ -576,7 +576,9 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
     stop("R package \"parallel\" is required !")
   
   
+  
   param <- SnowParam(workers = workers, type = "SOCK")
+  tryCatch({
   time1<-system.time(Result_Msidal<-
                        bplapply(path_to_peakList,
                                 ProcessPeaks.msdial.NewSample,
@@ -586,6 +588,11 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
                                 BPPARAM = param))
   time2<-system.time(peaks_MSDIAL_mono_iso<-do.call("rbind", Result_Msidal))
   times<-time1[[3]]+time2[[3]]
+  }, finally = {
+    # Always cleanup worker pool to prevent socket accumulation
+    bpstop(param)
+    gc()
+  })
   
   cat(paste("Time of computing mono-isotopic peaks :",times,"... !", sep = " "))
   if(is.null(output_directory)){ 

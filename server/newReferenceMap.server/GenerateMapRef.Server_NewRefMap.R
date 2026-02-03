@@ -820,6 +820,10 @@ observeEvent(ignoreNULL = TRUE,
                    rownames(res3) <- 1:nrow(res3)
                    RvarsGrouping$FeaturesList <- res3[,-ncol(res3)]
                    incProgress(1 / 4, detail = "finish")
+                   
+                   # Cleanup worker pool to prevent socket accumulation
+                   bpstop(param)
+                   gc()
                  })
                  
                  #### Grouping massif between samples - PARALLEL VERSION

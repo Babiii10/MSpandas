@@ -4531,6 +4531,10 @@ observeEvent(ignoreNULL = TRUE,
                    RvarsPeakDetectionNewSample$FeaturesList_newSample <-
                      res2
                    incProgress(1 / 4, detail = "finish")
+                  
+                  # Cleanup worker pool to prevent socket accumulation
+                  bpstop(param)
+                  gc()
                    
                    
                  })
