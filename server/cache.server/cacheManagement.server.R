@@ -12,8 +12,8 @@
 #   - Cache status display
 #
 # Author: MSpandas Team
-# Version: 2.0.0
-# Date: 2026-02-01
+# Version: 3.0.0
+# Date: 2026-02-13
 #
 # ===============================================================================
 
@@ -24,26 +24,34 @@ RvarsGrouping <- allReactiveVarsNewRefMap$Grouping
 RvarsInternalStandard <- allReactiveVarsNewRefMap$InternalStandard
 
 # ===============================================================================
-# CACHE INITIALIZATION - When project name is set
+# CACHE INITIALIZATION - Multiple triggers
 # ===============================================================================
 
-#' Initialize cache when a new project is started
-observeEvent(RvarsPeakDetection$Project_NameNewRefMap, {
+#' Initialize cache when project name input changes (early initialization)
+#' This triggers as soon as user types a project name
+observeEvent(input$projectName_NewRefMap, {
 
-  project_name <- RvarsPeakDetection$Project_NameNewRefMap
+  project_name <- input$projectName_NewRefMap
+
+  cat("\n[CACHE DEBUG] input$projectName_NewRefMap changed:", project_name, "\n")
 
   if (!is.null(project_name) && nchar(trimws(project_name)) > 0) {
 
     # Check if already initialized with this project
     if (cacheState$initialized && cacheState$project_name == project_name) {
+      cat("[CACHE DEBUG] Already initialized for this project\n")
       return()
     }
 
-    # Get data directory
+    # Get data directory if available
     data_dir <- RvarsPeakDetection$directory_rawData
-    if (is.null(data_dir)) {
+    if (is.null(data_dir) || !dir.exists(data_dir)) {
       data_dir <- getwd()
     }
+
+    cat("[CACHE DEBUG] Creating cache controller...\n")
+    cat("[CACHE DEBUG] Project:", project_name, "\n")
+    cat("[CACHE DEBUG] Data dir:", data_dir, "\n")
 
     # Create cache controller
     tryCatch({
@@ -61,10 +69,12 @@ observeEvent(RvarsPeakDetection$Project_NameNewRefMap, {
       cacheState$initialized <- TRUE
       cacheState$project_name <- project_name
 
+      cat("[CACHE DEBUG] Cache initialized successfully!\n")
+
       # Check for recovery
       recovery_info <- cache_ctrl$check_recovery(verbose = TRUE)
 
-      if (recovery_info$can_resume && recovery_info$mode == "resume") {
+      if (isTRUE(recovery_info$can_resume) && isTRUE(recovery_info$mode == "resume")) {
         cacheState$can_resume <- TRUE
         cacheState$recovery_pending <- TRUE
 
@@ -84,7 +94,6 @@ observeEvent(RvarsPeakDetection$Project_NameNewRefMap, {
               if (!is.null(recovery_info$checkpoint_name)) recovery_info$checkpoint_name else "Unknown"),
             p(strong("Saved at: "),
               if (!is.null(recovery_info$saved_time)) recovery_info$saved_time else "Unknown"),
-            p(strong("Number of checkpoints: "), recovery_info$n_checkpoints),
             hr(),
             p(class = "text-info",
               icon("info-circle"),
@@ -110,6 +119,7 @@ observeEvent(RvarsPeakDetection$Project_NameNewRefMap, {
       )
 
     }, error = function(e) {
+      cat("[CACHE DEBUG] ERROR:", e$message, "\n")
       showNotification(
         paste("Cache initialization warning:", e$message),
         type = "warning",
@@ -117,7 +127,62 @@ observeEvent(RvarsPeakDetection$Project_NameNewRefMap, {
       )
     })
   }
-})
+}, ignoreInit = TRUE)
+
+
+#' Also initialize cache when the reactive variable is set (backup trigger)
+observeEvent(RvarsPeakDetection$Project_NameNewRefMap, {
+
+  project_name <- RvarsPeakDetection$Project_NameNewRefMap
+
+  cat("\n[CACHE DEBUG] RvarsPeakDetection$Project_NameNewRefMap changed:", project_name, "\n")
+
+  if (!is.null(project_name) && nchar(trimws(project_name)) > 0) {
+
+    # Check if already initialized
+    if (cacheState$initialized) {
+      cat("[CACHE DEBUG] Cache already initialized\n")
+      return()
+    }
+
+    # Get data directory
+    data_dir <- RvarsPeakDetection$directory_rawData
+    if (is.null(data_dir)) {
+      data_dir <- getwd()
+    }
+
+    # Create cache controller
+    tryCatch({
+      cache_ctrl <- create_global_cache_controller(
+        project_name = project_name,
+        data_dir = data_dir,
+        base_cache_dir = "cache_projects"
+      )
+
+      # Initialize the controller
+      cache_ctrl$initialize(verbose = TRUE)
+
+      # Store controller
+      globalCacheController(cache_ctrl)
+      cacheState$initialized <- TRUE
+      cacheState$project_name <- project_name
+
+      showNotification(
+        paste("Cache system ready:", project_name),
+        type = "message",
+        duration = 3
+      )
+
+    }, error = function(e) {
+      cat("[CACHE DEBUG] ERROR:", e$message, "\n")
+      showNotification(
+        paste("Cache initialization warning:", e$message),
+        type = "warning",
+        duration = 5
+      )
+    })
+  }
+}, ignoreInit = TRUE)
 
 
 # ===============================================================================
