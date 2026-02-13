@@ -387,6 +387,265 @@ cache_ui_styles <- function() {
 
 
 # ===============================================================================
+# Enhanced v3.0 UI Components
+# ===============================================================================
+
+#' Cache configuration modal UI
+#' Shows configuration options for the cache system
+cache_config_modal_ui <- function() {
+
+  modalDialog(
+    title = div(
+      icon("cogs"),
+      " Cache Configuration",
+      style = "color: #495057; font-weight: 600;"
+    ),
+    size = "m",
+    easyClose = TRUE,
+
+    div(
+      style = "padding: 15px;",
+
+      # Storage limits
+      h5(icon("hdd"), " Storage Limits", style = "color: #495057;"),
+      hr(style = "margin: 10px 0;"),
+
+      fluidRow(
+        column(6,
+          numericInput(
+            "cache_config_max_size",
+            "Max total size (GB):",
+            value = 50,
+            min = 1,
+            max = 500,
+            step = 5
+          )
+        ),
+        column(6,
+          numericInput(
+            "cache_config_max_projects",
+            "Max projects:",
+            value = 20,
+            min = 1,
+            max = 100,
+            step = 1
+          )
+        )
+      ),
+
+      fluidRow(
+        column(6,
+          numericInput(
+            "cache_config_max_versions",
+            "Max versions per stage:",
+            value = 5,
+            min = 1,
+            max = 20,
+            step = 1
+          )
+        ),
+        column(6,
+          numericInput(
+            "cache_config_max_age",
+            "Max age (days):",
+            value = 60,
+            min = 1,
+            max = 365,
+            step = 7
+          )
+        )
+      ),
+
+      hr(),
+
+      # Features
+      h5(icon("sliders"), " Features", style = "color: #495057;"),
+      hr(style = "margin: 10px 0;"),
+
+      fluidRow(
+        column(6,
+          checkboxInput(
+            "cache_config_auto_cleanup",
+            span(icon("broom"), " Auto cleanup"),
+            value = TRUE
+          ),
+          checkboxInput(
+            "cache_config_versioning",
+            span(icon("code-branch"), " Enable versioning"),
+            value = TRUE
+          )
+        ),
+        column(6,
+          checkboxInput(
+            "cache_config_logging",
+            span(icon("file-alt"), " Enable logging"),
+            value = TRUE
+          ),
+          checkboxInput(
+            "cache_config_atomic",
+            span(icon("shield-alt"), " Atomic writes"),
+            value = TRUE
+          )
+        )
+      ),
+
+      hr(),
+
+      # Compression
+      h5(icon("compress-arrows-alt"), " Compression", style = "color: #495057;"),
+      hr(style = "margin: 10px 0;"),
+
+      radioButtons(
+        "cache_config_compression",
+        NULL,
+        choices = list(
+          "Auto (recommended)" = "auto",
+          "Fast (gzip)" = "gzip",
+          "Balanced (bzip2)" = "bzip2",
+          "Maximum (xz)" = "xz"
+        ),
+        selected = "auto",
+        inline = TRUE
+      )
+    ),
+
+    footer = tagList(
+      actionButton("cache_config_reset", "Reset to Defaults",
+                   class = "btn-warning", icon = icon("undo")),
+      modalButton("Cancel"),
+      actionButton("cache_config_save", "Save Configuration",
+                   class = "btn-primary", icon = icon("save"))
+    )
+  )
+}
+
+
+#' Cache health check modal UI
+cache_health_modal_ui <- function(health_result) {
+
+  # Determine overall status
+  if (health_result$healthy) {
+    status_color <- "#28a745"
+    status_icon <- "check-circle"
+    status_text <- "HEALTHY"
+  } else {
+    status_color <- "#dc3545"
+    status_icon <- "exclamation-triangle"
+    status_text <- "ISSUES DETECTED"
+  }
+
+  modalDialog(
+    title = div(
+      icon("heartbeat"),
+      " Cache Health Check",
+      style = "color: #495057; font-weight: 600;"
+    ),
+    size = "m",
+    easyClose = TRUE,
+
+    div(
+      style = "padding: 15px;",
+
+      # Overall status
+      div(
+        style = sprintf("
+          text-align: center;
+          padding: 20px;
+          background-color: %s20;
+          border-radius: 10px;
+          margin-bottom: 20px;
+        ", status_color),
+        icon(status_icon, style = sprintf("font-size: 48px; color: %s;", status_color)),
+        h3(status_text, style = sprintf("color: %s; margin: 10px 0 0 0;", status_color))
+      ),
+
+      # Summary statistics
+      h5(icon("chart-bar"), " Summary", style = "color: #495057;"),
+      hr(style = "margin: 10px 0;"),
+
+      fluidRow(
+        column(4,
+          div(
+            style = "text-align: center; padding: 10px;",
+            h4(health_result$summary$total_checkpoints, style = "margin: 0; color: #007bff;"),
+            span("Total", class = "text-muted")
+          )
+        ),
+        column(4,
+          div(
+            style = "text-align: center; padding: 10px;",
+            h4(health_result$summary$valid_checkpoints, style = "margin: 0; color: #28a745;"),
+            span("Valid", class = "text-muted")
+          )
+        ),
+        column(4,
+          div(
+            style = "text-align: center; padding: 10px;",
+            h4(health_result$summary$corrupted_checkpoints, style = "margin: 0; color: #dc3545;"),
+            span("Corrupted", class = "text-muted")
+          )
+        )
+      ),
+
+      # Issues list
+      if (length(health_result$issues) > 0) {
+        tagList(
+          hr(),
+          h5(icon("exclamation-circle"), " Issues", style = "color: #dc3545;"),
+          hr(style = "margin: 10px 0;"),
+          div(
+            style = "max-height: 150px; overflow-y: auto;",
+            lapply(health_result$issues, function(issue) {
+              div(
+                style = "padding: 5px; margin: 2px 0; background-color: #fff3cd; border-radius: 3px;",
+                icon("exclamation-triangle", style = "color: #856404;"),
+                span(issue, style = "margin-left: 5px;")
+              )
+            })
+          )
+        )
+      }
+    ),
+
+    footer = tagList(
+      if (!health_result$healthy) {
+        actionButton("cache_health_repair", "Attempt Repair",
+                     class = "btn-warning", icon = icon("wrench"))
+      },
+      modalButton("Close")
+    )
+  )
+}
+
+
+#' Cache statistics panel
+cache_statistics_ui <- function() {
+
+  div(
+    id = "cache_statistics_panel",
+    style = "
+      padding: 15px;
+      background: linear-gradient(to right, #667eea, #764ba2);
+      border-radius: 10px;
+      color: white;
+      margin: 10px 0;
+    ",
+
+    h5(
+      icon("chart-pie"),
+      " Cache Statistics",
+      style = "margin-top: 0; font-weight: 600;"
+    ),
+
+    hr(style = "border-color: rgba(255,255,255,0.2); margin: 10px 0;"),
+
+    # Dynamic content
+    uiOutput("cache_statistics_output")
+  )
+}
+
+
+# ===============================================================================
 # EXPORT UI COMPONENTS
 # ===============================================================================
 
@@ -396,5 +655,9 @@ list(
   floating_button = cache_floating_button_ui,
   inline_controls = cache_inline_controls_ui,
   progress_indicator = cache_progress_indicator_ui,
-  styles = cache_ui_styles
+  styles = cache_ui_styles,
+  # Enhanced v3.0
+  config_modal = cache_config_modal_ui,
+  health_modal = cache_health_modal_ui,
+  statistics = cache_statistics_ui
 )

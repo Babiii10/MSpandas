@@ -13,8 +13,17 @@
 #   5. Normalizer Search    - After internal standard identification
 #
 # Author: MSpandas Team
-# Version: 2.0.0
-# Date: 2026-02-01
+# Version: 3.0.0 (Enhanced)
+# Date: 2026-02-13
+#
+# Enhancements in v3.0.0:
+#   - Atomic saves (prevents corruption)
+#   - Checkpoint versioning (rollback support)
+#   - Smart compression (adaptive based on size)
+#   - Structured logging (detailed audit trail)
+#   - Schema versioning (migration support)
+#   - Automatic cleanup (size limits)
+#   - Health checks (integrity validation)
 #
 # ===============================================================================
 
@@ -30,6 +39,11 @@ if (!exists("detect_crash_and_recover")) {
 }
 if (!exists("show_recovery_modal")) {
   source("lib/cache/ShinyIntegration.lib.R")
+}
+
+# Source enhanced cache manager
+if (!exists("save_checkpoint_enhanced")) {
+  source("lib/cache/EnhancedCacheManager.lib.R")
 }
 
 # ===============================================================================
@@ -91,7 +105,8 @@ PIPELINE_STAGES <- list(
 #' )
 create_global_cache_controller <- function(project_name,
                                            data_dir,
-                                           base_cache_dir = "cache_projects") {
+                                           base_cache_dir = "cache_projects",
+                                           config = NULL) {
 
   # Initialize internal state
   state <- new.env(parent = emptyenv())
@@ -102,6 +117,16 @@ create_global_cache_controller <- function(project_name,
   state$auto_save <- TRUE
   state$project_name <- project_name
 
+  # Enhanced: Configuration with defaults
+  state$config <- if (!is.null(config)) {
+    modifyList(CACHE_CONFIG_DEFAULTS, config)
+  } else {
+    CACHE_CONFIG_DEFAULTS
+  }
+
+  # Enhanced: Logger instance (initialized after cache_info is available)
+  state$logger <- NULL
+
   # =========================================================================
   # initialize - Initialize the cache system for the project
   # =========================================================================
@@ -110,10 +135,11 @@ create_global_cache_controller <- function(project_name,
     if (verbose) {
       cat("\n")
       cat("================================================================\n")
-      cat("   Global Cache Controller - Initialization\n")
+      cat("   Global Cache Controller v3.0 - Enhanced\n")
       cat("================================================================\n")
       cat(sprintf("   Project: %s\n", project_name))
       cat(sprintf("   Data dir: %s\n", data_dir))
+      cat(sprintf("   Features: atomic saves, versioning, smart compression\n"))
     }
 
     # Initialize cache system
@@ -122,6 +148,34 @@ create_global_cache_controller <- function(project_name,
       data_dir = data_dir,
       base_cache_dir = base_cache_dir
     )
+
+    # Enhanced: Initialize logger
+    if (state$config$enable_logging) {
+      log_file <- file.path(state$cache_info$project_dir, "cache.log")
+      state$logger <- create_cache_logger(
+        log_file = log_file,
+        db_path = state$cache_info$db_path
+      )
+      state$logger$info("INIT", "Cache controller initialized",
+                        project_id = state$cache_info$project_id)
+    }
+
+    # Enhanced: Run automatic cleanup at startup
+    if (state$config$auto_cleanup) {
+      tryCatch({
+        cleanup_result <- auto_cleanup_cache(
+          base_cache_dir = base_cache_dir,
+          config = state$config,
+          dry_run = FALSE
+        )
+        if (length(cleanup_result$deleted_projects) > 0 && verbose) {
+          cat(sprintf("   Auto-cleanup: removed %d old project(s)\n",
+                      length(cleanup_result$deleted_projects)))
+        }
+      }, error = function(e) {
+        if (verbose) cat("   Auto-cleanup skipped:", e$message, "\n")
+      })
+    }
 
     # Update sample count if provided
     if (!is.null(n_samples) && !is.null(state$cache_info$db_project_id)) {
@@ -163,7 +217,7 @@ create_global_cache_controller <- function(project_name,
   }
 
   # =========================================================================
-  # save_stage - Save a pipeline stage checkpoint
+  # save_stage - Save a pipeline stage checkpoint (Enhanced v3.0)
   # =========================================================================
   save_stage <- function(stage_key, reactive_vars, progress = NULL, verbose = TRUE) {
 
@@ -195,16 +249,18 @@ create_global_cache_controller <- function(project_name,
       progress$set(message = sprintf("Saving: %s", stage_def$name), value = 0.3)
     }
 
-    # Save checkpoint
-    result <- save_checkpoint(
+    # Enhanced: Use atomic save with versioning
+    save_result <- save_checkpoint_enhanced(
       checkpoint_id = stage_def$id,
       cache_info = state$cache_info,
       variables = variables,
       step_name = stage_def$name,
-      next_step = stage_def$next_step
+      next_step = stage_def$next_step,
+      config = state$config,
+      logger = state$logger
     )
 
-    if (result) {
+    if (save_result$success) {
       state$current_stage <- stage_key
       state$completed_stages <- unique(c(state$completed_stages, stage_key))
 
@@ -214,16 +270,26 @@ create_global_cache_controller <- function(project_name,
 
       if (verbose) {
         cat(sprintf("   Checkpoint saved successfully!\n"))
+        cat(sprintf("   Version: %d | Size: %.2f MB | Compression: %s\n",
+                    save_result$version,
+                    save_result$size_bytes / (1024^2),
+                    save_result$compression))
       }
-    }
 
-    return(result)
+      return(TRUE)
+    } else {
+      if (verbose) {
+        cat(sprintf("   Failed to save checkpoint: %s\n", save_result$error))
+      }
+      return(FALSE)
+    }
   }
 
   # =========================================================================
-  # restore_stage - Restore a pipeline stage from checkpoint
+  # restore_stage - Restore a pipeline stage from checkpoint (Enhanced v3.0)
   # =========================================================================
-  restore_stage <- function(stage_key, reactive_vars, progress = NULL, verbose = TRUE) {
+  restore_stage <- function(stage_key, reactive_vars, progress = NULL,
+                            version = NULL, verbose = TRUE) {
 
     if (!state$initialized && !is.null(state$cache_info)) {
       # Allow restore even if not fully initialized
@@ -246,38 +312,42 @@ create_global_cache_controller <- function(project_name,
       progress$set(message = sprintf("Restoring: %s", stage_def$name), value = 0.2)
     }
 
-    tryCatch({
-      # Load checkpoint
-      variables <- load_checkpoint(
-        checkpoint_id = stage_def$id,
-        cache_info = state$cache_info,
-        validate_checksum = TRUE
-      )
+    # Enhanced: Use atomic load with schema migration
+    load_result <- load_checkpoint_enhanced(
+      checkpoint_id = stage_def$id,
+      cache_info = state$cache_info,
+      version = version,
+      validate_checksum = TRUE,
+      logger = state$logger
+    )
 
-      if (!is.null(progress)) {
-        progress$set(message = "Restoring variables...", value = 0.5)
-      }
-
-      # Restore variables to reactive values
-      restore_stage_variables(stage_key, variables, reactive_vars)
-
-      state$current_stage <- stage_key
-      state$completed_stages <- unique(c(state$completed_stages, stage_key))
-
-      if (!is.null(progress)) {
-        progress$set(message = "Restore complete!", value = 1)
-      }
-
-      if (verbose) {
-        cat(sprintf("   Restore successful!\n"))
-      }
-
-      return(TRUE)
-
-    }, error = function(e) {
-      warning(sprintf("Failed to restore stage %s: %s", stage_key, e$message))
+    if (!load_result$success) {
+      warning(sprintf("Failed to restore stage %s: %s", stage_key, load_result$error))
       return(FALSE)
-    })
+    }
+
+    if (!is.null(progress)) {
+      progress$set(message = "Restoring variables...", value = 0.5)
+    }
+
+    # Restore variables to reactive values
+    restore_stage_variables(stage_key, load_result$data, reactive_vars)
+
+    state$current_stage <- stage_key
+    state$completed_stages <- unique(c(state$completed_stages, stage_key))
+
+    if (!is.null(progress)) {
+      progress$set(message = "Restore complete!", value = 1)
+    }
+
+    if (verbose) {
+      cat(sprintf("   Restore successful!\n"))
+      if (load_result$migrated) {
+        cat(sprintf("   Note: Data migrated from schema v%s\n", load_result$original_version))
+      }
+    }
+
+    return(TRUE)
   }
 
   # =========================================================================
@@ -361,7 +431,7 @@ create_global_cache_controller <- function(project_name,
   }
 
   # =========================================================================
-  # get_status - Get current cache status
+  # get_status - Get current cache status (Enhanced v3.0)
   # =========================================================================
   get_status <- function() {
 
@@ -371,11 +441,19 @@ create_global_cache_controller <- function(project_name,
         project_name = project_name,
         current_stage = NULL,
         completed_stages = character(0),
-        can_resume = FALSE
+        can_resume = FALSE,
+        version = "3.0.0"
       ))
     }
 
     available <- list_available_stages()
+
+    # Enhanced: Include cache size info
+    cache_size <- tryCatch({
+      calculate_cache_size(dirname(state$cache_info$project_dir))
+    }, error = function(e) {
+      list(total_mb = NA, n_projects = NA)
+    })
 
     return(list(
       initialized = TRUE,
@@ -386,7 +464,11 @@ create_global_cache_controller <- function(project_name,
       completed_stages = state$completed_stages,
       available_stages = available,
       can_resume = length(available) > 0,
-      auto_save = state$auto_save
+      auto_save = state$auto_save,
+      version = "3.0.0",
+      config = state$config,
+      total_cache_mb = cache_size$total_mb,
+      n_projects = cache_size$n_projects
     ))
   }
 
@@ -405,6 +487,86 @@ create_global_cache_controller <- function(project_name,
   }
 
   # =========================================================================
+  # get_config - Get current configuration
+  # =========================================================================
+  get_config <- function() {
+    return(state$config)
+  }
+
+  # =========================================================================
+  # update_config - Update configuration
+  # =========================================================================
+  update_config <- function(new_config) {
+    state$config <- modifyList(state$config, new_config)
+    if (!is.null(state$logger)) {
+      state$logger$info("CONFIG_UPDATE", "Configuration updated",
+                        project_id = state$cache_info$project_id,
+                        details = new_config)
+    }
+  }
+
+  # =========================================================================
+  # health_check - Perform cache health check (Enhanced v3.0)
+  # =========================================================================
+  health_check <- function(repair = FALSE) {
+    if (!state$initialized) {
+      return(list(healthy = FALSE, issues = list("Cache not initialized")))
+    }
+
+    result <- check_cache_health(state$cache_info, repair = repair)
+
+    if (!is.null(state$logger)) {
+      state$logger$info("HEALTH_CHECK",
+                        sprintf("Health check: %s", if(result$healthy) "PASSED" else "FAILED"),
+                        project_id = state$cache_info$project_id,
+                        details = list(
+                          valid = result$summary$valid_checkpoints,
+                          corrupted = result$summary$corrupted_checkpoints,
+                          repaired = length(result$repaired)
+                        ))
+    }
+
+    return(result)
+  }
+
+  # =========================================================================
+  # list_versions - List all versions of a checkpoint (Enhanced v3.0)
+  # =========================================================================
+  list_versions <- function(stage_key) {
+    if (!state$initialized) {
+      return(data.frame())
+    }
+
+    if (!stage_key %in% names(PIPELINE_STAGES)) {
+      stop(sprintf("Unknown stage key: %s", stage_key))
+    }
+
+    checkpoint_id <- PIPELINE_STAGES[[stage_key]]$id
+    return(list_checkpoint_versions(state$cache_info$cache_dir, checkpoint_id))
+  }
+
+  # =========================================================================
+  # cleanup - Run manual cleanup (Enhanced v3.0)
+  # =========================================================================
+  cleanup <- function(dry_run = TRUE) {
+    result <- auto_cleanup_cache(
+      base_cache_dir = dirname(state$cache_info$project_dir),
+      config = state$config,
+      dry_run = dry_run
+    )
+
+    if (!is.null(state$logger) && !dry_run) {
+      state$logger$info("CLEANUP",
+                        sprintf("Cleanup completed: %d projects deleted",
+                                length(result$deleted_projects)),
+                        project_id = state$cache_info$project_id,
+                        details = list(freed_mb = result$freed_bytes / (1024^2)))
+    }
+
+    return(result)
+  }
+
+  # =========================================================================
   # mark_complete - Mark project as completed
   # =========================================================================
   mark_complete <- function() {
@@ -416,14 +578,20 @@ create_global_cache_controller <- function(project_name,
           processing_stage = "complete",
           db_path = state$cache_info$db_path
         )
+
+        if (!is.null(state$logger)) {
+          state$logger$info("PROJECT_COMPLETE", "Project marked as completed",
+                            project_id = state$cache_info$project_id)
+        }
       }, error = function(e) {
         warning("Could not mark project as complete: ", e$message)
       })
     }
   }
 
-  # Return controller object
+  # Return controller object (Enhanced v3.0)
   return(list(
+    # Core functions
     initialize = initialize,
     check_recovery = check_recovery,
     save_stage = save_stage,
@@ -434,7 +602,17 @@ create_global_cache_controller <- function(project_name,
     set_auto_save = set_auto_save,
     get_cache_info = get_cache_info,
     mark_complete = mark_complete,
-    STAGES = PIPELINE_STAGES
+
+    # Enhanced v3.0 functions
+    get_config = get_config,
+    update_config = update_config,
+    health_check = health_check,
+    list_versions = list_versions,
+    cleanup = cleanup,
+
+    # Constants
+    STAGES = PIPELINE_STAGES,
+    VERSION = "3.0.0"
   ))
 }
 
