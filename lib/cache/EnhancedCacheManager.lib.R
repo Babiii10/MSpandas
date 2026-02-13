@@ -458,7 +458,7 @@ cleanup_old_versions <- function(cache_dir, checkpoint_id, keep_n = 5) {
 wrap_with_schema <- function(data, schema_version = CACHE_SCHEMA_VERSION, app_version = "1.0.0") {
 
   list(
-    __cache_meta__ = list(
+    .cache_meta = list(
       schema_version = schema_version,
       app_version = app_version,
       created_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%S%z"),
@@ -477,7 +477,7 @@ wrap_with_schema <- function(data, schema_version = CACHE_SCHEMA_VERSION, app_ve
 unwrap_with_schema <- function(wrapped, target_version = CACHE_SCHEMA_VERSION) {
 
   # Handle old format (no schema wrapper)
-  if (is.null(wrapped$`__cache_meta__`)) {
+  if (is.null(wrapped$.cache_meta)) {
     return(list(
       data = wrapped,
       migrated = FALSE,
@@ -485,7 +485,7 @@ unwrap_with_schema <- function(wrapped, target_version = CACHE_SCHEMA_VERSION) {
     ))
   }
 
-  meta <- wrapped$`__cache_meta__`
+  meta <- wrapped$.cache_meta
   data <- wrapped$data
 
   # Check if migration needed
