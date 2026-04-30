@@ -136,9 +136,19 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
                                    output_export_param, batch_size,
                                    shinyProgressData = NULL) {
 
-  batch_groups  <- split(mzml_files, ceiling(seq_along(mzml_files) / batch_size))
-  n_batches     <- length(batch_groups)
-  batch_parent  <- file.path(input_dir, "_msdial_batches_tmp")
+  msdial_exe  <- normalizePath(
+    file.path(getwd(), "lib", "MSDIAL", "MSDIAL ver.4.80 Windows", "MsdialConsoleApp.exe"),
+    winslash = "\\", mustWork = FALSE
+  )
+  params_file <- normalizePath(
+    file.path(output_export_param, "peakPicking_Parameters.txt"),
+    winslash = "\\", mustWork = FALSE
+  )
+  output_dir_w <- normalizePath(output_files, winslash = "\\", mustWork = FALSE)
+
+  batch_groups <- split(mzml_files, ceiling(seq_along(mzml_files) / batch_size))
+  n_batches    <- length(batch_groups)
+  batch_parent <- file.path(input_dir, "_msdial_batches_tmp")
   dir.create(batch_parent, showWarnings = FALSE, recursive = TRUE)
 
   tryCatch({
@@ -150,52 +160,39 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
       message(sprintf("--- Batch %d/%d : déplacement de %d fichiers vers répertoire temporaire ---",
                       i, n_batches, length(batch_files)))
 
-      # Move mzML files into the isolated batch directory
       moved <- file.rename(batch_files, file.path(batch_dir, basename(batch_files)))
       if (!all(moved)) {
         stop(sprintf("Batch %d/%d : échec du déplacement de certains fichiers mzML.", i, n_batches))
       }
 
-      # Generate per-batch bat file pointing at the batch directory
-      findPeaksMsdial_for_batch(
-        input_batch_dir    = batch_dir,
-        output_files       = output_files,
-        output_export_param = output_export_param,
-        batch_num          = i
+      batch_dir_w <- normalizePath(batch_dir, winslash = "\\", mustWork = FALSE)
+
+      message(sprintf("--- Batch %d/%d : lancement MsdialConsoleApp.exe (%d fichiers) ---",
+                      i, n_batches, length(batch_files)))
+
+      # Appel direct de l'exécutable — pas de .bat intermédiaire.
+      # wait = TRUE bloque R jusqu'à la sortie complète du processus :
+      # l'OS récupère TOUTE la RAM de MsdialConsoleApp.exe avant le batch suivant.
+      system2(
+        command = msdial_exe,
+        args    = c("lcmsdda",
+                    "-i", shQuote(batch_dir_w),
+                    "-o", shQuote(output_dir_w),
+                    "-m", shQuote(params_file)),
+        stdout  = TRUE,
+        stderr  = TRUE,
+        wait    = TRUE
       )
 
-      bat_file <- normalizePath(
-        sprintf("lib/AnalysisNewSample/cmd/RunMsdialPeakPicking_batch_%03d.bat", i),
-        winslash = "\\", mustWork = FALSE
-      )
-
-      message(sprintf("--- Batch %d/%d : lancement MsdialConsoleApp.exe ---", i, n_batches))
-
-      if (.Platform$OS.type == "windows") {
-        system2("cmd.exe", args = c("/c", shQuote(bat_file)),
-                stdout = TRUE, stderr = TRUE, wait = TRUE)
-      } else {
-        system2(bat_file)
-      }
-
-      # Move mzML files back to their original location
+      # MsdialConsoleApp.exe est terminé et fermé — RAM OS libérée
       file.rename(file.path(batch_dir, basename(batch_files)), batch_files)
-
-      # Delete batch directory (also removes .dcl/.pai2/.aef temp files created by MS-DIAL)
-      unlink(batch_dir, recursive = TRUE)
-
-      # Clean up the per-batch bat file
-      bat_to_remove <- file.path("lib/AnalysisNewSample/cmd",
-                                 sprintf("RunMsdialPeakPicking_batch_%03d.bat", i))
-      if (file.exists(bat_to_remove)) file.remove(bat_to_remove)
-
-      # Release MS-DIAL memory before the next batch
+      unlink(batch_dir, recursive = TRUE)  # supprime aussi .dcl/.pai2/.aef
       gc()
       gc()
 
-      message(sprintf("--- Batch %d/%d terminé — mémoire libérée ---", i, n_batches))
+      message(sprintf("--- Batch %d/%d terminé — MsdialConsoleApp.exe fermé, RAM libérée ---",
+                      i, n_batches))
 
-      # Optional per-batch Shiny progress update
       if (!is.null(shinyProgressData)) {
         updateShinyProgressBar(
           shinyProgressData = shinyProgressData,
@@ -208,7 +205,7 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
       }
     }
   }, finally = {
-    # Safety net: if the loop aborted mid-batch, restore any orphaned mzML files
+    # Filet de sécurité : restaure les .mzML orphelins si le loop s'est interrompu
     orphan_dirs <- list.dirs(batch_parent, recursive = FALSE, full.names = TRUE)
     for (od in orphan_dirs) {
       orphan_mzml <- list.files(od, pattern = "\\.mzML$",

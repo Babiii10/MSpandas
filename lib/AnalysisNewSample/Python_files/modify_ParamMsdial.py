@@ -67,26 +67,6 @@ def findPeaksMsdial(input_files, output_files, output_export_param):
 
   peaksPicking.close()
 
-
-def findPeaksMsdial_for_batch(input_batch_dir, output_files, output_export_param, batch_num):
-  """Generate a MS-DIAL bat file for a single batch directory.
-
-  input_batch_dir : directory containing only the mzML files for this batch
-  batch_num       : integer index used to name the output bat file uniquely
-  """
-  peaksPicking = open("lib/AnalysisNewSample/Parameters/RunMsdialPeakPicking.txt", 'r')
-  quote = "\""
-  fileContent = peaksPicking.readlines()
-  msdial_path = os.path.join(os.getcwd(), "lib", "MSDIAL", "MSDIAL ver.4.80 Windows", "MsdialConsoleApp.exe")
-  fileContent[0] = fileContent[0].replace("directory_MSDIAL.exe", quote + msdial_path + quote)
-  fileContent[0] = fileContent[0].replace("inputfiles",  quote + input_batch_dir + quote)
-  fileContent[0] = fileContent[0].replace("outputfiles", quote + output_files + quote)
-  fileContent[0] = fileContent[0].replace("param",       quote + output_export_param + "/peakPicking_Parameters.txt" + quote)
-  bat_filename = "lib/AnalysisNewSample/cmd/RunMsdialPeakPicking_batch_{:03d}.bat".format(batch_num)
-  with open(bat_filename, 'w', encoding='cp1252', newline='\r\n') as temp_file:
-    for item in fileContent:
-      temp_file.write("%s" % item)
-  peaksPicking.close()
   
   
   
