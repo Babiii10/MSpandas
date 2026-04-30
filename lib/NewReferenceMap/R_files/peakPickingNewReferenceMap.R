@@ -11,60 +11,161 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
                            output_export_param,
                            MS1_type = "Profile",
                            MS2_type = "Profile",
-                           ion = "Positive", 
-                           rt_begin = "0", 
-                           rt_end = "100", 
-                           mz_range_begin = "0", 
-                           mz_range_end = "2000", 
+                           ion = "Positive",
+                           rt_begin = "0",
+                           rt_end = "100",
+                           mz_range_begin = "0",
+                           mz_range_end = "2000",
                            mz_tolerance_centroid_MS1 = "0.01",
                            mz_tolerance_centroid_MS2 = "0.05",
-                           maxCharge = "7", 
-                           number_threads = "5", 
-                           min_Peakwidth = "5", 
-                           min_PeakHeight = "1000", 
-                           mass_slice_width = "0.05", 
-                           Adduct_list = list("[M+H]+", "[M+Na]+", "[M+K]+")){
-  
-  
- 
+                           maxCharge = "7",
+                           number_threads = "5",
+                           min_Peakwidth = "5",
+                           min_PeakHeight = "1000",
+                           mass_slice_width = "0.05",
+                           Adduct_list = list("[M+H]+", "[M+Na]+", "[M+K]+"),
+                           batch_size = 50,
+                           batch_threshold = 100){
 
-  
+
+
   message("\n--- PEAK PICKING ---\n")
-  
+
   incProgress(1/8, detail = paste("Calling peak detection...", round(3/8*100,0),"%",collapse=""))
-  
+
   MsdialParam(input_param = file.path("lib/NewReferenceMap/parameters","paramMsdial.txt"),
               output_param = file.path(output_export_param ,"peakPicking_Parameters.txt"),
-              MS1_type = as.character(MS1_type), 
-              MS2_type = as.character(MS2_type), 
-              ion = as.character(ion), 
-              rt_begin = as.character(rt_begin), 
-              rt_end =  as.character(rt_end) , 
-              mz_range_begin = as.character(mz_range_begin), 
-              mz_range_end = as.character(mz_range_end), 
-              mz_tolerance_centroid_MS1 = as.character(mz_tolerance_centroid_MS1), 
-              mz_tolerance_centroid_MS2 = as.character(mz_tolerance_centroid_MS2), 
-              maxCharge = as.character(maxCharge), 
-              number_threads = as.character(number_threads), 
-              min_Peakwidth = as.character(min_Peakwidth), 
-              min_PeakHeight = as.character(min_PeakHeight), 
-              mass_slice_width = as.character(mass_slice_width), 
+              MS1_type = as.character(MS1_type),
+              MS2_type = as.character(MS2_type),
+              ion = as.character(ion),
+              rt_begin = as.character(rt_begin),
+              rt_end =  as.character(rt_end) ,
+              mz_range_begin = as.character(mz_range_begin),
+              mz_range_end = as.character(mz_range_end),
+              mz_tolerance_centroid_MS1 = as.character(mz_tolerance_centroid_MS1),
+              mz_tolerance_centroid_MS2 = as.character(mz_tolerance_centroid_MS2),
+              maxCharge = as.character(maxCharge),
+              number_threads = as.character(number_threads),
+              min_Peakwidth = as.character(min_Peakwidth),
+              min_PeakHeight = as.character(min_PeakHeight),
+              mass_slice_width = as.character(mass_slice_width),
               Adduct_list = as.list(Adduct_list))
-  
-  findPeaksMsdial(input_files = input_files, output_files = output_files, output_export_param = output_export_param )
-  # Fix: Use normalizePath and shell for Windows 11 compatibility
-  bat_file <- normalizePath("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat", winslash = "\\", mustWork = FALSE)
-  if (.Platform$OS.type == "windows") {
-    system2("cmd.exe", args = c("/c", shQuote(bat_file)), stdout = TRUE, stderr = TRUE, wait = TRUE)
+
+  # Detect mzML files and decide between normal and batch mode
+  mzml_files <- list.files(input_files, pattern = "\\.mzML$",
+                           full.names = TRUE, ignore.case = TRUE)
+  n_files <- length(mzml_files)
+
+  if (n_files > batch_threshold) {
+    message(sprintf(
+      "\n--- BATCH MODE: %d fichiers > seuil %d — traitement par blocs de %d ---\n",
+      n_files, batch_threshold, batch_size
+    ))
+    .run_msdial_batch_mode_refmap(
+      mzml_files          = mzml_files,
+      input_dir           = input_files,
+      output_files        = output_files,
+      output_export_param = output_export_param,
+      batch_size          = batch_size
+    )
   } else {
-    system2(bat_file)
+    findPeaksMsdial(input_files = input_files, output_files = output_files,
+                    output_export_param = output_export_param)
+    # Fix: Use normalizePath and shell for Windows 11 compatibility
+    bat_file <- normalizePath("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat",
+                              winslash = "\\", mustWork = FALSE)
+    if (.Platform$OS.type == "windows") {
+      system2("cmd.exe", args = c("/c", shQuote(bat_file)),
+              stdout = TRUE, stderr = TRUE, wait = TRUE)
+    } else {
+      system2(bat_file)
+    }
   }
 
+  message("--- END PEAK PICKING ---\n")
 
-  message("--- EDN PEAK PICKING ---\n")
-  
   incProgress(1/8, detail = paste("End peak detection...", round(4/8*100,0),"%",collapse=""))
 
+}
+
+
+# Internal helper — never call directly
+.run_msdial_batch_mode_refmap <- function(mzml_files, input_dir, output_files,
+                                          output_export_param, batch_size) {
+
+  batch_groups <- split(mzml_files, ceiling(seq_along(mzml_files) / batch_size))
+  n_batches    <- length(batch_groups)
+  batch_parent <- file.path(input_dir, "_msdial_batches_tmp")
+  dir.create(batch_parent, showWarnings = FALSE, recursive = TRUE)
+
+  tryCatch({
+    for (i in seq_along(batch_groups)) {
+      batch_files <- batch_groups[[i]]
+      batch_dir   <- file.path(batch_parent, sprintf("batch_%03d", i))
+      dir.create(batch_dir, showWarnings = FALSE)
+
+      message(sprintf("--- Batch %d/%d : déplacement de %d fichiers vers répertoire temporaire ---",
+                      i, n_batches, length(batch_files)))
+
+      # Move mzML files into the isolated batch directory
+      moved <- file.rename(batch_files, file.path(batch_dir, basename(batch_files)))
+      if (!all(moved)) {
+        stop(sprintf("Batch %d/%d : échec du déplacement de certains fichiers mzML.", i, n_batches))
+      }
+
+      # Generate per-batch bat file pointing at the batch directory
+      findPeaksMsdial_for_batch(
+        input_batch_dir     = batch_dir,
+        output_files        = output_files,
+        output_export_param = output_export_param,
+        batch_num           = i
+      )
+
+      bat_file <- normalizePath(
+        sprintf("lib/NewReferenceMap/cmd/RunMsdialPeakPicking_batch_%03d.bat", i),
+        winslash = "\\", mustWork = FALSE
+      )
+
+      message(sprintf("--- Batch %d/%d : lancement MsdialConsoleApp.exe ---", i, n_batches))
+
+      if (.Platform$OS.type == "windows") {
+        system2("cmd.exe", args = c("/c", shQuote(bat_file)),
+                stdout = TRUE, stderr = TRUE, wait = TRUE)
+      } else {
+        system2(bat_file)
+      }
+
+      # Move mzML files back to their original location
+      file.rename(file.path(batch_dir, basename(batch_files)), batch_files)
+
+      # Delete batch directory (also removes .dcl/.pai2/.aef temp files created by MS-DIAL)
+      unlink(batch_dir, recursive = TRUE)
+
+      # Clean up the per-batch bat file
+      bat_to_remove <- file.path("lib/NewReferenceMap/cmd",
+                                 sprintf("RunMsdialPeakPicking_batch_%03d.bat", i))
+      if (file.exists(bat_to_remove)) file.remove(bat_to_remove)
+
+      # Release MS-DIAL memory before the next batch
+      gc()
+      gc()
+
+      message(sprintf("--- Batch %d/%d terminé — mémoire libérée ---", i, n_batches))
+    }
+  }, finally = {
+    # Safety net: if the loop aborted mid-batch, restore any orphaned mzML files
+    orphan_dirs <- list.dirs(batch_parent, recursive = FALSE, full.names = TRUE)
+    for (od in orphan_dirs) {
+      orphan_mzml <- list.files(od, pattern = "\\.mzML$",
+                                full.names = TRUE, ignore.case = TRUE)
+      if (length(orphan_mzml) > 0) {
+        message(sprintf("Récupération de %d fichier(s) orphelin(s) depuis %s",
+                        length(orphan_mzml), od))
+        file.rename(orphan_mzml, file.path(input_dir, basename(orphan_mzml)))
+      }
+    }
+    unlink(batch_parent, recursive = TRUE)
+  })
 }
 
 
