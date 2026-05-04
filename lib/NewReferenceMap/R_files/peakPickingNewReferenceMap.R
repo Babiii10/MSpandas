@@ -80,42 +80,63 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
   input_items <- input_items[dir.exists(input_items) | file.exists(input_items)]
   input_items <- input_items[grepl("\\.d$|\\.mzML$", basename(input_items), ignore.case = TRUE)]
 
+  # Cache persistant dans le répertoire des données brutes.
+  # Résiste aux changements de session : le nom du projet (avec sa date) change à chaque session,
+  # mais le répertoire des données brutes (input_dir) reste stable.
+  cache_file    <- file.path(input_dir, ".msdial_processed_cache.txt")
+  existing_base <- character(0)
+  if (file.exists(cache_file)) {
+    cached <- trimws(readLines(cache_file, warn = FALSE))
+    existing_base <- tolower(cached[nzchar(cached)])
+  }
+  # Compléter avec les .msdial déjà présents dans le dossier de sortie (reprise intra-session)
   existing_msdial <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
-  existing_base <- tolower(sub("\\.msdial$", "", basename(existing_msdial), ignore.case = TRUE))
+  existing_base   <- unique(c(existing_base,
+                               tolower(sub("\\.msdial$", "", basename(existing_msdial), ignore.case = TRUE))))
   to_process <- input_items[!(tolower(basename(input_items)) %in% existing_base)]
 
   batch_size <- suppressWarnings(as.integer(batch_size))
   if (!is.na(batch_size) && batch_size > 0) {
-    if (length(to_process) == 0) return(invisible(NULL))
+    if (length(to_process) == 0) {
+      message("--- Tous les échantillons déjà traités (cache) — peak picking ignoré ---")
+      return(invisible(NULL))
+    }
 
     n_batches      <- ceiling(length(to_process) / batch_size)
-    batch_root     <- file.path(dirname(output_files), "msdial_batch_inputs")
-    all_new_msdial <- character(0)   # accumule les .msdial produits par tous les batches
+    # batch_root dans input_dir : même volume que les .d/.mzML → file.rename() instantané
+    batch_root     <- file.path(input_dir, "_msdial_batches_tmp")
+    all_new_msdial <- character(0)
     dir.create(batch_root, recursive = TRUE, showWarnings = FALSE)
 
     for (b in seq_len(n_batches)) {
       idx_start <- (b - 1) * batch_size + 1
-      idx_end <- min(b * batch_size, length(to_process))
+      idx_end   <- min(b * batch_size, length(to_process))
       batch_items <- to_process[idx_start:idx_end]
 
       batch_input_dir <- file.path(batch_root, sprintf("batch_%03d", b))
-      if (dir.exists(batch_input_dir)) unlink(batch_input_dir, recursive = TRUE, force = TRUE)
+      # Suppression propre du dossier sans suivre de jonctions éventuelles
+      if (dir.exists(batch_input_dir)) {
+        if (.Platform$OS.type == "windows") {
+          shell(paste0('rd /s /q "', normalizePath(batch_input_dir, winslash = "\\"), '"'), mustWork = FALSE)
+        } else {
+          unlink(batch_input_dir, recursive = TRUE, force = TRUE)
+        }
+      }
       dir.create(batch_input_dir, recursive = TRUE, showWarnings = FALSE)
 
-      for (p in batch_items) {
-        target_path <- file.path(batch_input_dir, basename(p))
-        if (dir.exists(p)) {
-          if (.Platform$OS.type == "windows") {
-            cmd <- paste0('mklink /J "', normalizePath(target_path, winslash = "\\", mustWork = FALSE),
-                          '" "', normalizePath(p, winslash = "\\", mustWork = FALSE), '"')
-            system2("cmd.exe", args = c("/c", cmd), stdout = TRUE, stderr = TRUE, wait = TRUE)
-          } else {
-            file.symlink(from = p, to = target_path)
-          }
-        } else if (file.exists(p)) {
-          ok <- file.copy(p, target_path, overwrite = TRUE)
-          if (!ok) stop("Failed to copy file into MS-DIAL batch input directory: ", p)
+      # Déplacer les fichiers/dossiers dans le répertoire de batch.
+      # file.rename() sur le même volume = simple renommage de métadonnées, sans copie ni jonction.
+      message(sprintf("--- Batch %d/%d : déplacement de %d élément(s) ---",
+                      b, n_batches, length(batch_items)))
+      moved <- file.rename(batch_items, file.path(batch_input_dir, basename(batch_items)))
+      if (!all(moved)) {
+        # Restaurer les fichiers déjà déplacés avant d'arrêter
+        ok_idx <- which(moved)
+        if (length(ok_idx)) {
+          file.rename(file.path(batch_input_dir, basename(batch_items[ok_idx])), batch_items[ok_idx])
         }
+        stop(sprintf("Batch %d/%d : échec du déplacement de certains fichiers vers %s",
+                     b, n_batches, batch_input_dir))
       }
 
       findPeaksMsdial(input_files = normalizePath(batch_input_dir, winslash = "/", mustWork = FALSE),
@@ -124,18 +145,30 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
 
       msdial_before <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
       run_msdial_bat()
-      msdial_after <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
-      new_msdial <- setdiff(msdial_after, msdial_before)
+      msdial_after  <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
+      new_msdial    <- setdiff(msdial_after, msdial_before)
       if (is.function(after_batch_fun) && length(new_msdial) > 0) {
         all_new_msdial <- c(all_new_msdial, new_msdial)
       }
 
-      removeFiles(path_to_files = normalizePath(batch_input_dir, winslash = "/", mustWork = FALSE), ext = ".dcl")
-      removeFiles(path_to_files = normalizePath(batch_input_dir, winslash = "/", mustWork = FALSE), ext = ".pai2")
-      removeFiles(path_to_files = normalizePath(batch_input_dir, winslash = "/", mustWork = FALSE), ext = ".aef")
-      unlink(batch_input_dir, recursive = TRUE, force = TRUE)
+      # Remettre les fichiers sources à leur emplacement d'origine
+      file.rename(file.path(batch_input_dir, basename(batch_items)), batch_items)
+      # Supprimer le dossier temporaire (ne contient plus que .dcl/.pai2/.aef)
+      if (.Platform$OS.type == "windows") {
+        shell(paste0('rd /s /q "', normalizePath(batch_input_dir, winslash = "\\"), '"'), mustWork = FALSE)
+      } else {
+        unlink(batch_input_dir, recursive = TRUE, force = TRUE)
+      }
+
+      # Mettre à jour le cache persistant avec les échantillons traités dans ce batch
+      cat(paste(basename(batch_items), collapse = "\n"), "\n", file = cache_file, append = TRUE)
+
+      message(sprintf("--- Batch %d/%d terminé ---", b, n_batches))
       gc()
     }
+
+    # Supprimer le dossier racine temporaire (vide après le dernier batch)
+    if (dir.exists(batch_root)) unlink(batch_root, recursive = TRUE, force = TRUE)
 
     # Déconvolution unique après que TOUS les batches MS-DIAL sont terminés.
     # Évite le blocage inter-batch : les batches s'enchaînent sans interruption.
@@ -146,7 +179,10 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     }
 
   } else {
-    if (length(to_process) == 0) return(invisible(NULL))
+    if (length(to_process) == 0) {
+      message("--- Tous les échantillons déjà traités (cache) — peak picking ignoré ---")
+      return(invisible(NULL))
+    }
     findPeaksMsdial(input_files = input_files, output_files = output_files, output_export_param = output_export_param )
     run_msdial_bat()
   }
