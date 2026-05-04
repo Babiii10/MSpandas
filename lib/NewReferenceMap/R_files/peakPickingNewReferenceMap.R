@@ -88,8 +88,9 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
   if (!is.na(batch_size) && batch_size > 0) {
     if (length(to_process) == 0) return(invisible(NULL))
 
-    n_batches <- ceiling(length(to_process) / batch_size)
-    batch_root <- file.path(dirname(output_files), "msdial_batch_inputs")
+    n_batches      <- ceiling(length(to_process) / batch_size)
+    batch_root     <- file.path(dirname(output_files), "msdial_batch_inputs")
+    all_new_msdial <- character(0)   # accumule les .msdial produits par tous les batches
     dir.create(batch_root, recursive = TRUE, showWarnings = FALSE)
 
     for (b in seq_len(n_batches)) {
@@ -126,7 +127,7 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
       msdial_after <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
       new_msdial <- setdiff(msdial_after, msdial_before)
       if (is.function(after_batch_fun) && length(new_msdial) > 0) {
-        after_batch_fun(new_msdial)
+        all_new_msdial <- c(all_new_msdial, new_msdial)
       }
 
       removeFiles(path_to_files = normalizePath(batch_input_dir, winslash = "/", mustWork = FALSE), ext = ".dcl")
@@ -135,6 +136,15 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
       unlink(batch_input_dir, recursive = TRUE, force = TRUE)
       gc()
     }
+
+    # Déconvolution unique après que TOUS les batches MS-DIAL sont terminés.
+    # Évite le blocage inter-batch : les batches s'enchaînent sans interruption.
+    if (is.function(after_batch_fun) && length(all_new_msdial) > 0) {
+      message(sprintf("--- Tous les batches terminés — déconvolution de %d fichier(s) .msdial ---",
+                      length(all_new_msdial)))
+      after_batch_fun(all_new_msdial)
+    }
+
   } else {
     if (length(to_process) == 0) return(invisible(NULL))
     findPeaksMsdial(input_files = input_files, output_files = output_files, output_export_param = output_export_param )
