@@ -201,31 +201,20 @@ observeEvent(
             
             
             ## project directory
-            if(dir.exists(file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap)))) {
-              unlink(file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap)), recursive = TRUE)
-              dir.create(file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap)))
-            } else{
+            if(!dir.exists(file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap)))) {
               dir.create(file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap)))
             }
             
             ## Directory for peak list
-            if(dir.exists(file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap),"Massif-List"))) {
-              unlink(file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap),"Massif-List"), recursive = TRUE)
-              dir.create(file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap),"Massif-List"))
-              directoryOutput_NewRefMap<-file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap),"Massif-List")
-            } else{
-              dir.create(file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap),"Massif-List"))
-              directoryOutput_NewRefMap<-file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap),"Massif-List")
+            directoryOutput_NewRefMap<-file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap),"Massif-List")
+            if(!dir.exists(directoryOutput_NewRefMap)) {
+              dir.create(directoryOutput_NewRefMap)
             }
             
             ## Directory for raw data mzML files
-            if(dir.exists(file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap),"mzML files"))) {
-              unlink(file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap),"mzML files"), recursive = TRUE)
-              dir.create(file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap),"mzML files"))
-              RvarsPeakDetection$directory_rawDataOutput_mzML_files_NewRefMap<-file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap),"mzML files")
-            } else{
-              dir.create(file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap), "mzML files"))
-              RvarsPeakDetection$directory_rawDataOutput_mzML_files_NewRefMap<-file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap), "mzML files")
+            RvarsPeakDetection$directory_rawDataOutput_mzML_files_NewRefMap<-file.path(req(RvarsPeakDetection$directory_rawData), req(RvarsPeakDetection$Project_NameNewRefMap), "mzML files")
+            if(!dir.exists(RvarsPeakDetection$directory_rawDataOutput_mzML_files_NewRefMap)) {
+              dir.create(RvarsPeakDetection$directory_rawDataOutput_mzML_files_NewRefMap)
             }
             
             
@@ -234,9 +223,19 @@ observeEvent(
             
             
             incProgress(1/8, detail = paste("Convert raw data to .mzML...",round(2/8*100,0),"%",collapse=""))
-            system.time(convert_to_mzML(RvarsPeakDetection$directory_rawData,
-                                        RvarsPeakDetection$directory_rawDataOutput_mzML_files_NewRefMap))
-            system.time(system2("lib/NewReferenceMap/cmd/convert_raw_data_to_mzML_centroid.bat"))
+            raw_d_runs <- list.files(req(RvarsPeakDetection$directory_rawData),
+                                     pattern = "\\.d$",
+                                     full.names = TRUE,
+                                     ignore.case = TRUE)
+            expected_mzml <- file.path(req(RvarsPeakDetection$directory_rawDataOutput_mzML_files_NewRefMap),
+                                       sub("\\.d$", ".mzML", basename(raw_d_runs), ignore.case = TRUE))
+            mzml_already_done <- length(raw_d_runs) > 0 && length(expected_mzml) == length(raw_d_runs) && all(file.exists(expected_mzml))
+
+            if (!mzml_already_done) {
+              system.time(convert_to_mzML(RvarsPeakDetection$directory_rawData,
+                                          RvarsPeakDetection$directory_rawDataOutput_mzML_files_NewRefMap))
+              system.time(system2("lib/NewReferenceMap/cmd/convert_raw_data_to_mzML_centroid.bat"))
+            }
             
             message("--- End converting raw data to .mzML ---\n")
             
@@ -244,6 +243,28 @@ observeEvent(
             
             ###~~~~~~~~~~~~~~~~~~~~ Peak detection~~~~~~~~~~~~~~~~~~~~~###
             
+            n_input_runs <- length(list.files(req(RvarsPeakDetection$directory_rawData),
+                                              pattern = "\\.d$|\\.mzML$",
+                                              full.names = TRUE,
+                                              ignore.case = TRUE))
+            batch_size_msdial <- if (n_input_runs > 100) 50 else NULL
+            timeout_sec_msdial <- if (!is.null(batch_size_msdial)) 7200 else NULL
+
+            processed_msdial_files <- character(0)
+            after_batch_fun <- function(new_msdial_files) {
+              new_msdial_files <- setdiff(new_msdial_files, processed_msdial_files)
+              if (length(new_msdial_files) == 0) return(invisible(NULL))
+              processed_msdial_files <<- c(processed_msdial_files, new_msdial_files)
+
+              deconv_peaks_MSDIAL(path_to_peakList = req(new_msdial_files),
+                                  output_directory = directoryOutput_NewRefMap,
+                                  file_adduct = "data/Adduit.csv",
+                                  mass_slice_width = req(input$mass_slice_width_NewRefMap),
+                                  min_PeaksMassif = req(input$minPeaksMassif_NewRefMap))
+              removeFiles(path_to_files = directoryOutput_NewRefMap, ext = '.msdial')
+              gc()
+            }
+
             system.time(findPeaks_MSDIAL(input_files = req(RvarsPeakDetection$directory_rawData),
                                          output_files = req(directoryOutput_NewRefMap),
                                          #output_export_param = file.path(directoryInput$directory, rValues$Project_Name),
@@ -260,7 +281,10 @@ observeEvent(
                                          min_Peakwidth = req(input$min_Peakwidth_NewRefMap),
                                          min_PeakHeight = req(input$min_PeakHeight_NewRefMap),
                                          mass_slice_width = req(input$mass_slice_width_NewRefMap),
-                                         Adduct_list = req(input$Adduct_list_NewRefMap)
+                                         Adduct_list = req(input$Adduct_list_NewRefMap),
+                                         batch_size = batch_size_msdial,
+                                         after_batch_fun = after_batch_fun,
+                                         timeout_sec = timeout_sec_msdial
             ))
             
             
@@ -278,25 +302,22 @@ observeEvent(
             
             
             path_file_msdial_NewRefMap<-file.path(directoryOutput_NewRefMap, dir(directoryOutput_NewRefMap))
-            
+            path_file_msdial_NewRefMap<-path_file_msdial_NewRefMap[grepl("\\.msdial$", path_file_msdial_NewRefMap, ignore.case = TRUE)]
+
             if(length(path_file_msdial_NewRefMap)>=1) {
               if(length(path_file_msdial_NewRefMap)>1) {
                 file.remove(list.files(directoryOutput_NewRefMap,pattern = "AlignResult-", full.names = TRUE))
-                path_file_msdial_NewRefMap<-list.files(directoryOutput_NewRefMap, full.names = TRUE)
               }
-              
-              
-              
+
               RvarsPeakDetection$peaks_MSDIAL_mono_iso_NewRefMap<- deconv_peaks_MSDIAL(path_to_peakList = req(path_file_msdial_NewRefMap),
                                                                                        output_directory = directoryOutput_NewRefMap,
                                                                                        file_adduct = "data/Adduit.csv",
                                                                                        mass_slice_width = req(input$mass_slice_width_NewRefMap),
                                                                                        min_PeaksMassif = req(input$minPeaksMassif_NewRefMap)
               )
-              
+
               removeFiles(path_to_files = directoryOutput_NewRefMap,
                           ext = '.msdial')
-              
             }
             
             
