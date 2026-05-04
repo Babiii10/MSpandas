@@ -24,8 +24,9 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
                            min_PeakHeight = "1000",
                            mass_slice_width = "0.05",
                            Adduct_list = list("[M+H]+", "[M+Na]+", "[M+K]+"),
-                           batch_size = 50,
-                           batch_threshold = 100){
+                           batch_size = NULL,
+                           after_batch_fun = NULL,
+                           timeout_sec = NULL){
 
 
 
@@ -51,22 +52,22 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
               mass_slice_width = as.character(mass_slice_width),
               Adduct_list = as.list(Adduct_list))
 
-  # Detect mzML files and decide between normal and batch mode
-  mzml_files <- list.files(input_files, pattern = "\\.mzML$",
-                           full.names = TRUE, ignore.case = TRUE)
-  n_files <- length(mzml_files)
-
-  if (n_files > batch_threshold) {
+  if (!is.null(batch_size)) {
+    mzml_files <- list.files(input_files, pattern = "\\.mzML$",
+                             full.names = TRUE, ignore.case = TRUE)
+    n_files <- length(mzml_files)
     message(sprintf(
-      "\n--- BATCH MODE: %d fichiers > seuil %d — traitement par blocs de %d ---\n",
-      n_files, batch_threshold, batch_size
+      "\n--- BATCH MODE: %d fichiers .mzML — traitement par blocs de %d ---\n",
+      n_files, batch_size
     ))
     .run_msdial_batch_mode_refmap(
       mzml_files          = mzml_files,
       input_dir           = input_files,
       output_files        = output_files,
       output_export_param = output_export_param,
-      batch_size          = batch_size
+      batch_size          = batch_size,
+      after_batch_fun     = after_batch_fun,
+      timeout_sec         = timeout_sec
     )
   } else {
     findPeaksMsdial(input_files = input_files, output_files = output_files,
@@ -91,17 +92,19 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
 
 # Internal helper — never call directly
 .run_msdial_batch_mode_refmap <- function(mzml_files, input_dir, output_files,
-                                          output_export_param, batch_size) {
+                                          output_export_param, batch_size,
+                                          after_batch_fun = NULL,
+                                          timeout_sec = NULL) {
 
   msdial_exe  <- normalizePath(
     file.path(getwd(), "lib", "MSDIAL", "MSDIAL ver.4.80 Windows", "MsdialConsoleApp.exe"),
-    winslash = "\", mustWork = FALSE
+    winslash = "\\", mustWork = FALSE
   )
   params_file <- normalizePath(
     file.path(output_export_param, "peakPicking_Parameters.txt"),
-    winslash = "\", mustWork = FALSE
+    winslash = "\\", mustWork = FALSE
   )
-  output_dir_w <- normalizePath(output_files, winslash = "\", mustWork = FALSE)
+  output_dir_w <- normalizePath(output_files, winslash = "\\", mustWork = FALSE)
 
   batch_groups <- split(mzml_files, ceiling(seq_along(mzml_files) / batch_size))
   n_batches    <- length(batch_groups)
@@ -122,7 +125,11 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
         stop(sprintf("Batch %d/%d : échec du déplacement de certains fichiers mzML.", i, n_batches))
       }
 
-      batch_dir_w <- normalizePath(batch_dir, winslash = "\", mustWork = FALSE)
+      batch_dir_w <- normalizePath(batch_dir, winslash = "\\", mustWork = FALSE)
+
+      # Snapshot des .msdial existants avant ce batch (pour détecter les nouveaux)
+      msdial_before <- list.files(output_files, pattern = "\\.msdial$",
+                                  full.names = TRUE, ignore.case = TRUE)
 
       message(sprintf("--- Batch %d/%d : lancement MsdialConsoleApp.exe (%d fichiers) ---",
                       i, n_batches, length(batch_files)))
@@ -149,12 +156,24 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
 
       message(sprintf("--- Batch %d/%d terminé — MsdialConsoleApp.exe fermé, RAM libérée ---",
                       i, n_batches))
+
+      # Déconvolution immédiate des nouveaux .msdial produits par ce batch
+      if (!is.null(after_batch_fun)) {
+        msdial_after     <- list.files(output_files, pattern = "\\.msdial$",
+                                       full.names = TRUE, ignore.case = TRUE)
+        new_msdial_files <- setdiff(msdial_after, msdial_before)
+        if (length(new_msdial_files) > 0) {
+          message(sprintf("--- Batch %d/%d : déconvolution de %d fichier(s) .msdial ---",
+                          i, n_batches, length(new_msdial_files)))
+          after_batch_fun(new_msdial_files)
+        }
+      }
     }
   }, finally = {
     # Filet de sécurité : restaure les .mzML orphelins si le loop s'est interrompu
     orphan_dirs <- list.dirs(batch_parent, recursive = FALSE, full.names = TRUE)
     for (od in orphan_dirs) {
-      orphan_mzml <- list.files(od, pattern = "\.mzML$",
+      orphan_mzml <- list.files(od, pattern = "\\.mzML$",
                                 full.names = TRUE, ignore.case = TRUE)
       if (length(orphan_mzml) > 0) {
         message(sprintf("Récupération de %d fichier(s) orphelin(s) depuis %s",
@@ -165,8 +184,6 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     unlink(batch_parent, recursive = TRUE)
   })
 }
-
-
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
