@@ -313,6 +313,47 @@ observeEvent(
               gc()
             }
 
+            # --- Synchronisation du cache avec les CSV déjà produits ---
+            # Le cache .msdial_processed_cache.txt peut être absent si :
+            #   - c'est la première reprise (ancienne version sans cache)
+            #   - le crash est survenu avant l'écriture du cache
+            # Source de vérité : les .csv dans Massif-List/ — un CSV n'existe que
+            # si la déconvolution a été menée jusqu'au bout pour cet échantillon.
+            local({
+              cache_path  <- file.path(req(RvarsPeakDetection$directory_rawData),
+                                       ".msdial_processed_cache.txt")
+              if (!dir.exists(directoryOutput_NewRefMap)) return()
+
+              existing_csv <- list.files(directoryOutput_NewRefMap, pattern = "\\.csv$",
+                                         full.names = FALSE, ignore.case = TRUE)
+              if (length(existing_csv) == 0) return()
+
+              # Stem des CSV → chercher le fichier source correspondant (.d ou .mzML)
+              csv_stems   <- tolower(sub("\\.csv$", "", existing_csv, ignore.case = TRUE))
+              all_inputs  <- list.files(req(RvarsPeakDetection$directory_rawData),
+                                        pattern   = "\\.d$|\\.mzML$",
+                                        full.names = FALSE, ignore.case = TRUE)
+              input_stems <- tolower(sub("\\.(d|mzML)$", "", all_inputs,
+                                         ignore.case = TRUE))
+              matched     <- all_inputs[input_stems %in% csv_stems]
+              if (length(matched) == 0) return()
+
+              # Éviter les doublons avec le contenu existant du cache
+              existing_cache <- character(0)
+              if (file.exists(cache_path)) {
+                lines          <- trimws(readLines(cache_path, warn = FALSE))
+                existing_cache <- tolower(lines[nzchar(lines)])
+              }
+              to_add <- matched[!(tolower(matched) %in% existing_cache)]
+              if (length(to_add) == 0) return()
+
+              cat(paste(to_add, collapse = "\n"), "\n",
+                  file = cache_path, append = TRUE)
+              message(sprintf(
+                "--- Cache synchronisé depuis Massif-List/ : %d échantillon(s) déjà traités détectés (sur %d au total) ---",
+                length(to_add), length(all_inputs)))
+            })
+
             system.time(findPeaks_MSDIAL(input_files = req(RvarsPeakDetection$directory_rawData),
                                          output_files = req(directoryOutput_NewRefMap),
                                          #output_export_param = file.path(directoryInput$directory, rValues$Project_Name),
