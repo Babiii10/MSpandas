@@ -75,6 +75,23 @@ Load the directory containing the files to be analyzed."))
                                                       value="New project",
                                                       placeholder="Project name"
                                                     ),
+
+                                                    awesomeRadio(
+                                                      inputId  = "resumeMode_NewRefMap",
+                                                      label    = NULL,
+                                                      inline   = TRUE,
+                                                      checkbox = TRUE,
+                                                      choices  = list(
+                                                        "New project"              = "new",
+                                                        "Resume existing project"  = "resume"
+                                                      ),
+                                                      selected = "new"
+                                                    ),
+
+                                                    conditionalPanel(
+                                                      condition = "input.resumeMode_NewRefMap == 'resume'",
+                                                      uiOutput("ui_existingProjects_NewRefMap")
+                                                    ),
                                                     
                                                     textInput(
                                                       inputId="Name_NewRefMap",
