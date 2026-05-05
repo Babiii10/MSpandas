@@ -28,8 +28,42 @@ observeEvent(
 
 
 
+# Populate the "resume" dropdown dynamically.
+# Lists all subdirectories of directory_rawData whose name starts with
+# "<projectName>_", sorted most-recent first (timestamp suffix → reverse alpha).
+output$ui_existingProjects_NewRefMap <- renderUI({
+  req(input$resumeMode_NewRefMap == "resume")
+  raw_dir   <- req(RvarsPeakDetection$directory_rawData)
+  base_name <- trimws(input$projectName_NewRefMap)
+  req(nzchar(base_name))
+
+  all_dirs <- list.dirs(raw_dir, recursive = FALSE, full.names = FALSE)
+  matching <- sort(
+    all_dirs[startsWith(all_dirs, paste0(base_name, "_"))],
+    decreasing = TRUE   # most recent timestamp first
+  )
+
+  if (length(matching) == 0) {
+    return(tagList(
+      tags$p(
+        style = "color:#a94442; font-style:italic;",
+        paste0('No existing project found for "', base_name, '".')
+      )
+    ))
+  }
+
+  selectInput(
+    inputId  = "selectedProject_NewRefMap",
+    label    = "Select project to resume:",
+    choices  = matching,
+    selected = matching[1],
+    width    = "100%"
+  )
+})
+
+
 observe({
-  toggleState(id = "MS2_type_NewRefMap", 
+  toggleState(id = "MS2_type_NewRefMap",
               condition = input$dataType_NewRefMap == "MS2")
   RvarsPeakDetection$paramMsdial_ref_path<-file.path("lib/NewReferenceMap/parameters","paramMsdial.txt")
 
@@ -189,15 +223,29 @@ observeEvent(
             
             
             ### Directory Project
-            RvarsPeakDetection$Project_NameNewRefMap<-
-              DateTimeProject<-paste(req(input$projectName_NewRefMap), 
-                                     sub(sub(sub(Sys.time(), pattern = "CEST",
-                                                 replacement = "",
-                                                 fixed = TRUE),  pattern = ":",
-                                             replacement = "-",
-                                             fixed = TRUE), pattern = ":",
-                                         replacement = "-",
-                                         fixed = TRUE), sep = "_")
+            if (isTRUE(input$resumeMode_NewRefMap == "resume") &&
+                !is.null(input$selectedProject_NewRefMap)        &&
+                nzchar(input$selectedProject_NewRefMap)) {
+              # Reprendre un projet existant : réutiliser son dossier.
+              # Le cache .msdial_processed_cache.txt et la vérification des .mzML
+              # garantissent que seuls les échantillons non encore traités sont retraités.
+              RvarsPeakDetection$Project_NameNewRefMap <- input$selectedProject_NewRefMap
+              message(sprintf("--- Reprise du projet existant : %s ---",
+                              input$selectedProject_NewRefMap))
+            } else {
+              RvarsPeakDetection$Project_NameNewRefMap <-
+                paste(req(input$projectName_NewRefMap),
+                      sub(sub(sub(Sys.time(), pattern = "CEST",
+                                  replacement = "",
+                                  fixed = TRUE), pattern = ":",
+                              replacement = "-",
+                              fixed = TRUE), pattern = ":",
+                          replacement = "-",
+                          fixed = TRUE),
+                      sep = "_")
+              message(sprintf("--- Nouveau projet : %s ---",
+                              RvarsPeakDetection$Project_NameNewRefMap))
+            }
             
             
             ## project directory
