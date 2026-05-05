@@ -298,6 +298,9 @@ observeEvent(
             batch_size_msdial <- if (n_input_runs > 100) 50 else NULL
             timeout_sec_msdial <- if (!is.null(batch_size_msdial)) 7200 else NULL
 
+            cache_path_srv <- file.path(req(RvarsPeakDetection$directory_rawData),
+                                         ".msdial_processed_cache.txt")
+
             processed_msdial_files <- character(0)
             after_batch_fun <- function(new_msdial_files) {
               new_msdial_files <- setdiff(new_msdial_files, processed_msdial_files)
@@ -310,49 +313,50 @@ observeEvent(
                                   mass_slice_width = req(input$mass_slice_width_NewRefMap),
                                   min_PeaksMassif = req(input$minPeaksMassif_NewRefMap))
               removeFiles(path_to_files = directoryOutput_NewRefMap, ext = '.msdial')
+
+              # Écrire dans le cache APRÈS déconvolution réussie.
+              # Le cache (inter-session) et les CSV (intra-session) sont les deux
+              # preuves durables qu'un échantillon est entièrement traité.
+              msdial_stems   <- tolower(sub("\\.msdial$", "", basename(new_msdial_files),
+                                            ignore.case = TRUE))
+              all_inputs_srv <- list.files(req(RvarsPeakDetection$directory_rawData),
+                                            pattern    = "\\.d$|\\.mzML$",
+                                            full.names = FALSE, ignore.case = TRUE)
+              input_stems_srv <- tolower(sub("\\.(d|mzML)$", "", all_inputs_srv,
+                                              ignore.case = TRUE))
+              matched_srv <- all_inputs_srv[input_stems_srv %in% msdial_stems]
+              if (length(matched_srv) > 0) {
+                existing_c <- if (file.exists(cache_path_srv)) {
+                  tolower(trimws(readLines(cache_path_srv, warn = FALSE)))
+                } else character(0)
+                to_add_srv <- matched_srv[!(tolower(matched_srv) %in%
+                                              existing_c[nzchar(existing_c)])]
+                if (length(to_add_srv) > 0) {
+                  cat(paste(to_add_srv, collapse = "\n"), "\n",
+                      file = cache_path_srv, append = TRUE)
+                  message(sprintf("--- Cache : %d échantillon(s) ajoutés ---",
+                                  length(to_add_srv)))
+                }
+              }
               gc()
             }
 
-            # --- Synchronisation du cache avec les CSV déjà produits ---
-            # Le cache .msdial_processed_cache.txt peut être absent si :
-            #   - c'est la première reprise (ancienne version sans cache)
-            #   - le crash est survenu avant l'écriture du cache
-            # Source de vérité : les .csv dans Massif-List/ — un CSV n'existe que
-            # si la déconvolution a été menée jusqu'au bout pour cet échantillon.
-            local({
-              cache_path  <- file.path(req(RvarsPeakDetection$directory_rawData),
-                                       ".msdial_processed_cache.txt")
-              if (!dir.exists(directoryOutput_NewRefMap)) return()
-
-              existing_csv <- list.files(directoryOutput_NewRefMap, pattern = "\\.csv$",
-                                         full.names = FALSE, ignore.case = TRUE)
-              if (length(existing_csv) == 0) return()
-
-              # Stem des CSV → chercher le fichier source correspondant (.d ou .mzML)
-              csv_stems   <- tolower(sub("\\.csv$", "", existing_csv, ignore.case = TRUE))
-              all_inputs  <- list.files(req(RvarsPeakDetection$directory_rawData),
-                                        pattern   = "\\.d$|\\.mzML$",
-                                        full.names = FALSE, ignore.case = TRUE)
-              input_stems <- tolower(sub("\\.(d|mzML)$", "", all_inputs,
-                                         ignore.case = TRUE))
-              matched     <- all_inputs[input_stems %in% csv_stems]
-              if (length(matched) == 0) return()
-
-              # Éviter les doublons avec le contenu existant du cache
-              existing_cache <- character(0)
-              if (file.exists(cache_path)) {
-                lines          <- trimws(readLines(cache_path, warn = FALSE))
-                existing_cache <- tolower(lines[nzchar(lines)])
+            # --- Reprise des .msdial orphelins ---
+            # Cas : MS-DIAL a terminé un batch mais la déconvolution a crashé.
+            # Les .msdial sont encore dans Massif-List/ sans CSV correspondant.
+            # On les traite avant de lancer findPeaks_MSDIAL pour que le filtre
+            # to_process (basé sur les CSV) soit correct dès le départ.
+            if (dir.exists(directoryOutput_NewRefMap)) {
+              pending_msdial <- list.files(directoryOutput_NewRefMap,
+                                           pattern    = "\\.msdial$",
+                                           full.names = TRUE, ignore.case = TRUE)
+              if (length(pending_msdial) > 0) {
+                message(sprintf(
+                  "--- Reprise : %d fichier(s) .msdial sans CSV détectés → déconvolution ---",
+                  length(pending_msdial)))
+                after_batch_fun(pending_msdial)
               }
-              to_add <- matched[!(tolower(matched) %in% existing_cache)]
-              if (length(to_add) == 0) return()
-
-              cat(paste(to_add, collapse = "\n"), "\n",
-                  file = cache_path, append = TRUE)
-              message(sprintf(
-                "--- Cache synchronisé depuis Massif-List/ : %d échantillon(s) déjà traités détectés (sur %d au total) ---",
-                length(to_add), length(all_inputs)))
-            })
+            }
 
             system.time(findPeaks_MSDIAL(input_files = req(RvarsPeakDetection$directory_rawData),
                                          output_files = req(directoryOutput_NewRefMap),
