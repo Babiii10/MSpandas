@@ -56,21 +56,48 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
               Adduct_list = as.list(Adduct_list))
 
   run_msdial_bat <- function() {
-    bat_file <- normalizePath("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat", winslash = "\\", mustWork = FALSE)
-    timeout_sec_i <- suppressWarnings(as.integer(timeout_sec))
-    if (.Platform$OS.type == "windows" && length(timeout_sec_i) == 1 && !is.na(timeout_sec_i) && timeout_sec_i > 0) {
+    bat_file   <- normalizePath("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat",
+                                winslash = "\\", mustWork = FALSE)
+    # Délai maximum en ms — 4 h par défaut pour éviter un blocage infini.
+    timeout_ms <- {
+      t <- suppressWarnings(as.integer(timeout_sec))
+      if (length(t) == 1L && !is.na(t) && t > 0L) t * 1000L else 14400000L
+    }
+
+    if (.Platform$OS.type == "windows") {
+      # Rediriger stdout/stderr de MsdialConsoleApp vers des fichiers temporaires.
+      # Sans redirection, la sortie volumineuse remplit le buffer du pipe et bloque
+      # indéfiniment (deadlock pipe R ↔ processus).
+      log_out <- normalizePath(tempfile(fileext = "_msdial_out.log"),
+                               winslash = "\\", mustWork = FALSE)
+      log_err <- normalizePath(tempfile(fileext = "_msdial_err.log"),
+                               winslash = "\\", mustWork = FALSE)
+      # Échapper les apostrophes pour l'interpolation dans la chaîne PowerShell
+      esc <- function(p) gsub("'", "''", p)
       ps_cmd <- paste0(
-        "$bat=", shQuote(bat_file), "; ",
-        "$p=Start-Process -FilePath 'cmd.exe' -ArgumentList @('/c', $bat) -PassThru; ",
-        "Wait-Process -Id $p.Id -Timeout ", timeout_sec_i, " -ErrorAction SilentlyContinue; ",
-        "if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force; exit 124 } ",
+        "$p = Start-Process -FilePath 'cmd.exe' ",
+        "-ArgumentList @('/c', '", esc(bat_file), "') ",
+        "-PassThru -NoNewWindow ",
+        "-RedirectStandardOutput '", esc(log_out), "' ",
+        "-RedirectStandardError '",  esc(log_err), "'; ",
+        # WaitForExit(ms) — méthode .NET, plus fiable que Wait-Process -Timeout.
+        # Retourne $true si le processus s'est terminé, $false si délai dépassé.
+        "$ok = $p.WaitForExit(", timeout_ms, "); ",
+        "if (-not $ok) { ",
+        # taskkill /F /T tue l'arbre entier : cmd.exe + MsdialConsoleApp + enfants.
+        # Stop-Process ne tuerait que cmd.exe, laissant MsdialConsoleApp orphelin.
+        "  taskkill /F /T /PID $p.Id 2>&1 | Out-Null; ",
+        "  Write-Host 'TIMEOUT: MsdialConsoleApp.exe arrete apres ", timeout_ms %/% 1000L, "s'; ",
+        "  exit 124 ",
+        "}; ",
         "exit $p.ExitCode"
       )
-      out <- system2("powershell.exe", args = c("-NoProfile", "-Command", ps_cmd), stdout = TRUE, stderr = TRUE, wait = TRUE)
+      out <- system2("powershell.exe",
+                     args   = c("-NoProfile", "-NonInteractive", "-Command", ps_cmd),
+                     stdout = TRUE, stderr = TRUE, wait = TRUE)
+      # Nettoyer les logs temporaires
+      suppressWarnings(file.remove(log_out, log_err))
       return(out)
-    }
-    if (.Platform$OS.type == "windows") {
-      return(system2("cmd.exe", args = c("/c", shQuote(bat_file)), stdout = TRUE, stderr = TRUE, wait = TRUE))
     }
     system2(bat_file)
   }
