@@ -107,20 +107,24 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
   input_items <- input_items[dir.exists(input_items) | file.exists(input_items)]
   input_items <- input_items[grepl("\\.d$|\\.mzML$", basename(input_items), ignore.case = TRUE)]
 
-  # Cache persistant dans le répertoire des données brutes.
-  # Résiste aux changements de session : le nom du projet (avec sa date) change à chaque session,
-  # mais le répertoire des données brutes (input_dir) reste stable.
-  cache_file    <- file.path(input_dir, ".msdial_processed_cache.txt")
-  existing_base <- character(0)
+  # -- Déterminer les échantillons restants à traiter --
+  # Source de vérité 1 : CSV dans output_files (Massif-List/).
+  #   Un CSV n'existe que si la déconvolution a été menée jusqu'au bout.
+  existing_csv <- list.files(output_files, pattern = "\\.csv$",
+                              full.names = FALSE, ignore.case = TRUE)
+  done_stems   <- tolower(sub("\\.csv$", "", existing_csv, ignore.case = TRUE))
+
+  # Source de vérité 2 : cache persistant inter-session dans input_dir.
+  #   Écrit par le serveur après chaque déconvolution réussie ; survive aux changements de projet.
+  cache_file <- file.path(input_dir, ".msdial_processed_cache.txt")
   if (file.exists(cache_file)) {
-    cached <- trimws(readLines(cache_file, warn = FALSE))
-    existing_base <- tolower(cached[nzchar(cached)])
+    cached       <- tolower(trimws(readLines(cache_file, warn = FALSE)))
+    cache_stems  <- sub("\\.(d|mzML)$", "", cached[nzchar(cached)], ignore.case = TRUE)
+    done_stems   <- unique(c(done_stems, cache_stems))
   }
-  # Compléter avec les .msdial déjà présents dans le dossier de sortie (reprise intra-session)
-  existing_msdial <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
-  existing_base   <- unique(c(existing_base,
-                               tolower(sub("\\.msdial$", "", basename(existing_msdial), ignore.case = TRUE))))
-  to_process <- input_items[!(tolower(basename(input_items)) %in% existing_base)]
+
+  input_stems <- tolower(sub("\\.(d|mzML)$", "", basename(input_items), ignore.case = TRUE))
+  to_process  <- input_items[!(input_stems %in% done_stems)]
 
   batch_size <- suppressWarnings(as.integer(batch_size))
   if (!is.na(batch_size) && batch_size > 0) {
@@ -129,10 +133,9 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
       return(invisible(NULL))
     }
 
-    n_batches      <- ceiling(length(to_process) / batch_size)
+    n_batches  <- ceiling(length(to_process) / batch_size)
     # batch_root dans input_dir : même volume que les .d/.mzML → file.rename() instantané
-    batch_root     <- file.path(input_dir, "_msdial_batches_tmp")
-    all_new_msdial <- character(0)
+    batch_root <- file.path(input_dir, "_msdial_batches_tmp")
     dir.create(batch_root, recursive = TRUE, showWarnings = FALSE)
 
     for (b in seq_len(n_batches)) {
@@ -174,11 +177,9 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
       run_msdial_bat()
       msdial_after  <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
       new_msdial    <- setdiff(msdial_after, msdial_before)
-      if (is.function(after_batch_fun) && length(new_msdial) > 0) {
-        all_new_msdial <- c(all_new_msdial, new_msdial)
-      }
 
-      # Remettre les fichiers sources à leur emplacement d'origine
+      # Remettre les fichiers sources avant la déconvolution :
+      # si after_batch_fun crashe, les .d/.mzML sont déjà en sécurité dans input_dir.
       file.rename(file.path(batch_input_dir, basename(batch_items)), batch_items)
       # Supprimer le dossier temporaire (ne contient plus que .dcl/.pai2/.aef)
       if (.Platform$OS.type == "windows") {
@@ -187,8 +188,14 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
         unlink(batch_input_dir, recursive = TRUE, force = TRUE)
       }
 
-      # Mettre à jour le cache persistant avec les échantillons traités dans ce batch
-      cat(paste(basename(batch_items), collapse = "\n"), "\n", file = cache_file, append = TRUE)
+      # Déconvolution et export CSV immédiatement après chaque batch.
+      # Le CSV est la preuve durable du traitement complet et permet la reprise fine.
+      # Le cache est écrit par after_batch_fun (serveur) après déconvolution réussie.
+      if (is.function(after_batch_fun) && length(new_msdial) > 0) {
+        message(sprintf("--- Batch %d/%d : déconvolution de %d fichier(s) .msdial ---",
+                        b, n_batches, length(new_msdial)))
+        after_batch_fun(new_msdial)
+      }
 
       message(sprintf("--- Batch %d/%d terminé ---", b, n_batches))
       gc()
@@ -196,14 +203,6 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
 
     # Supprimer le dossier racine temporaire (vide après le dernier batch)
     if (dir.exists(batch_root)) unlink(batch_root, recursive = TRUE, force = TRUE)
-
-    # Déconvolution unique après que TOUS les batches MS-DIAL sont terminés.
-    # Évite le blocage inter-batch : les batches s'enchaînent sans interruption.
-    if (is.function(after_batch_fun) && length(all_new_msdial) > 0) {
-      message(sprintf("--- Tous les batches terminés — déconvolution de %d fichier(s) .msdial ---",
-                      length(all_new_msdial)))
-      after_batch_fun(all_new_msdial)
-    }
 
   } else {
     if (length(to_process) == 0) {
