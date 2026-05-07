@@ -394,23 +394,47 @@ observeEvent(
             ###~~~~~~~~~~~~~~~~~~~~ Grouping massif into features ~~~~~~~~~~~~~~~~~~~~~###
             
             
-            path_file_msdial_NewRefMap<-file.path(directoryOutput_NewRefMap, dir(directoryOutput_NewRefMap))
-            path_file_msdial_NewRefMap<-path_file_msdial_NewRefMap[grepl("\\.msdial$", path_file_msdial_NewRefMap, ignore.case = TRUE)]
+            path_file_msdial_NewRefMap <- list.files(directoryOutput_NewRefMap,
+                                                        pattern    = "\\.msdial$",
+                                                        full.names = TRUE, ignore.case = TRUE)
 
-            if(length(path_file_msdial_NewRefMap)>=1) {
-              if(length(path_file_msdial_NewRefMap)>1) {
-                file.remove(list.files(directoryOutput_NewRefMap,pattern = "AlignResult-", full.names = TRUE))
+            if (length(path_file_msdial_NewRefMap) >= 1) {
+              # Non-batch mode: .msdial files still present → deconvolve now.
+              if (length(path_file_msdial_NewRefMap) > 1) {
+                file.remove(list.files(directoryOutput_NewRefMap,
+                                       pattern = "AlignResult-", full.names = TRUE))
               }
+              RvarsPeakDetection$peaks_MSDIAL_mono_iso_NewRefMap <-
+                deconv_peaks_MSDIAL(path_to_peakList = req(path_file_msdial_NewRefMap),
+                                    output_directory = directoryOutput_NewRefMap,
+                                    file_adduct      = "data/Adduit.csv",
+                                    mass_slice_width = req(input$mass_slice_width_NewRefMap),
+                                    min_PeaksMassif  = req(input$minPeaksMassif_NewRefMap))
+              removeFiles(path_to_files = directoryOutput_NewRefMap, ext = '.msdial')
 
-              RvarsPeakDetection$peaks_MSDIAL_mono_iso_NewRefMap<- deconv_peaks_MSDIAL(path_to_peakList = req(path_file_msdial_NewRefMap),
-                                                                                       output_directory = directoryOutput_NewRefMap,
-                                                                                       file_adduct = "data/Adduit.csv",
-                                                                                       mass_slice_width = req(input$mass_slice_width_NewRefMap),
-                                                                                       min_PeaksMassif = req(input$minPeaksMassif_NewRefMap)
-              )
-
-              removeFiles(path_to_files = directoryOutput_NewRefMap,
-                          ext = '.msdial')
+            } else {
+              # Batch mode: each batch already ran deconv → CSVs in Massif-List/.
+              # Load all CSVs to populate the visualization reactive.
+              csv_files <- list.files(directoryOutput_NewRefMap, pattern = "\\.csv$",
+                                      full.names = TRUE, ignore.case = TRUE)
+              if (length(csv_files) > 0) {
+                message(sprintf("--- Chargement de %d CSV depuis Massif-List/ pour la visualisation ---",
+                                length(csv_files)))
+                result_list <- lapply(csv_files, function(f) {
+                  tryCatch(read.csv(f, stringsAsFactors = FALSE), error = function(e) NULL)
+                })
+                result_list <- Filter(Negate(is.null), result_list)
+                if (length(result_list) > 0) {
+                  combined <- do.call(rbind, result_list)
+                  # Columns 1-10 come from ProcessPeaks.msdial with names:
+                  # M+H, M+H.min, M+H.max, CE-time, CE-time.min, CE-time.max,
+                  # integrated-intensity, intensity, sn, sample
+                  # → rename to the internal format expected by peaks_mono_iso_NewRefMap()
+                  colnames(combined)[1:10] <- c("mz","mzmin","mzmax","rt","rtmin","rtmax",
+                                                "into","maxo","sn","sample")
+                  RvarsPeakDetection$peaks_MSDIAL_mono_iso_NewRefMap <- combined
+                }
+              }
             }
             
             
