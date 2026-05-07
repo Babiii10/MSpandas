@@ -11,12 +11,9 @@
 #   3. Grouping             - After feature grouping between samples
 #   4. Reference Map        - After reference map generation
 #   5. Normalizer Search    - After internal standard identification
+
 #
-# Author: MSpandas Team
-# Version: 3.0.0 (Enhanced)
-# Date: 2026-02-13
-#
-# Enhancements in v3.0.0:
+# Enhancements :
 #   - Atomic saves (prevents corruption)
 #   - Checkpoint versioning (rollback support)
 #   - Smart compression (adaptive based on size)
@@ -30,8 +27,10 @@
 # Load dependencies
 library(shiny)
 
-# Source cache libraries if not already loaded
-if (!exists("init_cache_system")) {
+# Source cache libraries (reload if signature is outdated)
+if (!exists("init_cache_system") ||
+    !is.function(init_cache_system) ||
+    !"reuse_existing" %in% names(formals(init_cache_system))) {
   source("lib/cache/CacheManager.lib.R")
 }
 if (!exists("detect_crash_and_recover")) {
@@ -107,7 +106,7 @@ create_global_cache_controller <- function(project_name,
                                            data_dir,
                                            base_cache_dir = "cache_projects",
                                            config = NULL) {
-
+  
   # Initialize internal state
   state <- new.env(parent = emptyenv())
   state$initialized <- FALSE
@@ -116,22 +115,22 @@ create_global_cache_controller <- function(project_name,
   state$completed_stages <- character(0)
   state$auto_save <- TRUE
   state$project_name <- project_name
-
+  
   # Enhanced: Configuration with defaults
   state$config <- if (!is.null(config)) {
     modifyList(CACHE_CONFIG_DEFAULTS, config)
   } else {
     CACHE_CONFIG_DEFAULTS
   }
-
+  
   # Enhanced: Logger instance (initialized after cache_info is available)
   state$logger <- NULL
-
+  
   # =========================================================================
   # initialize - Initialize the cache system for the project
   # =========================================================================
-  initialize <- function(n_samples = NULL, verbose = TRUE) {
-
+  initialize <- function(n_samples = NULL, verbose = TRUE, reuse_existing = TRUE) {
+    
     if (verbose) {
       cat("\n")
       cat("================================================================\n")
@@ -141,14 +140,15 @@ create_global_cache_controller <- function(project_name,
       cat(sprintf("   Data dir: %s\n", data_dir))
       cat(sprintf("   Features: atomic saves, versioning, smart compression\n"))
     }
-
+    
     # Initialize cache system
     state$cache_info <- init_cache_system(
       project_name = project_name,
       data_dir = data_dir,
-      base_cache_dir = base_cache_dir
+      base_cache_dir = base_cache_dir,
+      reuse_existing = reuse_existing
     )
-
+    
     # Enhanced: Initialize logger
     if (state$config$enable_logging) {
       log_file <- file.path(state$cache_info$project_dir, "cache.log")
@@ -159,7 +159,7 @@ create_global_cache_controller <- function(project_name,
       state$logger$info("INIT", "Cache controller initialized",
                         project_id = state$cache_info$project_id)
     }
-
+    
     # Enhanced: Run automatic cleanup at startup
     if (state$config$auto_cleanup) {
       tryCatch({
@@ -176,79 +176,79 @@ create_global_cache_controller <- function(project_name,
         if (verbose) cat("   Auto-cleanup skipped:", e$message, "\n")
       })
     }
-
+    
     # Update sample count if provided
     if (!is.null(n_samples) && !is.null(state$cache_info$db_project_id)) {
       tryCatch({
         con <- DBI::dbConnect(RSQLite::SQLite(), state$cache_info$db_path)
         DBI::dbExecute(con,
-          "UPDATE projects SET total_files = ? WHERE project_id = ?",
-          params = list(n_samples, state$cache_info$db_project_id)
+                       "UPDATE projects SET total_files = ? WHERE project_id = ?",
+                       params = list(n_samples, state$cache_info$db_project_id)
         )
         DBI::dbDisconnect(con)
       }, error = function(e) {
         warning("Could not update sample count: ", e$message)
       })
     }
-
+    
     state$initialized <- TRUE
     state$current_stage <- "initialized"
-
+    
     if (verbose) {
       cat("   Status: INITIALIZED\n")
       cat("================================================================\n\n")
     }
-
+    
     return(invisible(state$cache_info))
   }
-
+  
   # =========================================================================
   # check_recovery - Check if recovery is possible from existing cache
   # =========================================================================
   check_recovery <- function(verbose = TRUE) {
-
+    
     recovery_info <- detect_crash_and_recover(
       cache_info = state$cache_info,
       project_name = project_name,
       verbose = verbose
     )
-
+    
     return(recovery_info)
   }
-
+  
   # =========================================================================
   # save_stage - Save a pipeline stage checkpoint (Enhanced v3.0)
   # =========================================================================
   save_stage <- function(stage_key, reactive_vars, progress = NULL, verbose = TRUE) {
-
+    
     if (!state$initialized) {
       warning("Cache controller not initialized. Call initialize() first.")
       return(FALSE)
     }
-
+    
     if (!stage_key %in% names(PIPELINE_STAGES)) {
       stop(sprintf("Unknown stage key: %s", stage_key))
     }
-
+    
     stage_def <- PIPELINE_STAGES[[stage_key]]
-
+    
     # Extract variables based on stage
     variables <- extract_stage_variables(stage_key, reactive_vars)
-
+    
     if (is.null(variables) || length(variables) == 0) {
       warning(sprintf("No variables to save for stage: %s", stage_key))
       return(FALSE)
     }
-
+    
     if (verbose) {
       cat(sprintf("\n   Saving checkpoint: %s...\n", stage_def$name))
     }
-
+    
     # Update progress if provided
     if (!is.null(progress)) {
       progress$set(message = sprintf("Saving: %s", stage_def$name), value = 0.3)
     }
-
+    
     # Enhanced: Use atomic save with versioning
     save_result <- save_checkpoint_enhanced(
       checkpoint_id = stage_def$id,
@@ -259,15 +259,15 @@ create_global_cache_controller <- function(project_name,
       config = state$config,
       logger = state$logger
     )
-
+    
     if (save_result$success) {
       state$current_stage <- stage_key
       state$completed_stages <- unique(c(state$completed_stages, stage_key))
-
+      
       if (!is.null(progress)) {
         progress$set(message = "Checkpoint saved!", value = 1)
       }
-
+      
       if (verbose) {
         cat(sprintf("   Checkpoint saved successfully!\n"))
         cat(sprintf("   Version: %d | Size: %.2f MB | Compression: %s\n",
@@ -275,7 +275,7 @@ create_global_cache_controller <- function(project_name,
                     save_result$size_bytes / (1024^2),
                     save_result$compression))
       }
-
+      
       return(TRUE)
     } else {
       if (verbose) {
@@ -284,34 +284,34 @@ create_global_cache_controller <- function(project_name,
       return(FALSE)
     }
   }
-
+  
   # =========================================================================
   # restore_stage - Restore a pipeline stage from checkpoint (Enhanced v3.0)
   # =========================================================================
   restore_stage <- function(stage_key, reactive_vars, progress = NULL,
                             version = NULL, verbose = TRUE) {
-
+    
     if (!state$initialized && !is.null(state$cache_info)) {
       # Allow restore even if not fully initialized
     } else if (!state$initialized) {
       warning("Cache controller not initialized.")
       return(FALSE)
     }
-
+    
     if (!stage_key %in% names(PIPELINE_STAGES)) {
       stop(sprintf("Unknown stage key: %s", stage_key))
     }
-
+    
     stage_def <- PIPELINE_STAGES[[stage_key]]
-
+    
     if (verbose) {
       cat(sprintf("\n   Restoring checkpoint: %s...\n", stage_def$name))
     }
-
+    
     if (!is.null(progress)) {
       progress$set(message = sprintf("Restoring: %s", stage_def$name), value = 0.2)
     }
-
+    
     # Enhanced: Use atomic load with schema migration
     load_result <- load_checkpoint_enhanced(
       checkpoint_id = stage_def$id,
@@ -320,52 +320,52 @@ create_global_cache_controller <- function(project_name,
       validate_checksum = TRUE,
       logger = state$logger
     )
-
+    
     if (!load_result$success) {
       warning(sprintf("Failed to restore stage %s: %s", stage_key, load_result$error))
       return(FALSE)
     }
-
+    
     if (!is.null(progress)) {
       progress$set(message = "Restoring variables...", value = 0.5)
     }
-
+    
     # Restore variables to reactive values
     restore_stage_variables(stage_key, load_result$data, reactive_vars)
-
+    
     state$current_stage <- stage_key
     state$completed_stages <- unique(c(state$completed_stages, stage_key))
-
+    
     if (!is.null(progress)) {
       progress$set(message = "Restore complete!", value = 1)
     }
-
+    
     if (verbose) {
       cat(sprintf("   Restore successful!\n"))
       if (load_result$migrated) {
         cat(sprintf("   Note: Data migrated from schema v%s\n", load_result$original_version))
       }
     }
-
+    
     return(TRUE)
   }
-
+  
   # =========================================================================
   # restore_all_stages - Restore all available stages up to target
   # =========================================================================
   restore_all_stages <- function(target_stage, reactive_vars, progress = NULL, verbose = TRUE) {
-
+    
     stage_order <- names(PIPELINE_STAGES)
     target_idx <- which(stage_order == target_stage)
-
+    
     if (length(target_idx) == 0) {
       warning(sprintf("Unknown target stage: %s", target_stage))
       return(FALSE)
     }
-
+    
     # Get available checkpoints
     available <- list_available_stages()
-
+    
     if (verbose) {
       cat("\n")
       cat("================================================================\n")
@@ -374,12 +374,12 @@ create_global_cache_controller <- function(project_name,
       cat(sprintf("   Target stage: %s\n", target_stage))
       cat(sprintf("   Available stages: %s\n", paste(available, collapse = ", ")))
     }
-
+    
     # Restore stages in order up to target
     restored_count <- 0
     for (i in 1:target_idx) {
       stage_key <- stage_order[i]
-
+      
       if (stage_key %in% available) {
         if (!is.null(progress)) {
           progress$set(
@@ -387,38 +387,38 @@ create_global_cache_controller <- function(project_name,
             value = i / target_idx * 0.8
           )
         }
-
+        
         result <- restore_stage(stage_key, reactive_vars, verbose = verbose)
         if (result) {
           restored_count <- restored_count + 1
         }
       }
     }
-
+    
     if (!is.null(progress)) {
       progress$set(message = "Restoration complete!", value = 1)
     }
-
+    
     if (verbose) {
       cat(sprintf("   Restored %d stage(s)\n", restored_count))
       cat("================================================================\n\n")
     }
-
+    
     return(restored_count > 0)
   }
-
+  
   # =========================================================================
   # list_available_stages - Get list of stages with saved checkpoints
   # =========================================================================
   list_available_stages <- function() {
-
+    
     if (is.null(state$cache_info) || !file.exists(state$cache_info$metadata_file)) {
       return(character(0))
     }
-
+    
     metadata <- jsonlite::read_json(state$cache_info$metadata_file)
     saved_checkpoints <- names(metadata$checkpoints)
-
+    
     # Map checkpoint IDs back to stage keys
     available_stages <- character(0)
     for (stage_key in names(PIPELINE_STAGES)) {
@@ -426,15 +426,15 @@ create_global_cache_controller <- function(project_name,
         available_stages <- c(available_stages, stage_key)
       }
     }
-
+    
     return(available_stages)
   }
-
+  
   # =========================================================================
   # get_status - Get current cache status (Enhanced v3.0)
   # =========================================================================
   get_status <- function() {
-
+    
     if (!state$initialized) {
       return(list(
         initialized = FALSE,
@@ -445,16 +445,16 @@ create_global_cache_controller <- function(project_name,
         version = "3.0.0"
       ))
     }
-
+    
     available <- list_available_stages()
-
+    
     # Enhanced: Include cache size info
     cache_size <- tryCatch({
       calculate_cache_size(dirname(state$cache_info$project_dir))
     }, error = function(e) {
       list(total_mb = NA, n_projects = NA)
     })
-
+    
     return(list(
       initialized = TRUE,
       project_name = project_name,
@@ -471,28 +471,28 @@ create_global_cache_controller <- function(project_name,
       n_projects = cache_size$n_projects
     ))
   }
-
+  
   # =========================================================================
   # set_auto_save - Enable/disable automatic checkpoint saving
   # =========================================================================
   set_auto_save <- function(enabled) {
     state$auto_save <- enabled
   }
-
+  
   # =========================================================================
   # get_cache_info - Get underlying cache info structure
   # =========================================================================
   get_cache_info <- function() {
     return(state$cache_info)
   }
-
+  
   # =========================================================================
   # get_config - Get current configuration
   # =========================================================================
   get_config <- function() {
     return(state$config)
   }
-
+  
   # =========================================================================
   # update_config - Update configuration
   # =========================================================================
@@ -504,7 +504,7 @@ create_global_cache_controller <- function(project_name,
                         details = new_config)
     }
   }
-
+  
   # =========================================================================
   # health_check - Perform cache health check (Enhanced v3.0)
   # =========================================================================
@@ -512,9 +512,9 @@ create_global_cache_controller <- function(project_name,
     if (!state$initialized) {
       return(list(healthy = FALSE, issues = list("Cache not initialized")))
     }
-
+    
     result <- check_cache_health(state$cache_info, repair = repair)
-
+    
     if (!is.null(state$logger)) {
       state$logger$info("HEALTH_CHECK",
                         sprintf("Health check: %s", if(result$healthy) "PASSED" else "FAILED"),
@@ -525,10 +525,10 @@ create_global_cache_controller <- function(project_name,
                           repaired = length(result$repaired)
                         ))
     }
-
+    
     return(result)
   }
-
+  
   # =========================================================================
   # list_versions - List all versions of a checkpoint (Enhanced v3.0)
   # =========================================================================
@@ -536,15 +536,15 @@ create_global_cache_controller <- function(project_name,
     if (!state$initialized) {
       return(data.frame())
     }
-
+    
     if (!stage_key %in% names(PIPELINE_STAGES)) {
       stop(sprintf("Unknown stage key: %s", stage_key))
     }
-
+    
     checkpoint_id <- PIPELINE_STAGES[[stage_key]]$id
     return(list_checkpoint_versions(state$cache_info$cache_dir, checkpoint_id))
   }
-
+  
   # =========================================================================
   # cleanup - Run manual cleanup (Enhanced v3.0)
   # =========================================================================
@@ -554,7 +554,7 @@ create_global_cache_controller <- function(project_name,
       config = state$config,
       dry_run = dry_run
     )
-
+    
     if (!is.null(state$logger) && !dry_run) {
       state$logger$info("CLEANUP",
                         sprintf("Cleanup completed: %d projects deleted",
@@ -562,10 +562,10 @@ create_global_cache_controller <- function(project_name,
                         project_id = state$cache_info$project_id,
                         details = list(freed_mb = result$freed_bytes / (1024^2)))
     }
-
+    
     return(result)
   }
-
+  
   # =========================================================================
   # mark_complete - Mark project as completed
   # =========================================================================
@@ -578,7 +578,7 @@ create_global_cache_controller <- function(project_name,
           processing_stage = "complete",
           db_path = state$cache_info$db_path
         )
-
+        
         if (!is.null(state$logger)) {
           state$logger$info("PROJECT_COMPLETE", "Project marked as completed",
                             project_id = state$cache_info$project_id)
@@ -588,7 +588,7 @@ create_global_cache_controller <- function(project_name,
       })
     }
   }
-
+  
   # Return controller object (Enhanced v3.0)
   return(list(
     # Core functions
@@ -602,14 +602,14 @@ create_global_cache_controller <- function(project_name,
     set_auto_save = set_auto_save,
     get_cache_info = get_cache_info,
     mark_complete = mark_complete,
-
+    
     # Enhanced v3.0 functions
     get_config = get_config,
     update_config = update_config,
     health_check = health_check,
     list_versions = list_versions,
     cleanup = cleanup,
-
+    
     # Constants
     STAGES = PIPELINE_STAGES,
     VERSION = "3.0.0"
@@ -628,119 +628,119 @@ create_global_cache_controller <- function(project_name,
 #'
 #' @return Named list of variables to save
 extract_stage_variables <- function(stage_key, reactive_vars) {
-
+  
   vars <- list()
-
+  
   # Get reactive environments
   Rvars_PeakDetection <- reactive_vars$PeakDetection
   Rvars_CorrectionTime <- reactive_vars$CorrectionTime
   Rvars_Grouping <- reactive_vars$Grouping
   Rvars_InternalStandard <- reactive_vars$InternalStandard
-
+  
   switch(stage_key,
-
-    # =======================================================================
-    # Stage 1: Peak Detection
-    # =======================================================================
-    "peak_detection" = {
-      if (!is.null(Rvars_PeakDetection)) {
-        vars$directory_rawData <- isolate(Rvars_PeakDetection$directory_rawData)
-        vars$peaks_MSDIAL_mono_iso <- isolate(Rvars_PeakDetection$peaks_MSDIAL_mono_iso_NewRefMap)
-        vars$sample_name <- isolate(Rvars_PeakDetection$sample_name_NewRefMap)
-        vars$Project_Name <- isolate(Rvars_PeakDetection$Project_NameNewRefMap)
-      }
-    },
-
-    # =======================================================================
-    # Stage 2: Temporal Correction (XCMS + Kernel Density)
-    # =======================================================================
-    "temporal_correction" = {
-      # Include peak detection data
-      if (!is.null(Rvars_PeakDetection)) {
-        vars$directory_rawData <- isolate(Rvars_PeakDetection$directory_rawData)
-        vars$peaks_MSDIAL_mono_iso <- isolate(Rvars_PeakDetection$peaks_MSDIAL_mono_iso_NewRefMap)
-        vars$sample_name <- isolate(Rvars_PeakDetection$sample_name_NewRefMap)
-        vars$Project_Name <- isolate(Rvars_PeakDetection$Project_NameNewRefMap)
-      }
-
-      if (!is.null(Rvars_CorrectionTime)) {
-        # Sample cutting
-        vars$samplesCuttingTable <- isolate(Rvars_CorrectionTime$samplesCuttingTable)
-
-        # Reference sample
-        vars$ref_Choose_sampleName <- isolate(Rvars_CorrectionTime$ref_Choose_sampleName)
-        vars$ref_Choose_samplePeaks <- isolate(Rvars_CorrectionTime$ref_Choose_samplePeaks)
-        vars$Ref_Mdian_sampleName <- isolate(Rvars_CorrectionTime$Ref_Mdian_sampleName)
-        vars$Ref_Mdian_samplePeaks <- isolate(Rvars_CorrectionTime$Ref_Mdian_samplePeaks)
-        vars$ref_sample_sampleName <- isolate(Rvars_CorrectionTime$ref_sample_sampleName)
-        vars$ref_sample_samplePeaks <- isolate(Rvars_CorrectionTime$ref_sample_samplePeaks)
-
-        # XCMS data
-        vars$rawData_mzML_path <- isolate(Rvars_CorrectionTime$rawData_mzML_path)
-        vars$pheno_Data_mzML <- isolate(Rvars_CorrectionTime$pheno_Data_mzML)
-        vars$Filenames <- isolate(Rvars_CorrectionTime$Filenames)
-        vars$Class <- isolate(Rvars_CorrectionTime$Class)
-        vars$dataObiwarp_Aligned <- isolate(Rvars_CorrectionTime$dataObiwarp_Aligned)
-        vars$peakListBefore <- isolate(Rvars_CorrectionTime$peakListBefore)
-        vars$peakListAligned <- isolate(Rvars_CorrectionTime$peakListAligned)
-
-        # Kernel Density
-        vars$peakListAligned_KernelDensity <- isolate(Rvars_CorrectionTime$peakListAligned_KernelDensity)
-        vars$modelKernelDensity <- isolate(Rvars_CorrectionTime$modelKernelDensity)
-      }
-    },
-
-    # =======================================================================
-    # Stage 3: Feature Grouping
-    # =======================================================================
-    "grouping" = {
-      # Include previous stages data
-      vars <- extract_stage_variables("temporal_correction", reactive_vars)
-
-      if (!is.null(Rvars_Grouping)) {
-        vars$FeaturesList <- isolate(Rvars_Grouping$FeaturesList)
-        vars$FeaturesListGroupingBetweenSamples <- isolate(Rvars_Grouping$FeaturesListGroupingBetweenSamples)
-      }
-    },
-
-    # =======================================================================
-    # Stage 4: Reference Map Generation
-    # =======================================================================
-    "reference_map" = {
-      # Include previous stages data
-      vars <- extract_stage_variables("grouping", reactive_vars)
-
-      if (!is.null(Rvars_Grouping)) {
-        vars$RefereanceMap <- isolate(Rvars_Grouping$RefereanceMap)
-        vars$MatrixAbundance <- isolate(Rvars_Grouping$MatrixAbundance)
-        vars$RefereanceMap_selected <- isolate(Rvars_Grouping$RefereanceMap_selected)
-        vars$MatrixAbundance_selected <- isolate(Rvars_Grouping$MatrixAbundance_selected)
-      }
-    },
-
-    # =======================================================================
-    # Stage 5: Normalizer Search
-    # =======================================================================
-    "normalizer_search" = {
-      # Include previous stages data
-      vars <- extract_stage_variables("reference_map", reactive_vars)
-
-      if (!is.null(Rvars_InternalStandard)) {
-        vars$OjectNormalizers <- isolate(Rvars_InternalStandard$OjectNormalizers)
-        vars$names_normalizers <- isolate(Rvars_InternalStandard$names_normalizers)
-        vars$map_ref_ToSave <- isolate(Rvars_InternalStandard$map_ref_ToSave)
-        vars$MatrixAbundance_Before <- isolate(Rvars_InternalStandard$MatrixAbundance_Before)
-        vars$MatrixAbundance_After <- isolate(Rvars_InternalStandard$MatrixAbundance_After)
-        vars$normalizers_ref <- isolate(Rvars_InternalStandard$normalizers_ref)
-        vars$peaksList_run_ref <- isolate(Rvars_InternalStandard$peaksList_run_ref)
-        vars$rt_ref <- isolate(Rvars_InternalStandard$rt_ref)
-      }
-    }
+         
+         # =======================================================================
+         # Stage 1: Peak Detection
+         # =======================================================================
+         "peak_detection" = {
+           if (!is.null(Rvars_PeakDetection)) {
+             vars$directory_rawData <- isolate(Rvars_PeakDetection$directory_rawData)
+             vars$peaks_MSDIAL_mono_iso <- isolate(Rvars_PeakDetection$peaks_MSDIAL_mono_iso_NewRefMap)
+             vars$sample_name <- isolate(Rvars_PeakDetection$sample_name_NewRefMap)
+             vars$Project_Name <- isolate(Rvars_PeakDetection$Project_NameNewRefMap)
+           }
+         },
+         
+         # =======================================================================
+         # Stage 2: Temporal Correction (XCMS + Kernel Density)
+         # =======================================================================
+         "temporal_correction" = {
+           # Include peak detection data
+           if (!is.null(Rvars_PeakDetection)) {
+             vars$directory_rawData <- isolate(Rvars_PeakDetection$directory_rawData)
+             vars$peaks_MSDIAL_mono_iso <- isolate(Rvars_PeakDetection$peaks_MSDIAL_mono_iso_NewRefMap)
+             vars$sample_name <- isolate(Rvars_PeakDetection$sample_name_NewRefMap)
+             vars$Project_Name <- isolate(Rvars_PeakDetection$Project_NameNewRefMap)
+           }
+           
+           if (!is.null(Rvars_CorrectionTime)) {
+             # Sample cutting
+             vars$samplesCuttingTable <- isolate(Rvars_CorrectionTime$samplesCuttingTable)
+             
+             # Reference sample
+             vars$ref_Choose_sampleName <- isolate(Rvars_CorrectionTime$ref_Choose_sampleName)
+             vars$ref_Choose_samplePeaks <- isolate(Rvars_CorrectionTime$ref_Choose_samplePeaks)
+             vars$Ref_Mdian_sampleName <- isolate(Rvars_CorrectionTime$Ref_Mdian_sampleName)
+             vars$Ref_Mdian_samplePeaks <- isolate(Rvars_CorrectionTime$Ref_Mdian_samplePeaks)
+             vars$ref_sample_sampleName <- isolate(Rvars_CorrectionTime$ref_sample_sampleName)
+             vars$ref_sample_samplePeaks <- isolate(Rvars_CorrectionTime$ref_sample_samplePeaks)
+             
+             # XCMS data
+             vars$rawData_mzML_path <- isolate(Rvars_CorrectionTime$rawData_mzML_path)
+             vars$pheno_Data_mzML <- isolate(Rvars_CorrectionTime$pheno_Data_mzML)
+             vars$Filenames <- isolate(Rvars_CorrectionTime$Filenames)
+             vars$Class <- isolate(Rvars_CorrectionTime$Class)
+             vars$dataObiwarp_Aligned <- isolate(Rvars_CorrectionTime$dataObiwarp_Aligned)
+             vars$peakListBefore <- isolate(Rvars_CorrectionTime$peakListBefore)
+             vars$peakListAligned <- isolate(Rvars_CorrectionTime$peakListAligned)
+             
+             # Kernel Density
+             vars$peakListAligned_KernelDensity <- isolate(Rvars_CorrectionTime$peakListAligned_KernelDensity)
+             vars$modelKernelDensity <- isolate(Rvars_CorrectionTime$modelKernelDensity)
+           }
+         },
+         
+         # =======================================================================
+         # Stage 3: Feature Grouping
+         # =======================================================================
+         "grouping" = {
+           # Include previous stages data
+           vars <- extract_stage_variables("temporal_correction", reactive_vars)
+           
+           if (!is.null(Rvars_Grouping)) {
+             vars$FeaturesList <- isolate(Rvars_Grouping$FeaturesList)
+             vars$FeaturesListGroupingBetweenSamples <- isolate(Rvars_Grouping$FeaturesListGroupingBetweenSamples)
+           }
+         },
+         
+         # =======================================================================
+         # Stage 4: Reference Map Generation
+         # =======================================================================
+         "reference_map" = {
+           # Include previous stages data
+           vars <- extract_stage_variables("grouping", reactive_vars)
+           
+           if (!is.null(Rvars_Grouping)) {
+             vars$RefereanceMap <- isolate(Rvars_Grouping$RefereanceMap)
+             vars$MatrixAbundance <- isolate(Rvars_Grouping$MatrixAbundance)
+             vars$RefereanceMap_selected <- isolate(Rvars_Grouping$RefereanceMap_selected)
+             vars$MatrixAbundance_selected <- isolate(Rvars_Grouping$MatrixAbundance_selected)
+           }
+         },
+         
+         # =======================================================================
+         # Stage 5: Normalizer Search
+         # =======================================================================
+         "normalizer_search" = {
+           # Include previous stages data
+           vars <- extract_stage_variables("reference_map", reactive_vars)
+           
+           if (!is.null(Rvars_InternalStandard)) {
+             vars$OjectNormalizers <- isolate(Rvars_InternalStandard$OjectNormalizers)
+             vars$names_normalizers <- isolate(Rvars_InternalStandard$names_normalizers)
+             vars$map_ref_ToSave <- isolate(Rvars_InternalStandard$map_ref_ToSave)
+             vars$MatrixAbundance_Before <- isolate(Rvars_InternalStandard$MatrixAbundance_Before)
+             vars$MatrixAbundance_After <- isolate(Rvars_InternalStandard$MatrixAbundance_After)
+             vars$normalizers_ref <- isolate(Rvars_InternalStandard$normalizers_ref)
+             vars$peaksList_run_ref <- isolate(Rvars_InternalStandard$peaksList_run_ref)
+             vars$rt_ref <- isolate(Rvars_InternalStandard$rt_ref)
+           }
+         }
   )
-
+  
   # Remove NULL entries
   vars <- vars[!sapply(vars, is.null)]
-
+  
   return(vars)
 }
 
@@ -751,13 +751,13 @@ extract_stage_variables <- function(stage_key, reactive_vars) {
 #' @param variables Named list of variables to restore
 #' @param reactive_vars List of reactive variable environments
 restore_stage_variables <- function(stage_key, variables, reactive_vars) {
-
+  
   # Get reactive environments
   Rvars_PeakDetection <- reactive_vars$PeakDetection
   Rvars_CorrectionTime <- reactive_vars$CorrectionTime
   Rvars_Grouping <- reactive_vars$Grouping
   Rvars_InternalStandard <- reactive_vars$InternalStandard
-
+  
   # Restore Peak Detection variables
   if (!is.null(Rvars_PeakDetection)) {
     if ("directory_rawData" %in% names(variables)) {
@@ -773,7 +773,7 @@ restore_stage_variables <- function(stage_key, variables, reactive_vars) {
       Rvars_PeakDetection$Project_NameNewRefMap <- variables$Project_Name
     }
   }
-
+  
   # Restore Correction Time variables
   if (!is.null(Rvars_CorrectionTime)) {
     if ("samplesCuttingTable" %in% names(variables)) {
@@ -825,7 +825,7 @@ restore_stage_variables <- function(stage_key, variables, reactive_vars) {
       Rvars_CorrectionTime$modelKernelDensity <- variables$modelKernelDensity
     }
   }
-
+  
   # Restore Grouping variables
   if (!is.null(Rvars_Grouping)) {
     if ("FeaturesList" %in% names(variables)) {
@@ -847,7 +847,7 @@ restore_stage_variables <- function(stage_key, variables, reactive_vars) {
       Rvars_Grouping$MatrixAbundance_selected <- variables$MatrixAbundance_selected
     }
   }
-
+  
   # Restore Internal Standard variables
   if (!is.null(Rvars_InternalStandard)) {
     if ("OjectNormalizers" %in% names(variables)) {
@@ -875,7 +875,7 @@ restore_stage_variables <- function(stage_key, variables, reactive_vars) {
       Rvars_InternalStandard$rt_ref <- variables$rt_ref
     }
   }
-
+  
   return(invisible(TRUE))
 }
 
@@ -889,52 +889,52 @@ restore_stage_variables <- function(stage_key, variables, reactive_vars) {
 #' @param ns Namespace function for Shiny modules
 #' @return Shiny UI element
 cache_status_panel_ui <- function(ns = NULL) {
-
+  
   if (is.null(ns)) {
     ns <- function(x) x
   }
-
+  
   tagList(
     div(
       id = ns("cache_status_panel"),
       class = "well well-sm",
       style = "background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 15px;",
-
+      
       h4(
         icon("database"),
         "Cache Status",
         style = "margin-top: 0; color: #495057;"
       ),
-
+      
       hr(style = "margin: 10px 0;"),
-
+      
       # Status display
       uiOutput(ns("cache_status_display")),
-
+      
       hr(style = "margin: 10px 0;"),
-
+      
       # Action buttons
       fluidRow(
         column(6,
-          actionButton(
-            ns("btn_save_cache"),
-            label = "Save Checkpoint",
-            icon = icon("save"),
-            class = "btn-primary btn-block",
-            style = "margin-bottom: 5px;"
-          )
+               actionButton(
+                 ns("btn_save_cache"),
+                 label = "Save Checkpoint",
+                 icon = icon("save"),
+                 class = "btn-primary btn-block",
+                 style = "margin-bottom: 5px;"
+               )
         ),
         column(6,
-          actionButton(
-            ns("btn_restore_cache"),
-            label = "Restore from Cache",
-            icon = icon("undo"),
-            class = "btn-success btn-block",
-            style = "margin-bottom: 5px;"
-          )
+               actionButton(
+                 ns("btn_restore_cache"),
+                 label = "Restore from Cache",
+                 icon = icon("undo"),
+                 class = "btn-success btn-block",
+                 style = "margin-bottom: 5px;"
+               )
         )
       ),
-
+      
       # Advanced options (collapsible)
       tags$details(
         style = "margin-top: 10px;",
@@ -971,14 +971,14 @@ cache_status_panel_ui <- function(ns = NULL) {
 #' @param reactive_vars List of reactive variable environments
 cache_status_panel_server <- function(input, output, session,
                                       cache_controller, reactive_vars) {
-
+  
   ns <- session$ns
-
+  
   # Render cache status
   output$cache_status_display <- renderUI({
-
+    
     status <- cache_controller$get_status()
-
+    
     if (!status$initialized) {
       return(div(
         class = "text-muted",
@@ -986,11 +986,11 @@ cache_status_panel_server <- function(input, output, session,
         " Cache not initialized. Start a new project to enable caching."
       ))
     }
-
+    
     # Build stage badges
     stage_badges <- lapply(names(PIPELINE_STAGES), function(stage_key) {
       stage <- PIPELINE_STAGES[[stage_key]]
-
+      
       if (stage_key %in% status$available_stages) {
         badge_class <- "badge-success"
         badge_icon <- icon("check")
@@ -998,7 +998,7 @@ cache_status_panel_server <- function(input, output, session,
         badge_class <- "badge-secondary"
         badge_icon <- icon("circle")
       }
-
+      
       span(
         class = paste("badge", badge_class),
         style = "margin-right: 5px; margin-bottom: 5px;",
@@ -1006,7 +1006,7 @@ cache_status_panel_server <- function(input, output, session,
         gsub("step_\\d+_", "", stage$id)
       )
     })
-
+    
     div(
       p(
         strong("Project: "),
@@ -1026,23 +1026,23 @@ cache_status_panel_server <- function(input, output, session,
       div(stage_badges)
     )
   })
-
+  
   # Handle save button
   observeEvent(input$btn_save_cache, {
-
+    
     status <- cache_controller$get_status()
-
+    
     if (!status$initialized) {
       showNotification("Cache not initialized", type = "warning")
       return()
     }
-
+    
     # Determine current stage to save
     current_stage <- status$current_stage
     if (is.null(current_stage) || current_stage == "initialized") {
       current_stage <- "peak_detection"
     }
-
+    
     # Show modal to select stage
     showModal(modalDialog(
       title = "Save Checkpoint",
@@ -1061,19 +1061,19 @@ cache_status_panel_server <- function(input, output, session,
       )
     ))
   })
-
+  
   # Confirm save
   observeEvent(input$confirm_save, {
-
+    
     stage_to_save <- input$save_stage_select
     removeModal()
-
+    
     withProgress(message = "Saving checkpoint...", {
       result <- cache_controller$save_stage(
         stage_key = stage_to_save,
         reactive_vars = reactive_vars
       )
-
+      
       if (result) {
         showNotification(
           paste("Checkpoint saved:", PIPELINE_STAGES[[stage_to_save]]$name),
@@ -1085,23 +1085,23 @@ cache_status_panel_server <- function(input, output, session,
       }
     })
   })
-
+  
   # Handle restore button
   observeEvent(input$btn_restore_cache, {
-
+    
     status <- cache_controller$get_status()
-
+    
     if (!status$can_resume) {
       showNotification("No checkpoints available to restore", type = "warning")
       return()
     }
-
+    
     # Show modal with available stages
     available_choices <- setNames(
       status$available_stages,
       sapply(status$available_stages, function(x) PIPELINE_STAGES[[x]]$name)
     )
-
+    
     showModal(modalDialog(
       title = "Restore from Checkpoint",
       selectInput(
@@ -1120,19 +1120,19 @@ cache_status_panel_server <- function(input, output, session,
       )
     ))
   })
-
+  
   # Confirm restore
   observeEvent(input$confirm_restore, {
-
+    
     stage_to_restore <- input$restore_stage_select
     removeModal()
-
+    
     withProgress(message = "Restoring checkpoint...", {
       result <- cache_controller$restore_all_stages(
         target_stage = stage_to_restore,
         reactive_vars = reactive_vars
       )
-
+      
       if (result) {
         showNotification(
           paste("Restored to:", PIPELINE_STAGES[[stage_to_restore]]$name),
@@ -1144,15 +1144,15 @@ cache_status_panel_server <- function(input, output, session,
       }
     })
   })
-
+  
   # Handle auto-save toggle
   observeEvent(input$auto_save_enabled, {
     cache_controller$set_auto_save(input$auto_save_enabled)
   })
-
+  
   # Handle clean cache
   observeEvent(input$btn_clean_cache, {
-
+    
     showModal(modalDialog(
       title = "Clean Old Caches",
       p("This will remove old cache directories to free up disk space."),
@@ -1169,18 +1169,18 @@ cache_status_panel_server <- function(input, output, session,
       )
     ))
   })
-
+  
   # Confirm clean
   observeEvent(input$confirm_clean, {
-
+    
     removeModal()
-
+    
     deleted <- clean_old_caches(
       base_cache_dir = "cache_projects",
       keep_recent_n = input$keep_recent_n,
       dry_run = FALSE
     )
-
+    
     showNotification(
       paste("Cleaned", deleted, "old cache(s)"),
       type = "message",
