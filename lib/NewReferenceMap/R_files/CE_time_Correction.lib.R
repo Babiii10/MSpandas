@@ -1,17 +1,69 @@
-# Configure Traitement parallel
+library(BiocParallel)
+
+
 # Only register if not already done (prevents socket connection leak)
 # This file is sourced multiple times (in renderPlot), causing cluster duplication
-if (!exists(".biocparallel_registered_ce_time", envir = .GlobalEnv)) {
-  # Use register() without bpstart() to avoid immediate cluster creation
-  # Cluster will be created on-demand by bplapply() when needed
-  register(SnowParam(workers = 1, type = "SOCK"), default = FALSE)
-  assign(".biocparallel_registered_ce_time", TRUE, envir = .GlobalEnv)
-}
+# if (!exists(".biocparallel_registered_ce_time", envir = .GlobalEnv)) {
+# #   # Use register() without bpstart() to avoid immediate cluster creation
+# #   # Cluster will be created on-demand by bplapply() when needed
+#    register(SnowParam(workers = 1, type = "SOCK"), default = FALSE)
+#    assign(".biocparallel_registered_ce_time", TRUE, envir = .GlobalEnv)
+# }
+# Use a serial backend in the main process. The heavy obiwarp work runs in
+# isolated callr sub-processes (see alignement_Obiwrap), so no SOCK cluster is
+# needed here — this also avoids leaking sockets when this file is re-sourced.
+BiocParallel::register(BiocParallel::SerialParam())
+# Define functions utils
 
 
-## Define functions utils
+
 
 "%ni%"<-Negate("%in%")
+
+#~~~~~~~~~~~~~~~~ Correction time ~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# alignement_Obiwrap<-function(xdata, 
+#                              binSize = 1,
+#                              distFun = "cor_opt",
+#                              subset = integer(),
+#                              subsetAdjust = c("average", "previous"),
+#                              centerSample = integer(),
+#                              localAlignment = FALSE,
+#                              response = 1L,
+#                              factorDiag = 2,
+#                              factorGap = 1,
+#                              initPenalty = 0,
+#                              msLevel = 1L
+# ){
+#   
+#   
+#   parObiwrap<- ObiwarpParam(binSize = binSize,
+#                             centerSample = centerSample,
+#                             response = response,
+#                             distFun = distFun,
+#                             gapInit = numeric(),
+#                             gapExtend = numeric(),
+#                             factorDiag = factorDiag,
+#                             factorGap = factorGap,
+#                             localAlignment = localAlignment,
+#                             initPenalty = initPenalty,
+#                             subset = subset,
+#                             subsetAdjust = subsetAdjust
+#   )
+# 
+#  data_align<-adjustRtime(xdata, param = parObiwrap, msLevel = msLevel)
+#   # Force SerialParam to avoid SOCK port exhaustion on Windows
+#   # with large sample counts (>1000). XCMS adjustRtime uses bplapply
+#   # internally; without this, SnowParam workers consume all ephemeral
+#   # TCP ports and crash with "cannot open the connection".
+#   # old_param <- bpparam()
+#   # register(SerialParam(), default = TRUE)
+#   # on.exit(register(old_param, default = TRUE), add = TRUE)
+# 
+#   # data_align <- adjustRtime(xdata, param = parObiwrap, msLevel = msLevel)
+# 
+#   return(data_align)
+# }
+
 
 #~~~~~~~~~~~~~~~~ Correction time ~~~~~~~~~~~~~~~~~~~~~~~~~~#
 alignement_Obiwrap <- function(xdata,
@@ -26,14 +78,26 @@ alignement_Obiwrap <- function(xdata,
                                factorGap     = 1,
                                initPenalty   = 0,
                                msLevel       = 1L,
-                               batch_size    = NULL,
+                               batch_size    = 25L,
                                timeout_sec   = 7200L) {
 
   n_files    <- length(MSnbase::fileNames(xdata))
   batch_size <- suppressWarnings(as.integer(batch_size))
 
+  # Batching is only mathematically equivalent when every sample is aligned
+  # against the center (subset = all). For a partial subset, subsetAdjust
+  # interpolates the non-subset samples from their neighbours across the *whole*
+  # set, which per-batch alignment cannot reproduce — so we fall back to a
+  # single direct adjustRtime() run in that case.
+  subset_all <- length(subset) == 0L || length(unique(subset)) >= n_files
+  use_batch  <- !is.na(batch_size) && batch_size > 0L &&
+                n_files > batch_size && subset_all
+
   # ── Direct (non-batched) path ──────────────────────────────────────────────
-  if (is.na(batch_size) || batch_size <= 0L || n_files <= batch_size) {
+  if (!use_batch) {
+    if (!subset_all && !is.na(batch_size) && batch_size > 0L && n_files > batch_size)
+      message("Obiwarp : subset partiel detecte — batching desactive, ",
+              "execution directe (peut etre lourde sur de nombreux fichiers).")
     parObiwrap <- ObiwarpParam(binSize        = binSize,
                                centerSample   = centerSample,
                                response       = response,
@@ -50,116 +114,128 @@ alignement_Obiwrap <- function(xdata,
   }
 
   # ── Batched path via callr sub-processes ────────────────────────────────────
-  # With subset = all files and a fixed centerSample, obiwarp aligns every
-  # sample independently against the center (no chained warp).  Running each
-  # batch of 50 in its own callr subprocess caps memory per process and fully
-  # releases it between batches — mathematically equivalent to a single run.
+  # obiwarp aligns every sample independently against the (fixed) center, so the
+  # files can be processed in independent batches. Each batch runs in its own
+  # callr subprocess that caps and fully releases memory between batches —
+  # mathematically equivalent to a single adjustRtime() run.
+  #
+  # obiwarp's profile-matrix memory grows with the number of files in a batch.
+  # If a subprocess runs out of memory ("could not start R / killed"), the batch
+  # is split in two and retried recursively, down to a single file (center + 1
+  # always fits). The center is aligned against itself (identity warp) so its
+  # peaks never change and are never patched.
   if (!requireNamespace("callr", quietly = TRUE))
     stop("Package 'callr' is required for batched obiwarp (install.packages('callr')).")
 
   center_idx <- as.integer(centerSample)
   non_center <- setdiff(seq_len(n_files), center_idx)
-  batches    <- split(non_center, ceiling(seq_along(non_center) / batch_size))
-  n_batches  <- length(batches)
 
   message(sprintf(
-    "--- Obiwarp batché : %d fichier(s), %d lot(s) de %d (centre = fichier %d) ---",
-    n_files, n_batches, batch_size, center_idx))
+    "--- Obiwarp batché : %d fichier(s), lots de %d max (centre = fichier %d) ---",
+    n_files, batch_size, center_idx))
 
-  # Keep the original chromPeaks snapshot; we will only patch rt/rtmin/rtmax
-  # for each batch in-place — this preserves the row ordering that the server
-  # relies on for the cbind with peaks_mono_iso_toUSe[, 11:ncol].
+  # Snapshot of the original peaks; only rt/rtmin/rtmax of non-center files get
+  # patched, preserving the row ordering the server relies on downstream.
   result_cp <- xcms::chromPeaks(xdata)
 
-  for (b in seq_len(n_batches)) {
-    batch_file_idx  <- c(center_idx, batches[[b]])
-    center_in_batch <- 1L
-    subset_in_batch <- seq_along(batch_file_idx)
+  # Run obiwarp for (center + chunk) in an isolated subprocess. Returns the
+  # adjusted chromPeaks matrix (sample column remapped to global file indices),
+  # or the error condition (tagged) if the subprocess failed.
+  run_obiwarp_chunk <- function(chunk) {
+    batch_file_idx  <- c(center_idx, chunk)
+    xdata_batch     <- xcms::filterFile(xdata, file = batch_file_idx)
+    # filterFile() sorts files by original index; recover the true global index
+    # of each batch position from the file names.
+    batch_global    <- match(MSnbase::fileNames(xdata_batch),
+                             MSnbase::fileNames(xdata))
+    center_in_batch <- which(batch_global == center_idx)
+    subset_in_batch <- seq_along(batch_global)
 
-    message(sprintf("--- Obiwarp lot %d/%d : %d fichier(s) ---",
-                    b, n_batches, length(batch_file_idx)))
-
-    # filterFile subsets the OnDisk XCMSnExp to the batch files and re-numbers
-    # the sample column in chromPeaks to 1..n_batch_files.  The object is small
-    # (just file paths + metadata + batch peaks) and safe to serialise to callr.
-    xdata_batch <- xcms::filterFile(xdata, file = batch_file_idx)
-
-    cp_adjusted <- tryCatch(
+    cp <- tryCatch(
       callr::r(
         function(xdata_batch, binSize, distFun, subset_in_batch, subsetAdjust,
                  center_in_batch, localAlignment, response, factorDiag, factorGap,
                  initPenalty, msLevel) {
           library(xcms)
+          # Force a serial backend so adjustRtime() does not spawn SOCK clusters.
+          BiocParallel::register(BiocParallel::SerialParam())
           param <- xcms::ObiwarpParam(
-            binSize        = binSize,
-            centerSample   = center_in_batch,
-            distFun        = distFun,
-            gapInit        = numeric(),
-            gapExtend      = numeric(),
-            subset         = subset_in_batch,
-            subsetAdjust   = subsetAdjust,
-            localAlignment = localAlignment,
-            response       = response,
-            factorDiag     = factorDiag,
-            factorGap      = factorGap,
-            initPenalty    = initPenalty
-          )
-          aligned <- xcms::adjustRtime(xdata_batch, param = param, msLevel = msLevel)
-          xcms::chromPeaks(aligned)
+            binSize = binSize, centerSample = center_in_batch, distFun = distFun,
+            gapInit = numeric(), gapExtend = numeric(), subset = subset_in_batch,
+            subsetAdjust = subsetAdjust, localAlignment = localAlignment,
+            response = response, factorDiag = factorDiag, factorGap = factorGap,
+            initPenalty = initPenalty)
+          xcms::chromPeaks(
+            xcms::adjustRtime(xdata_batch, param = param, msLevel = msLevel))
         },
         args = list(
-          xdata_batch     = xdata_batch,
-          binSize         = binSize,
-          distFun         = distFun,
-          subset_in_batch = subset_in_batch,
-          subsetAdjust    = subsetAdjust,
-          center_in_batch = center_in_batch,
-          localAlignment  = localAlignment,
-          response        = response,
-          factorDiag      = factorDiag,
-          factorGap       = factorGap,
-          initPenalty     = initPenalty,
-          msLevel         = msLevel
-        ),
+          xdata_batch = xdata_batch, binSize = binSize, distFun = distFun,
+          subset_in_batch = subset_in_batch, subsetAdjust = subsetAdjust,
+          center_in_batch = center_in_batch, localAlignment = localAlignment,
+          response = response, factorDiag = factorDiag, factorGap = factorGap,
+          initPenalty = initPenalty, msLevel = msLevel),
         timeout = as.double(timeout_sec)
       ),
-      error = function(e) {
-        warning(sprintf(
-          "Obiwarp lot %d/%d : sous-process échoué (%s) — pics non corrigés pour ce lot",
-          b, n_batches, conditionMessage(e)))
-        xcms::chromPeaks(xdata_batch)   # fallback: unadjusted peaks for this batch
-      }
+      error = function(e) e
     )
+    rm(xdata_batch)
+    gc()
 
-    # cp_adjusted has batch-relative sample indices (1 = center, 2..k = batch files).
-    # Remap to full-dataset indices so we can match rows in result_cp.
-    global_sample <- batch_file_idx[cp_adjusted[, "sample"]]
+    if (inherits(cp, "error")) return(cp)
+    cp[, "sample"] <- batch_global[cp[, "sample"]]   # batch -> global indices
+    cp
+  }
 
-    # Update only the files that belong to this batch:
-    # center is updated in batch 1 only; non-center files update in their own batch.
-    files_to_update <- if (b == 1L) batch_file_idx else batches[[b]]
-
-    for (f in files_to_update) {
-      batch_rows  <- which(global_sample           == f)
-      result_rows <- which(result_cp[, "sample"]   == f)
+  # Patch result_cp (enclosing env) with adjusted rt/rtmin/rtmax for the files.
+  patch_files <- function(cp, files) {
+    for (f in files) {
+      batch_rows  <- which(cp[, "sample"]        == f)
+      result_rows <- which(result_cp[, "sample"] == f)
       if (length(batch_rows) == length(result_rows) && length(result_rows) > 0L) {
-        result_cp[result_rows, c("rt", "rtmin", "rtmax")] <-
-          cp_adjusted[batch_rows, c("rt", "rtmin", "rtmax")]
+        result_cp[result_rows, c("rt", "rtmin", "rtmax")] <<-
+          cp[batch_rows, c("rt", "rtmin", "rtmax")]
       } else if (length(batch_rows) != length(result_rows)) {
         warning(sprintf(
-          "Obiwarp lot %d/%d : pics discordants pour fichier %d (%d vs %d) — ignoré",
-          b, n_batches, f, length(batch_rows), length(result_rows)))
+          "Obiwarp : pics discordants pour fichier %d (%d vs %d) — ignoré",
+          f, length(batch_rows), length(result_rows)))
       }
     }
+  }
 
-    rm(xdata_batch, cp_adjusted)
-    gc()
-    message(sprintf("--- Obiwarp lot %d/%d terminé ---", b, n_batches))
+  # Process a chunk; on subprocess failure, split in two and retry down to 1.
+  process_chunk <- function(chunk) {
+    if (!length(chunk)) return(invisible())
+    message(sprintf("--- Obiwarp : %d fichier(s) [%d..%d] ---",
+                    length(chunk), chunk[1L], chunk[length(chunk)]))
+    cp <- run_obiwarp_chunk(chunk)
+    if (inherits(cp, "error")) {
+      if (length(chunk) > 1L) {
+        mid <- ceiling(length(chunk) / 2L)
+        message(sprintf("  -> echec (%s) — decoupe en %d + %d et reessai",
+                        conditionMessage(cp), mid, length(chunk) - mid))
+        gc()
+        process_chunk(chunk[seq_len(mid)])
+        process_chunk(chunk[(mid + 1L):length(chunk)])
+      } else {
+        warning(sprintf("Obiwarp : fichier %d non corrige (echec persistant : %s)",
+                        chunk, conditionMessage(cp)))
+      }
+      return(invisible())
+    }
+    patch_files(cp, chunk)
+    rm(cp); gc()
+  }
+
+  batches <- split(non_center, ceiling(seq_along(non_center) / batch_size))
+  for (b in seq_along(batches)) {
+    message(sprintf("=== Lot %d/%d ===", b, length(batches)))
+    process_chunk(batches[[b]])
   }
 
   xcms::chromPeaks(xdata) <- result_cp
   xdata
 }
+
 
 
 ###~~~~~~~~~~~~~~~~~~~~~~ Match mz or M+H ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -170,7 +246,7 @@ matchMz <- function(x,
                     mzcol = "mz",
                     rtcol = "rt",
                     session
-                     ) {
+                     ){
   
   if(!require(MsCoreUtils))
     stop("R package \"MsCoreUtils\" is not found, please install R package \"MsCoreUtils\" ")
@@ -292,4 +368,21 @@ matchMz <- function(x,
   }
   
   
+}
+
+
+#  cleanup : forcer la fermeture des connexion socket
+cleanup_ce_time_cluster <- function() {
+  if (exists(".biocparallel_registered_ce_time", envir = .GlobalEnv)) {
+    tryCatch({
+      # Arrêter tous les workers BiocParallel
+      bpstop(bpparam())
+      rm(".biocparallel_registered_ce_time", envir = .GlobalEnv)
+      gc(verbose = FALSE)
+      
+      cat("CE-Time cluster cleaned up successfully\n")
+    }, error = function(e) {
+      warning(paste("CE-Time cleanup warning:", e$message))
+    })
+  }
 }
