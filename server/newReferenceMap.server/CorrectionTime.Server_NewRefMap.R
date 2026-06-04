@@ -3522,19 +3522,29 @@ observeEvent(ignoreNULL = TRUE,
                          RvarsCorrectionTime$ref_sample_sampleName
                        )
                        
+                       # Batch when the subset is large to avoid cumulative
+                       # memory exhaustion / non-deterministic segfaults in
+                       # the C-level obiwarp routine.  Each batch of 50 runs
+                       # in its own callr subprocess whose memory is fully
+                       # released before the next batch starts.
+                       n_subset_obiwarp   <- length(req(input$subsetObiwrap))
+                       batch_size_obiwarp <- if (n_subset_obiwarp > 50L) 50L else NULL
+
                        system.time(
                          RvarsCorrectionTime$dataObiwarp_Aligned <-
                            alignement_Obiwrap(
-                             xdata = rawData_mzML_XCMSnExp,
-                             binSize = input$binSizeObiwrap,
-                             msLevel = input$MSlevelObiwrap,
-                             subset = which(
+                             xdata        = rawData_mzML_XCMSnExp,
+                             binSize      = input$binSizeObiwrap,
+                             msLevel      = input$MSlevelObiwrap,
+                             subset       = which(
                                RvarsCorrectionTime$pheno_Data_mzML$Filenames %in% req(input$subsetObiwrap)
                              ),
                              subsetAdjust = input$subsetAdjustObiwrap,
                              centerSample = which(
                                RvarsCorrectionTime$pheno_Data_mzML$Filenames == RvarsCorrectionTime$ref_sample_sampleName
-                             )
+                             ),
+                             batch_size   = batch_size_obiwarp,
+                             timeout_sec  = 7200L
                            )
                        )
                        
