@@ -65,6 +65,33 @@ BiocParallel::register(BiocParallel::SerialParam())
 # }
 
 
+# Worker obiwarp pour UN lot (centre + chunk), exécuté dans un sous-process callr
+# propre. DÉFINI AU NIVEAU TOP-LEVEL À DESSEIN : callr::r() sérialise la fonction
+# AVEC son environnement englobant. Si le worker est défini à l'intérieur de
+# alignement_Obiwrap(), cet environnement contient le xdata complet (tous les
+# fichiers) et result_cp, qui sont alors re-sérialisés sur disque puis rechargés
+# À CHAQUE appel callr — la RSS du process parent grimpe lot après lot jusqu'à ce
+# que l'OS ne puisse plus démarrer de sous-process ("could not start R ...").
+# Au niveau top-level, l'environnement est le global env (sérialisé par
+# référence), donc seuls les `args` (le sous-objet du lot) sont transmis.
+.obiwarp_batch_worker <- function(xdata_batch, binSize, distFun,
+                                  subset_in_batch, subsetAdjust, center_in_batch,
+                                  localAlignment, response, factorDiag, factorGap,
+                                  initPenalty, msLevel) {
+  library(xcms)
+  # Force a serial backend so adjustRtime() does not spawn SOCK clusters.
+  BiocParallel::register(BiocParallel::SerialParam())
+  param <- xcms::ObiwarpParam(
+    binSize = binSize, centerSample = center_in_batch, distFun = distFun,
+    gapInit = numeric(), gapExtend = numeric(), subset = subset_in_batch,
+    subsetAdjust = subsetAdjust, localAlignment = localAlignment,
+    response = response, factorDiag = factorDiag, factorGap = factorGap,
+    initPenalty = initPenalty)
+  xcms::chromPeaks(
+    xcms::adjustRtime(xdata_batch, param = param, msLevel = msLevel))
+}
+
+
 #~~~~~~~~~~~~~~~~ Correction time ~~~~~~~~~~~~~~~~~~~~~~~~~~#
 alignement_Obiwrap <- function(xdata,
                                binSize       = 1,
@@ -153,21 +180,7 @@ alignement_Obiwrap <- function(xdata,
 
     cp <- tryCatch(
       callr::r(
-        function(xdata_batch, binSize, distFun, subset_in_batch, subsetAdjust,
-                 center_in_batch, localAlignment, response, factorDiag, factorGap,
-                 initPenalty, msLevel) {
-          library(xcms)
-          # Force a serial backend so adjustRtime() does not spawn SOCK clusters.
-          BiocParallel::register(BiocParallel::SerialParam())
-          param <- xcms::ObiwarpParam(
-            binSize = binSize, centerSample = center_in_batch, distFun = distFun,
-            gapInit = numeric(), gapExtend = numeric(), subset = subset_in_batch,
-            subsetAdjust = subsetAdjust, localAlignment = localAlignment,
-            response = response, factorDiag = factorDiag, factorGap = factorGap,
-            initPenalty = initPenalty)
-          xcms::chromPeaks(
-            xcms::adjustRtime(xdata_batch, param = param, msLevel = msLevel))
-        },
+        .obiwarp_batch_worker,
         args = list(
           xdata_batch = xdata_batch, binSize = binSize, distFun = distFun,
           subset_in_batch = subset_in_batch, subsetAdjust = subsetAdjust,
