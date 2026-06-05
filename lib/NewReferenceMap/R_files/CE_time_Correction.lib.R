@@ -80,16 +80,27 @@ alignement_Obiwrap <- function(xdata,
                     b, n_batches, length(batch_file_idx)))
 
     # filterFile subsets the OnDisk XCMSnExp to the batch files and re-numbers
-    # the sample column in chromPeaks to 1..n_batch_files.  The object is small
-    # (just file paths + metadata + batch peaks) and safe to serialise to callr.
+    # the sample column in chromPeaks to 1..n_batch_files.
     xdata_batch <- xcms::filterFile(xdata, file = batch_file_idx)
+
+    # Write the batch object to a temp RDS file and pass only the path string
+    # to callr.  Passing xdata_batch directly as a callr arg causes a crash
+    # because S4/data.table objects can embed C-level external pointers
+    # (UserDefinedDatabase) that are valid only in the parent process; the
+    # subprocess receives a deserialised copy with invalid addresses → R fails
+    # to start with "R_ExternalPtrAddr: argument of type VECSXP is not an
+    # external pointer".  Reading from disk in the subprocess avoids this.
+    tmp_rds <- tempfile(fileext = "_obiwarp_batch.rds")
+    saveRDS(xdata_batch, file = tmp_rds, compress = FALSE)  # no compression for speed
 
     cp_adjusted <- tryCatch(
       callr::r(
-        function(xdata_batch, binSize, distFun, subset_in_batch, subsetAdjust,
+        function(rds_path, binSize, distFun, subset_in_batch, subsetAdjust,
                  center_in_batch, localAlignment, response, factorDiag, factorGap,
                  initPenalty, msLevel) {
           library(xcms)
+          library(MSnbase)
+          xdata_batch <- readRDS(rds_path)
           param <- xcms::ObiwarpParam(
             binSize        = binSize,
             centerSample   = center_in_batch,
@@ -108,7 +119,7 @@ alignement_Obiwrap <- function(xdata,
           xcms::chromPeaks(aligned)
         },
         args = list(
-          xdata_batch     = xdata_batch,
+          rds_path        = tmp_rds,
           binSize         = binSize,
           distFun         = distFun,
           subset_in_batch = subset_in_batch,
@@ -121,13 +132,17 @@ alignement_Obiwrap <- function(xdata,
           initPenalty     = initPenalty,
           msLevel         = msLevel
         ),
-        timeout = as.double(timeout_sec)
+        timeout      = as.double(timeout_sec),
+        user_profile = FALSE   # never load .Rprofile in the subprocess
       ),
       error = function(e) {
         warning(sprintf(
           "Obiwarp lot %d/%d : sous-process échoué (%s) — pics non corrigés pour ce lot",
           b, n_batches, conditionMessage(e)))
         xcms::chromPeaks(xdata_batch)   # fallback: unadjusted peaks for this batch
+      },
+      finally = {
+        unlink(tmp_rds)   # always remove temp file, even on error
       }
     )
 
