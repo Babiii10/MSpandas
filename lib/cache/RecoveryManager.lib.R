@@ -5,10 +5,6 @@
 # Description: Gère la détection de crash et la restauration automatique
 #              de l'état de l'application depuis les checkpoints
 #
-# Author: MSpandas Team
-# Version: 1.0.0
-# Date: 2026-01-23
-#
 # ═══════════════════════════════════════════════════════════════════════
 
 # Load required packages

@@ -847,7 +847,7 @@ delete_project <- function(project_id, delete_files = TRUE,
         }
       }
     }
-
+ 
     # Delete project (CASCADE will delete checkpoints and logs)
     dbExecute(con, "DELETE FROM projects WHERE project_id = ?",
               params = list(project_id))

@@ -19,10 +19,10 @@
 #' Create the main cache management sidebar panel
 #' This panel can be included in the UI sidebar
 cache_management_sidebar_ui <- function() {
-
+  
   div(
     id = "cache_sidebar_panel",
-
+    
     # Header
     div(
       style = "
@@ -38,18 +38,18 @@ cache_management_sidebar_ui <- function() {
         style = "margin: 0; font-weight: 600;"
       )
     ),
-
+    
     # Status panel (rendered dynamically)
     uiOutput("cache_status_panel_output"),
-
+    
     hr(style = "margin: 15px 0;"),
-
+    
     # Auto-save toggle
     div(
       style = "padding: 10px; background-color: #f8f9fa; border-radius: 5px;",
       checkboxInput(
         "cache_auto_save_toggle",
-        label = span(
+        label = shiny::span(
           icon("bolt"),
           " Enable Auto-save Checkpoints"
         ),
@@ -68,7 +68,7 @@ cache_management_sidebar_ui <- function() {
 #' Create a floating cache control button
 #' This is a persistent button that appears on all pages
 cache_floating_button_ui <- function() {
-
+  
   div(
     id = "cache_floating_controls",
     style = "
@@ -77,11 +77,11 @@ cache_floating_button_ui <- function() {
       right: 20px;
       z-index: 1000;
     ",
-
+    
     # Dropdown button group
     div(
       class = "btn-group dropup",
-
+      
       # Main button
       tags$button(
         type = "button",
@@ -98,7 +98,7 @@ cache_floating_button_ui <- function() {
         icon("save"),
         " Cache"
       ),
-
+      
       # Dropdown menu
       tags$ul(
         class = "dropdown-menu dropdown-menu-right",
@@ -108,11 +108,11 @@ cache_floating_button_ui <- function() {
           padding: 10px;
           min-width: 200px;
         ",
-
+        
         tags$li(
           actionLink(
             "btn_save_checkpoint_global",
-            label = span(icon("save"), " Save Checkpoint"),
+            label = shiny::span(icon("save"), " Save Checkpoint"),
             style = "
               display: block;
               padding: 8px 15px;
@@ -124,7 +124,7 @@ cache_floating_button_ui <- function() {
         tags$li(
           actionLink(
             "btn_restore_checkpoint_global",
-            label = span(icon("undo"), " Restore from Cache"),
+            label = shiny::span(icon("undo"), " Restore from Cache"),
             style = "
               display: block;
               padding: 8px 15px;
@@ -137,7 +137,7 @@ cache_floating_button_ui <- function() {
         tags$li(
           actionLink(
             "btn_view_cache_status",
-            label = span(icon("info-circle"), " View Cache Status"),
+            label = shiny::span(icon("info-circle"), " View Cache Status"),
             style = "
               display: block;
               padding: 8px 15px;
@@ -155,7 +155,7 @@ cache_floating_button_ui <- function() {
 #' Create a cache status modal
 #' Shows detailed information about current cache state
 cache_status_modal_ui <- function() {
-
+  
   # This is dynamically created by the server
   # Placeholder for reference
   NULL
@@ -165,20 +165,20 @@ cache_status_modal_ui <- function() {
 #' Create inline cache controls for embedding in pages
 #' A compact version of cache controls
 cache_inline_controls_ui <- function() {
-
+  
   div(
     class = "btn-group",
     style = "margin: 5px 0;",
-
+    
     actionButton(
       "btn_quick_save",
-      label = span(icon("save"), " Quick Save"),
+      label = shiny::span(icon("save"), " Quick Save"),
       class = "btn-primary btn-sm"
     ),
-
+    
     actionButton(
       "btn_quick_restore",
-      label = span(icon("undo"), " Restore"),
+      label = shiny::span(icon("undo"), " Restore"),
       class = "btn-success btn-sm"
     )
   )
@@ -188,7 +188,7 @@ cache_inline_controls_ui <- function() {
 #' Cache progress indicator
 #' Shows pipeline progress with cached stages highlighted
 cache_progress_indicator_ui <- function() {
-
+  
   div(
     id = "cache_progress_indicator",
     style = "
@@ -198,42 +198,42 @@ cache_progress_indicator_ui <- function() {
       border: 1px solid #e9ecef;
       margin: 10px 0;
     ",
-
+    
     h6(
       icon("tasks"),
       " Pipeline Progress",
       style = "color: #495057; margin-bottom: 15px;"
     ),
-
+    
     # Progress steps (will be updated dynamically)
     div(
       id = "cache_progress_steps",
       style = "display: flex; justify-content: space-between; align-items: center;",
-
+      
       # Step 1: Peak Detection
       cache_step_indicator(1, "Peak Detection", "flask"),
-
+      
       # Connector
       cache_step_connector(),
-
+      
       # Step 2: Temporal Correction
       cache_step_indicator(2, "Time Correction", "clock"),
-
+      
       # Connector
       cache_step_connector(),
-
+      
       # Step 3: Grouping
       cache_step_indicator(3, "Grouping", "object-group"),
-
+      
       # Connector
       cache_step_connector(),
-
+      
       # Step 4: Reference Map
       cache_step_indicator(4, "Reference Map", "map"),
-
+      
       # Connector
       cache_step_connector(),
-
+      
       # Step 5: Normalizers
       cache_step_indicator(5, "Normalizers", "balance-scale")
     )
@@ -246,12 +246,12 @@ cache_progress_indicator_ui <- function() {
 #' @param label Step label
 #' @param icon_name FontAwesome icon name
 cache_step_indicator <- function(step_num, label, icon_name) {
-
+  
   div(
     class = "cache-step",
     id = paste0("cache_step_", step_num),
     style = "text-align: center; flex: 0 0 auto;",
-
+    
     # Circle with icon
     div(
       class = "step-circle",
@@ -268,9 +268,9 @@ cache_step_indicator <- function(step_num, label, icon_name) {
       ",
       icon(icon_name, style = "color: #adb5bd;")
     ),
-
+    
     # Label
-    span(
+    shiny::span(
       class = "step-label",
       style = "font-size: 10px; color: #6c757d;",
       label
@@ -281,7 +281,7 @@ cache_step_indicator <- function(step_num, label, icon_name) {
 
 #' Create a connector line between steps
 cache_step_connector <- function() {
-
+  
   div(
     class = "step-connector",
     style = "
@@ -297,7 +297,7 @@ cache_step_connector <- function() {
 
 #' CSS styles for cache UI components
 cache_ui_styles <- function() {
-
+  
   tags$style(HTML("
     /* Cache step active state */
     .cache-step.active .step-circle {
@@ -393,7 +393,7 @@ cache_ui_styles <- function() {
 #' Cache configuration modal UI
 #' Shows configuration options for the cache system
 cache_config_modal_ui <- function() {
-
+  
   modalDialog(
     title = div(
       icon("cogs"),
@@ -402,99 +402,99 @@ cache_config_modal_ui <- function() {
     ),
     size = "m",
     easyClose = TRUE,
-
+    
     div(
       style = "padding: 15px;",
-
+      
       # Storage limits
       h5(icon("hdd"), " Storage Limits", style = "color: #495057;"),
       hr(style = "margin: 10px 0;"),
-
+      
       fluidRow(
         column(6,
-          numericInput(
-            "cache_config_max_size",
-            "Max total size (GB):",
-            value = 50,
-            min = 1,
-            max = 500,
-            step = 5
-          )
+               numericInput(
+                 "cache_config_max_size",
+                 "Max total size (GB):",
+                 value = 50,
+                 min = 1,
+                 max = 500,
+                 step = 5
+               )
         ),
         column(6,
-          numericInput(
-            "cache_config_max_projects",
-            "Max projects:",
-            value = 20,
-            min = 1,
-            max = 100,
-            step = 1
-          )
+               numericInput(
+                 "cache_config_max_projects",
+                 "Max projects:",
+                 value = 20,
+                 min = 1,
+                 max = 100,
+                 step = 1
+               )
         )
       ),
-
+      
       fluidRow(
         column(6,
-          numericInput(
-            "cache_config_max_versions",
-            "Max versions per stage:",
-            value = 5,
-            min = 1,
-            max = 20,
-            step = 1
-          )
+               numericInput(
+                 "cache_config_max_versions",
+                 "Max versions per stage:",
+                 value = 5,
+                 min = 1,
+                 max = 20,
+                 step = 1
+               )
         ),
         column(6,
-          numericInput(
-            "cache_config_max_age",
-            "Max age (days):",
-            value = 60,
-            min = 1,
-            max = 365,
-            step = 7
-          )
+               numericInput(
+                 "cache_config_max_age",
+                 "Max age (days):",
+                 value = 60,
+                 min = 1,
+                 max = 365,
+                 step = 7
+               )
         )
       ),
-
+      
       hr(),
-
+      
       # Features
       h5(icon("sliders"), " Features", style = "color: #495057;"),
       hr(style = "margin: 10px 0;"),
-
+      
       fluidRow(
         column(6,
-          checkboxInput(
-            "cache_config_auto_cleanup",
-            span(icon("broom"), " Auto cleanup"),
-            value = TRUE
-          ),
-          checkboxInput(
-            "cache_config_versioning",
-            span(icon("code-branch"), " Enable versioning"),
-            value = TRUE
-          )
+               checkboxInput(
+                 "cache_config_auto_cleanup",
+                 shiny::span(icon("broom"), " Auto cleanup"),
+                 value = TRUE
+               ),
+               checkboxInput(
+                 "cache_config_versioning",
+                 shiny::span(icon("code-branch"), " Enable versioning"),
+                 value = TRUE
+               )
         ),
         column(6,
-          checkboxInput(
-            "cache_config_logging",
-            span(icon("file-alt"), " Enable logging"),
-            value = TRUE
-          ),
-          checkboxInput(
-            "cache_config_atomic",
-            span(icon("shield-alt"), " Atomic writes"),
-            value = TRUE
-          )
+               checkboxInput(
+                 "cache_config_logging",
+                 shiny::span(icon("file-alt"), " Enable logging"),
+                 value = TRUE
+               ),
+               checkboxInput(
+                 "cache_config_atomic",
+                 shiny::span(icon("shield-alt"), " Atomic writes"),
+                 value = TRUE
+               )
         )
       ),
-
+      
       hr(),
-
+      
       # Compression
       h5(icon("compress-arrows-alt"), " Compression", style = "color: #495057;"),
       hr(style = "margin: 10px 0;"),
-
+      
       radioButtons(
         "cache_config_compression",
         NULL,
@@ -508,7 +508,7 @@ cache_config_modal_ui <- function() {
         inline = TRUE
       )
     ),
-
+    
     footer = tagList(
       actionButton("cache_config_reset", "Reset to Defaults",
                    class = "btn-warning", icon = icon("undo")),
@@ -522,7 +522,7 @@ cache_config_modal_ui <- function() {
 
 #' Cache health check modal UI
 cache_health_modal_ui <- function(health_result) {
-
+  
   # Determine overall status
   if (health_result$healthy) {
     status_color <- "#28a745"
@@ -533,7 +533,7 @@ cache_health_modal_ui <- function(health_result) {
     status_icon <- "exclamation-triangle"
     status_text <- "ISSUES DETECTED"
   }
-
+  
   modalDialog(
     title = div(
       icon("heartbeat"),
@@ -542,10 +542,10 @@ cache_health_modal_ui <- function(health_result) {
     ),
     size = "m",
     easyClose = TRUE,
-
+    
     div(
       style = "padding: 15px;",
-
+      
       # Overall status
       div(
         style = sprintf("
@@ -558,35 +558,35 @@ cache_health_modal_ui <- function(health_result) {
         icon(status_icon, style = sprintf("font-size: 48px; color: %s;", status_color)),
         h3(status_text, style = sprintf("color: %s; margin: 10px 0 0 0;", status_color))
       ),
-
+      
       # Summary statistics
       h5(icon("chart-bar"), " Summary", style = "color: #495057;"),
       hr(style = "margin: 10px 0;"),
-
+      
       fluidRow(
         column(4,
-          div(
-            style = "text-align: center; padding: 10px;",
-            h4(health_result$summary$total_checkpoints, style = "margin: 0; color: #007bff;"),
-            span("Total", class = "text-muted")
-          )
+               div(
+                 style = "text-align: center; padding: 10px;",
+                 h4(health_result$summary$total_checkpoints, style = "margin: 0; color: #007bff;"),
+                 shiny::span("Total", class = "text-muted")
+               )
         ),
         column(4,
-          div(
-            style = "text-align: center; padding: 10px;",
-            h4(health_result$summary$valid_checkpoints, style = "margin: 0; color: #28a745;"),
-            span("Valid", class = "text-muted")
-          )
+               div(
+                 style = "text-align: center; padding: 10px;",
+                 h4(health_result$summary$valid_checkpoints, style = "margin: 0; color: #28a745;"),
+                 shiny::span("Valid", class = "text-muted")
+               )
         ),
         column(4,
-          div(
-            style = "text-align: center; padding: 10px;",
-            h4(health_result$summary$corrupted_checkpoints, style = "margin: 0; color: #dc3545;"),
-            span("Corrupted", class = "text-muted")
-          )
+               div(
+                 style = "text-align: center; padding: 10px;",
+                 h4(health_result$summary$corrupted_checkpoints, style = "margin: 0; color: #dc3545;"),
+                 shiny::span("Corrupted", class = "text-muted")
+               )
         )
       ),
-
+      
       # Issues list
       if (length(health_result$issues) > 0) {
         tagList(
@@ -599,14 +599,14 @@ cache_health_modal_ui <- function(health_result) {
               div(
                 style = "padding: 5px; margin: 2px 0; background-color: #fff3cd; border-radius: 3px;",
                 icon("exclamation-triangle", style = "color: #856404;"),
-                span(issue, style = "margin-left: 5px;")
+                shiny::span(issue, style = "margin-left: 5px;")
               )
             })
           )
         )
       }
     ),
-
+    
     footer = tagList(
       if (!health_result$healthy) {
         actionButton("cache_health_repair", "Attempt Repair",
@@ -620,7 +620,7 @@ cache_health_modal_ui <- function(health_result) {
 
 #' Cache statistics panel
 cache_statistics_ui <- function() {
-
+  
   div(
     id = "cache_statistics_panel",
     style = "
@@ -630,15 +630,15 @@ cache_statistics_ui <- function() {
       color: white;
       margin: 10px 0;
     ",
-
+    
     h5(
       icon("chart-pie"),
       " Cache Statistics",
       style = "margin-top: 0; font-weight: 600;"
     ),
-
+    
     hr(style = "border-color: rgba(255,255,255,0.2); margin: 10px 0;"),
-
+    
     # Dynamic content
     uiOutput("cache_statistics_output")
   )

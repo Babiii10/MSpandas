@@ -1,4 +1,446 @@
-##" Load some necessary files 
+# ##" Load some necessary files
+# source_python('lib/NewReferenceMap/Python_files/modify_ParamMsdialNewReferenceMap.py')
+# 
+# 
+# 
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Peak Pecking with MSDIAL ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
+#                            output_export_param,
+#                            MS1_type = "Profile",
+#                            MS2_type = "Profile",
+#                            ion = "Positive",
+#                            rt_begin = "0",
+#                            rt_end = "100",
+#                            mz_range_begin = "0",
+#                            mz_range_end = "2000",
+#                            mz_tolerance_centroid_MS1 = "0.01",
+#                            mz_tolerance_centroid_MS2 = "0.05",
+#                            maxCharge = "7",
+#                            number_threads = "5", # reduction du nombre de threads 5-->2  en cas de grandes tailles d'échantillons
+#                            min_Peakwidth = "5",
+#                            min_PeakHeight = "1000",
+#                            mass_slice_width = "0.05",
+#                            Adduct_list = list("[M+H]+", "[M+Na]+", "[M+K]+")){
+# 
+# 
+# 
+# 
+# 
+#   message("\n--- PEAK PICKING ---\n")
+# 
+#   # Monitoring RAM avant MSDIAL
+#   if(requireNamespace("pryr", quietly = TRUE)) {
+#     ram_before <- pryr::mem_used()
+#     cat(sprintf("RAM avant MSDIAL: %.2f GB\n", ram_before / 1e9))
+#   }
+# 
+#   incProgress(1/8, detail = paste("Calling peak detection...", round(3/8*100,0),"%",collapse=""))
+# 
+#   MsdialParam(input_param = file.path("lib/NewReferenceMap/parameters","paramMsdial.txt"),
+#               output_param = file.path(output_export_param ,"peakPicking_Parameters.txt"),
+#               MS1_type = as.character(MS1_type),
+#               MS2_type = as.character(MS2_type),
+#               ion = as.character(ion),
+#               rt_begin = as.character(rt_begin),
+#               rt_end =  as.character(rt_end) ,
+#               mz_range_begin = as.character(mz_range_begin),
+#               mz_range_end = as.character(mz_range_end),
+#               mz_tolerance_centroid_MS1 = as.character(mz_tolerance_centroid_MS1),
+#               mz_tolerance_centroid_MS2 = as.character(mz_tolerance_centroid_MS2),
+#               maxCharge = as.character(maxCharge),
+#               number_threads = as.character(number_threads),
+#               min_Peakwidth = as.character(min_Peakwidth),
+#               min_PeakHeight = as.character(min_PeakHeight),
+#               mass_slice_width = as.character(mass_slice_width),
+#               Adduct_list = as.list(Adduct_list))
+# 
+#   findPeaksMsdial(input_files = input_files, output_files = output_files, output_export_param = output_export_param )
+#   system2("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat")
+# 
+#   # Utiliser le batching pour limiter la RAM (batch de 50 échantillons)
+#   # batch_size <- 50
+#   # source_python("lib/NewReferenceMap/Python_files/modify_ParamMsdialNewReferenceMap.py")
+#   # findPeaksMsdial_batched(input_files = input_files,
+#   #                         output_files = output_files,
+#   #                         output_export_param = output_export_param,
+#   #                         batch_size = batch_size)
+# 
+# 
+#   message("--- END PEAK PICKING ---\n")
+# 
+# 
+#   # Monitoring RAM après MSDIAL
+#   if(requireNamespace("pryr", quietly = TRUE)) {
+#     ram_after <- pryr::mem_used()
+#     cat(sprintf("RAM après MSDIAL: %.2f GB\n", ram_after / 1e9))
+#   }
+# 
+#   incProgress(1/8, detail = paste("End peak detection...", round(4/8*100,0),"%",collapse=""))
+# 
+# }
+# 
+# 
+# 
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ######################### traitement des peakList de Msdial, Extraction des pics mono-isotopiques #######################
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# 
+# ProcessPeaks.msdial<-function(path.peaks.msdial,
+#                               file_adduct,
+#                               mass_slice_width,
+#                               min_PeaksMassif
+#                               ){
+# 
+#   ## packages necessary
+# 
+#   if(!(require(MsCoreUtils)))
+#     stop("R Package MsCoreUtils is required, please install MsCoreUtils package !")
+# 
+#   if(!(require(bigstatsr)))
+#     stop("R Package bigstatsr is required, please install bigstatsr package !")
+#   if(!(require(bigreadr)))
+#     stop("R Package bigreadr is required, please install bigreadr package !")
+# 
+#   if(!(require(tidyverse)))
+#     stop("R Package tidyverse is required!")
+#   if(!(require(dplyr)))
+#     stop("R Package dplyr is required!")
+#   if(!(require(stringr)))
+#     stop("R Package dplyr is required!")
+# 
+# 
+# 
+# 
+# 
+#   # read one sample
+#   peaks.msdial_read<-fread2(path.peaks.msdial,
+#                             data.table = TRUE,
+#                             select = c("PeakID", "Precursor m/z", "Height",
+#                                        "Area", "Adduct", "Isotope", "Comment","S/N", "RT (min)",
+#                                        "RT left(min)", "RT right (min)"))
+# 
+#   peaks.msdial<-data.frame(PeakID = peaks.msdial_read$PeakID,
+#                            Precursor.mz = peaks.msdial_read$`Precursor m/z`,
+#                            rt = peaks.msdial_read$`RT (min)`*60,
+#                            rtmin = peaks.msdial_read$`RT left(min)`*60,
+#                            rtmax = peaks.msdial_read$`RT right (min)`*60,
+#                            Height = peaks.msdial_read$Height,
+#                            Area = peaks.msdial_read$Area,
+#                            SN =peaks.msdial_read$`S/N`,
+#                            sample = sub(basename(path.peaks.msdial), pattern = ".msdial",
+#                                         replacement = "", fixed = TRUE),
+#                            Adduct = peaks.msdial_read$Adduct,
+#                            Isotope = peaks.msdial_read$Isotope,
+#                            Comment = peaks.msdial_read$Comment)
+# 
+# 
+# 
+#   cat("Extracting isotopes ... 1/7 \n")
+#   #Extraction of isotopes
+# 
+# 
+#   peaks.msdial[,"isotope"]<-str_extract(peaks.msdial$Comment,"of \\d+")
+# 
+# 
+#   peaks.msdial[,"isotope"]<-str_replace_all(peaks.msdial[,"isotope"],"of ","")
+#   peaks.msdial[,"isotope"]<-as.numeric(peaks.msdial[,"isotope"])
+# 
+# 
+#   cat("Extracting charges ... 2/6 \n")
+#   #Extraction of charge
+# 
+#   peaks.msdial[,"charge"]<-ifelse(is.na(str_extract(peaks.msdial$Adduct,"]\\d+"))==FALSE,
+#                                   str_replace(str_extract(peaks.msdial$Adduct,"]\\d+"),"]",""),1)
+#   peaks.msdial[,"charge"]<-as.numeric(peaks.msdial[,"charge"])
+# 
+#   #Extraction of number of isotopes within a massif and compute sum of intensity of a massif isotopic
+#   cat("Extraction of number of isotopes within a massif and compute sum of intensity of a massif isotopic...3/7 \n")
+#   liste_isotope <- peaks.msdial %>%
+#     distinct(isotope)
+# 
+# 
+#   table_filtered<- peaks.msdial %>%
+#     dplyr::filter(PeakID %in% liste_isotope$isotope)
+# 
+# 
+#   x <- peaks.msdial %>%
+#     group_by(isotope) %>%
+#     dplyr::filter(is.na(isotope)!=TRUE) %>%
+#     arrange(Precursor.mz) %>%
+#     mutate(nb_isotope=length(Precursor.mz),
+#            somme_Area=sum(Area),
+#            somme_Height=sum(Height),
+#            mz_PeaksIsotopics_group = toString(Precursor.mz),
+#            rt_PeaksIsotopics_group = toString(rt),
+#            Height_PeaksIsotopics_group = toString(Height)) %>%
+#     dplyr::distinct(isotope,.keep_all=TRUE)
+# 
+# 
+# 
+#   # Compute number of isotope and, sum Height and Area within an isotope massif
+#   pb7 <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
+#   cat("Compute number of isotope and, sum Height and Area within an isotope massif...4/6 \n")
+#   for (i in 1:nrow(table_filtered)){
+#     setTxtProgressBar(pb7, i)
+#     table_filtered[i,"mz_PeaksIsotopics"] <- toString(c(table_filtered[i,"Precursor.mz"],
+#                                                         toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"mz_PeaksIsotopics_group"][[1]])))
+#     table_filtered[i,"rt_PeaksIsotopics"] <- toString(c(table_filtered[i,"rt"],
+#                                                         toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"rt_PeaksIsotopics_group"][[1]])))
+#     table_filtered[i,"Height_PeaksIsotopics"] <- toString(c(table_filtered[i,"Height"],
+#                                                             toString(x[which(x$isotope==table_filtered[i,"PeakID"]),"Height_PeaksIsotopics_group"][[1]])))
+# 
+#     table_filtered[i,"nb_isotope"] <- x[which(x$isotope==table_filtered[i,"PeakID"] ),"nb_isotope"][[1]]+1
+#     table_filtered[i,"Height"] <- table_filtered[i,"Height"]+ x[which(x$isotope==table_filtered[i,"PeakID"]),"somme_Height"][[1]]
+#     table_filtered[i,"Area"] <- table_filtered[i,"Area"]+ x[which(x$isotope==table_filtered[i,"PeakID"]),"somme_Area"][[1]]
+# 
+# 
+#   }
+#   close(pb7)
+# 
+# 
+#   ### Filter Massif
+# 
+#   pb_filterMassif <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
+#   cat("Filter massif...4/6 \n")
+#   ## Filter massif
+# 
+#   idxDeleteMassifTowPeaks<-c()
+#   idxDeleteCharge4<-c()
+#   idxDeleteCharge5<-c()
+#   for(i in 1:nrow(table_filtered)){
+#     setTxtProgressBar(pb_filterMassif, i)
+# 
+#     ## Delete massif contains only 2 (n) peaks
+#     nmbPeakTest<-length(as.numeric(unlist(str_split(table_filtered[i,"mz_PeaksIsotopics"], pattern = ","))))
+#     if(nmbPeakTest < min_PeaksMassif){
+#       idxDeleteMassifTowPeaks[i]<-i
+#     }
+# 
+#     ## Delete massif 4+ contains less than 3 peaks
+#     if(table_filtered[i,]$charge == 4){
+#       nmbPeak<-length(as.numeric(unlist(str_split(table_filtered[i,"mz_PeaksIsotopics"], pattern = ","))))
+#       if(nmbPeak<3){
+#         idxDeleteCharge4[i]<-i
+#       }
+#     }
+# 
+#     ## Delete massif 5+ contains less than 4 peaks
+#     if(table_filtered[i,]$charge >= 5){
+#       nmbPeak<-length(as.numeric(unlist(str_split(table_filtered[i,"mz_PeaksIsotopics"], pattern = ","))))
+#       if(nmbPeak<4){
+#         idxDeleteCharge5[i]<-i
+#       }
+#     }
+# 
+#   }
+# 
+#   close(pb_filterMassif)
+# 
+#   idxDelete<-c(idxDeleteCharge4,idxDeleteCharge5,idxDeleteMassifTowPeaks)
+#   #idxDelete<-c(idxDeleteCharge4,idxDeleteCharge5)
+#   idxDelete<-idxDelete[!is.na(idxDelete)]
+# 
+#   table_filtered<-table_filtered[-idxDelete,]
+# 
+# 
+#   #Compute mz without adduct
+# 
+#   cat("Computing M+H ... 5/6 \n")
+#   adduct <-read.csv(file_adduct)
+# 
+#   adduct_extracted <- str_extract(table_filtered[,"Adduct"],"\\[[[:alnum:]]+\\+[[:alnum:]]+\\]")
+#   adduct_number <- as.numeric(ifelse(is.na(str_extract(adduct_extracted,"[:digit:]"))==FALSE,str_extract(adduct_extracted,"[:digit:]"),1))
+#   adduct_extracted <- str_replace_all(table_filtered[,"Adduct"],"[:digit:]","")
+# 
+# 
+#   pb4 <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
+#   for (i in 1:nrow(table_filtered)){
+#     setTxtProgressBar(pb4, i)
+# 
+#     table_filtered[i,"M+H"] <- (table_filtered[i,"Precursor.mz"] - adduct[which(adduct$name==adduct_extracted[i]),"massdiff"]/table_filtered[i,"charge"]*adduct_number[i])*table_filtered[i,]$charge+1.007276
+#     table_filtered[i,"iso.mass"] <- toString((as.numeric(unlist(str_split(table_filtered[i,"mz_PeaksIsotopics"], pattern = ","))) - adduct[which(adduct$name==adduct_extracted[i]),"massdiff"]/table_filtered[i,"charge"]*adduct_number[i])*table_filtered[i,]$charge+1.007276)
+# 
+#   }
+#   close(pb4)
+# 
+# 
+# 
+#   # sum intensity adduct to pic mono-isotopic
+# 
+#   somme_intensite_height <- function(Comment,Height,Area){
+#     `%ni%` <- Negate(`%in%`)
+#     peaks_linked_id <- str_replace_all(str_extract_all(Comment,"[:digit:]+_")[[1]],"_","")
+#     intensite_table_height <- Height
+#     intensite_table_area <- Area
+#     #pb5 <- txtProgressBar(min=1, max = length(peaks_linked_id), style = 3)
+#     for (i in peaks_linked_id){
+#       # setTxtProgressBar(pb5, i)
+#       if (as.numeric(i) %ni% (table_filtered %>%
+#                               dplyr::select(PeakID))[,"PeakID"]){
+#         intensite_table_height <- intensite_table_height + (peaks.msdial %>%
+#                                                               dplyr::filter(PeakID == i) %>%
+#                                                               dplyr::select(Height))
+#         intensite_table_area <- intensite_table_area + (peaks.msdial %>%
+#                                                           dplyr::filter(PeakID == i) %>%
+#                                                           dplyr::select(Area))
+#       }
+# 
+#     }
+#     #close(pb5)
+#     return(list(intensite_table_height[[1]],intensite_table_area[[1]]))
+#   }
+# 
+#   cat("Processing...\n")
+#   table_filtered <- table_filtered %>%
+#     dplyr::rowwise() %>%
+#     dplyr::mutate(Height=somme_intensite_height(Comment,Height,Area)[[1]],
+#                   Area=somme_intensite_height(Comment,Height,Area)[[2]])
+# 
+# 
+# 
+# 
+#   #as.numeric(unlist(str_split(table_filtered[i,"mz_PeaksIsotopics"], pattern = ",")))
+# 
+#   ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#   ##~~~~~~~~~~~~~~~~~~~~~~~~ False massifs filter ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#   ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#   iso.massCulumnDeltat<-c()
+# 
+#   for (i in 1:length(table_filtered$iso.mass)) {
+#     iso.massCulumnDeltat[i]<-sort(diff(as.numeric(unlist(str_split(table_filtered$iso.mass[i], pattern = ",")))))[1]
+#   }
+# 
+#   idxMassifFalse<-which(iso.massCulumnDeltat<=0.85)
+# 
+#   table_filtered<-table_filtered[-idxMassifFalse,]
+#   ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#   ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#   ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# 
+# 
+# 
+#   ## Add column Group Info
+#   table_filtered<-as.data.frame(table_filtered)
+#   table_filtered$iso.mass.link<-table_filtered$iso.mass
+#   table_filtered$mz_PeaksIsotopics_Group<-table_filtered$mz_PeaksIsotopics
+#   table_filtered$rt_PeaksIsotopics_Group<-table_filtered$rt_PeaksIsotopics
+#   table_filtered$Height_PeaksIsotopics_Group<-table_filtered$Height_PeaksIsotopics
+#   table_filtered<-table_filtered[order(table_filtered$`M+H`),]
+#   rownames(table_filtered)<-1:nrow(table_filtered)
+# 
+#   table_filtered_new<-table_filtered
+# 
+# 
+#   rColSelected<-c("M+H","rt","rtmin","rtmax","Height","Area","SN","sample",
+#                   "iso.mass","iso.mass.link","mz_PeaksIsotopics_Group", "rt_PeaksIsotopics_Group","Height_PeaksIsotopics_Group","Adduct")
+# 
+#   table_filtered_new<-table_filtered_new[,rColSelected]
+# 
+# 
+# 
+#   table_filtered_new<-as.data.frame(table_filtered_new)
+#   rownames(table_filtered_new)<-1:nrow(table_filtered_new)
+# 
+#   peaks<-table_filtered_new
+#   peaks[,"M+H.min"]<-peaks$`M+H`-mass_slice_width/2
+#   peaks[,"M+H.max"]<-peaks$`M+H`+ mass_slice_width/2
+# 
+#   colSelect<-c("M+H","M+H.min","M+H.max","rt","rtmin","rtmax","Area","Height","SN","sample",
+#                "iso.mass","iso.mass.link","mz_PeaksIsotopics_Group","rt_PeaksIsotopics_Group","Height_PeaksIsotopics_Group","Adduct")
+#   peaks<-peaks[,colSelect]
+# 
+#   reqColsNames<-c('M+H','M+H.min','M+H.max','CE-time','CE-time.min','CE-time.max',
+#                   'integrated-intensity','intensity', 'sn', 'sample')
+# 
+#   colnames(peaks)[1:10]<-reqColsNames
+# 
+# 
+#   return(peaks)
+# }
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# ####### extraction des peptides
+# 
+# deconv_peaks_MSDIAL<-function(path_to_peakList,
+#                               file_adduct,
+#                               output_directory = NULL,
+#                               mass_slice_width,
+#                               min_PeaksMassif,
+#                               workers = ceiling((detectCores())-1)){  #min(ceiling((detectCores())-1), 4)  # Max 4 workers
+# 
+# 
+#   message("--- DECONVOLUTION ---\n")
+#   incProgress(1/8, detail = paste("Grouping peaks into massifs...", round(6/8*100,0),"%",collapse=""))
+# 
+# 
+#   if(!require(BiocParallel))
+#     stop("R package \"BiocParallel\" is required !")
+#   if(!require(parallel))
+#     stop("R package \"parallel\" is required !")
+# 
+# 
+#   param <- SnowParam(workers = workers, type = "SOCK")
+#   time1<-system.time(Result_Msidal<-
+#                         bplapply(path_to_peakList,
+#                                  ProcessPeaks.msdial,
+#                                  file_adduct = file_adduct,
+#                                  mass_slice_width = mass_slice_width,
+#                                  min_PeaksMassif = min_PeaksMassif,
+#                                  BPPARAM = param))
+#   time2<-system.time(peaks_MSDIAL_mono_iso<-do.call("rbind", Result_Msidal))
+#   times<-time1[[3]]+time2[[3]]
+# 
+#   cat(paste("Time of computing mono-isotopic peaks :",times,"... !", sep = " "))
+#   if(is.null(output_directory)){
+#     cat("\n Finished.\n")
+# 
+#     colnames(peaks_MSDIAL_mono_iso)[c(1:10)]<-c("mz","mzmin","mzmax","rt","rtmin","rtmax","into","maxo","sn","sample")
+#     return(peaks_MSDIAL_mono_iso)
+#   } else {
+#     cat("\n Save result...\n")
+# 
+#     for (i in 1:length(Result_Msidal)) {
+#       write.table(Result_Msidal[[i]],
+#                   file = file.path(output_directory,
+#                                    paste0(unique(Result_Msidal[[i]]$sample),".csv")),
+#                   sep = ",", row.names = FALSE)
+#     }
+# 
+#     cat("\n Finished.\n")
+#     message("--- END ANNOTATION ---")
+# 
+#     incProgress(1/8, detail = paste("End grouping...", round(7/8*100,0),"%",collapse=""))
+# 
+#     colnames(peaks_MSDIAL_mono_iso)[c(1:10)]<-c("mz","mzmin","mzmax","rt","rtmin","rtmax","into","maxo","sn","sample")
+# 
+# 
+#     return(peaks_MSDIAL_mono_iso)
+#   }
+# }
+# 
+# 
+# 
+# 
+
+
+# autre option : 
+
+#" Load some necessary files 
 source_python('lib/NewReferenceMap/Python_files/modify_ParamMsdialNewReferenceMap.py')
 library(data.table)
 
@@ -30,8 +472,8 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
                            timeout_sec = NULL){
   
   
- 
-
+  
+  
   
   message("\n--- PEAK PICKING ---\n")
   
@@ -54,66 +496,138 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
               min_PeakHeight = as.character(min_PeakHeight), 
               mass_slice_width = as.character(mass_slice_width), 
               Adduct_list = as.list(Adduct_list))
-
-  run_msdial_bat <- function() {
+  
+  # Suppression R-native d'un dossier contenant des junctions/hardlinks.
+  # N'utilise PAS shell()/cmd.exe → immunisé contre l'erreur 322.
+  # unlink(junction, recursive=FALSE) → RemoveDirectoryW → supprime le junction point sans suivre.
+  remove_batch_dir <- function(dir_path) {
+    if (!dir.exists(dir_path)) return(invisible(TRUE))
+    items <- list.files(dir_path, full.names = TRUE, all.files = TRUE, no.. = TRUE)
+    for (item in items) {
+      if (dir.exists(item)) {
+        # Distinguer junction (.d) vs vrai dossier (project_*_tmpFolder avec .pll)
+        if (grepl("\\.d$", item, ignore.case = TRUE)) {
+          # Junction (.d) : RemoveDirectoryW supprime le reparse point, pas le contenu cible
+          unlink(item, recursive = FALSE)
+        } else {
+          # Vrai dossier (ex: project_*_tmpFolder contenant peaklist_*.pll)
+          # → suppression récursive complète
+          unlink(item, recursive = TRUE)
+        }
+      } else {
+        # Hardlink (.mzML) ou fichier quelconque : supprime l'entrée du lien
+        file.remove(item)
+      }
+    }
+    # Le dossier batch est maintenant vide → suppression simple
+    unlink(dir_path, recursive = FALSE)
+    invisible(!dir.exists(dir_path))
+  }
+  
+  run_msdial_bat <- function(expected_stems = NULL, output_dir = NULL) {
     bat_file   <- normalizePath("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat",
                                 winslash = "\\", mustWork = FALSE)
-    # Délai maximum en ms — 4 h par défaut pour éviter un blocage infini.
-    timeout_ms <- {
+    timeout_s <- {
       t <- suppressWarnings(as.integer(timeout_sec))
-      if (length(t) == 1L && !is.na(t) && t > 0L) t * 1000L else 14400000L
+      if (length(t) == 1L && !is.na(t) && t > 0L) t else 14400L
     }
-
+    poll_interval_s <- 10L
+    grace_after_complete_s <- 30L
+    
     if (.Platform$OS.type == "windows") {
-      # Rediriger stdout/stderr de MsdialConsoleApp vers des fichiers temporaires.
-      # Sans redirection, la sortie volumineuse remplit le buffer du pipe et bloque
-      # indéfiniment (deadlock pipe R ↔ processus).
-      log_out <- normalizePath(tempfile(fileext = "_msdial_out.log"),
-                               winslash = "\\", mustWork = FALSE)
-      log_err <- normalizePath(tempfile(fileext = "_msdial_err.log"),
-                               winslash = "\\", mustWork = FALSE)
-      # Échapper les apostrophes pour l'interpolation dans la chaîne PowerShell
-      esc <- function(p) gsub("'", "''", p)
-      ps_cmd <- paste0(
-        "$p = Start-Process -FilePath 'cmd.exe' ",
-        "-ArgumentList @('/c', '", esc(bat_file), "') ",
-        "-PassThru -NoNewWindow ",
-        "-RedirectStandardOutput '", esc(log_out), "' ",
-        "-RedirectStandardError '",  esc(log_err), "'; ",
-        # WaitForExit(ms) — méthode .NET, plus fiable que Wait-Process -Timeout.
-        # Retourne $true si le processus s'est terminé, $false si délai dépassé.
-        "$ok = $p.WaitForExit(", timeout_ms, "); ",
-        "if (-not $ok) { ",
-        # taskkill /F /T tue l'arbre entier : cmd.exe + MsdialConsoleApp + enfants.
-        # Stop-Process ne tuerait que cmd.exe, laissant MsdialConsoleApp orphelin.
-        "  taskkill /F /T /PID $p.Id 2>&1 | Out-Null; ",
-        "  Write-Host 'TIMEOUT: MsdialConsoleApp.exe arrete apres ", timeout_ms %/% 1000L, "s'; ",
-        "  exit 124 ",
-        "}; ",
-        "exit $p.ExitCode"
-      )
-      out <- system2("powershell.exe",
-                     args   = c("-NoProfile", "-NonInteractive", "-Command", ps_cmd),
-                     stdout = TRUE, stderr = TRUE, wait = TRUE)
-      # Nettoyer les logs temporaires
-      suppressWarnings(file.remove(log_out, log_err))
-      return(out)
+      # Fichier sentinelle : le .bat écrira "DONE" dedans en terminant.
+      # Ceci permet de détecter la fin du processus SANS spawner de subprocess.
+      sentinel <- tempfile(fileext = "_msdial_done.flag")
+      
+      # Créer un wrapper .bat qui exécute le vrai .bat puis crée la sentinelle
+      wrapper_bat <- tempfile(fileext = "_msdial_wrapper.bat")
+      writeLines(c(
+        "@echo off",
+        paste0('call "', bat_file, '"'),
+        paste0('echo DONE > "', normalizePath(sentinel, winslash = "\\", mustWork = FALSE), '"')
+      ), wrapper_bat)
+      
+      # Lancer le wrapper en arrière-plan via shell(wait=FALSE) — un seul appel cmd.exe
+      # shell() avec wait=FALSE lance le process et retourne immédiatement
+      shell(paste0('"', normalizePath(wrapper_bat, winslash = "\\"), '"'),
+            wait = FALSE, mustWork = FALSE)
+      
+      message(sprintf("--- MsdialConsoleApp lancé, timeout %ds ---", timeout_s))
+      
+      start_time <- proc.time()[["elapsed"]]
+      completed_early <- FALSE
+      
+      while (TRUE) {
+        elapsed <- proc.time()[["elapsed"]] - start_time
+        
+        # 1. Timeout absolu
+        if (elapsed >= timeout_s) {
+          message(sprintf("TIMEOUT: MsdialConsoleApp arrêté après %ds", round(elapsed)))
+          tryCatch(
+            system2("taskkill", args = c("/F", "/IM", "MsdialConsoleApp.exe"),
+                    stdout = FALSE, stderr = FALSE, wait = TRUE),
+            error = function(e) NULL
+          )
+          break
+        }
+        
+        # 2. Le processus s'est terminé naturellement (sentinelle créée)
+        if (file.exists(sentinel)) {
+          message(sprintf("--- MsdialConsoleApp terminé naturellement après %.0fs ---", elapsed))
+          break
+        }
+        
+        # 3. Arrêt anticipé : tous les .msdial attendus sont présents et stables
+        if (!is.null(expected_stems) && !is.null(output_dir) && length(expected_stems) > 0) {
+          existing_msdial <- tolower(sub("\\.msdial$", "",
+                                         list.files(output_dir, pattern = "\\.msdial$",
+                                                    full.names = FALSE, ignore.case = TRUE),
+                                         ignore.case = TRUE))
+          existing_msdial <- existing_msdial[!grepl("^alignresult-", existing_msdial)]
+          if (all(tolower(expected_stems) %in% existing_msdial)) {
+            msdial_paths <- list.files(output_dir, pattern = "\\.msdial$",
+                                       full.names = TRUE, ignore.case = TRUE)
+            msdial_paths <- msdial_paths[!grepl("AlignResult-", basename(msdial_paths), ignore.case = TRUE)]
+            sizes1 <- file.size(msdial_paths)
+            Sys.sleep(grace_after_complete_s)
+            sizes2 <- file.size(msdial_paths)
+            if (identical(sizes1, sizes2)) {
+              message(sprintf(
+                "--- Tous les %d .msdial détectés et stables → kill anticipé (gain ~%.0fs) ---",
+                length(expected_stems), timeout_s - elapsed))
+              tryCatch(
+                system2("taskkill", args = c("/F", "/IM", "MsdialConsoleApp.exe"),
+                        stdout = FALSE, stderr = FALSE, wait = TRUE),
+                error = function(e) NULL
+              )
+              completed_early <- TRUE
+              break
+            }
+          }
+        }
+        Sys.sleep(poll_interval_s)
+      }
+      
+      suppressWarnings(file.remove(sentinel, wrapper_bat))
+      if (completed_early) message("--- Kill anticipé : RAM libérée, fichiers intacts ---")
+      return(invisible(NULL))
     }
+    # Linux/Mac fallback
     system2(bat_file)
   }
-
+  
   input_dir <- normalizePath(input_files, winslash = "/", mustWork = FALSE)
   input_items <- list.files(input_dir, full.names = TRUE, recursive = FALSE)
   input_items <- input_items[dir.exists(input_items) | file.exists(input_items)]
   input_items <- input_items[grepl("\\.d$|\\.mzML$", basename(input_items), ignore.case = TRUE)]
-
+  
   # -- Déterminer les échantillons restants à traiter --
   # Source de vérité 1 : CSV dans output_files (Massif-List/).
-  #   Un CSV n'existe que si la déconvolution a été menée jusqu'au bout.
+  #   Un CSV n'existe que si la déconvolution a été menée jusqu'au bout. 
   existing_csv <- list.files(output_files, pattern = "\\.csv$",
-                              full.names = FALSE, ignore.case = TRUE)
+                             full.names = FALSE, ignore.case = TRUE)
   done_stems   <- tolower(sub("\\.csv$", "", existing_csv, ignore.case = TRUE))
-
+  
   # Source de vérité 2 : cache persistant inter-session dans input_dir.
   #   Écrit par le serveur après chaque déconvolution réussie ; survive aux changements de projet.
   cache_file <- file.path(input_dir, ".msdial_processed_cache.txt")
@@ -122,102 +636,209 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     cache_stems  <- sub("\\.(d|mzML)$", "", cached[nzchar(cached)], ignore.case = TRUE)
     done_stems   <- unique(c(done_stems, cache_stems))
   }
-
+  
   input_stems <- tolower(sub("\\.(d|mzML)$", "", basename(input_items), ignore.case = TRUE))
   to_process  <- input_items[!(input_stems %in% done_stems)]
-
+  
   batch_size <- suppressWarnings(as.integer(batch_size))
   if (!is.na(batch_size) && batch_size > 0) {
     if (length(to_process) == 0) {
       message("--- Tous les échantillons déjà traités (cache) — peak picking ignoré ---")
       return(invisible(NULL))
     }
-
+    
     n_batches  <- ceiling(length(to_process) / batch_size)
-    # batch_root dans input_dir : même volume que les .d/.mzML → file.rename() instantané
     batch_root <- file.path(input_dir, "_msdial_batches_tmp")
     dir.create(batch_root, recursive = TRUE, showWarnings = FALSE)
-
+    
+    # Crée des junctions (.d) ou hard links (.mzML) pointant vers les originaux.
+    # Les données ne quittent JAMAIS input_dir → ZÉRO risque de perte.
+    #   - junction  : supprime le lien, pas le contenu cible
+    #   - hard link : supprime l'entrée, l'original conserve sa référence
+    make_batch_links <- function(items, dest_dir) {
+      vapply(seq_along(items), function(i) {
+        item_w <- normalizePath(items[i], winslash = "\\", mustWork = FALSE)
+        link_w <- normalizePath(file.path(dest_dir, basename(items[i])),
+                                winslash = "\\", mustWork = FALSE)
+        if (dir.exists(items[i])) {
+          # .d = dossier → junction (mklink /J). Nécessite shell() mais c'est
+          # exécuté AVANT MS-DIAL (système sain, pas d'erreur 322 à ce stade).
+          cmd <- paste0('mklink /J "', link_w, '" "', item_w, '"')
+          shell(cmd, mustWork = FALSE, intern = TRUE)
+        } else {
+          # .mzML = fichier → hard link R-natif (aucun subprocess)
+          file.link(items[i], file.path(dest_dir, basename(items[i])))
+        }
+        file.exists(link_w) || dir.exists(link_w)
+      }, logical(1))
+    }
+    
     for (b in seq_len(n_batches)) {
       idx_start <- (b - 1) * batch_size + 1
       idx_end   <- min(b * batch_size, length(to_process))
       batch_items <- to_process[idx_start:idx_end]
-
+      
       batch_input_dir <- file.path(batch_root, sprintf("batch_%03d", b))
-      # Suppression propre du dossier sans suivre de jonctions éventuelles
-      if (dir.exists(batch_input_dir)) {
-        if (.Platform$OS.type == "windows") {
-          shell(paste0('rd /s /q "', normalizePath(batch_input_dir, winslash = "\\"), '"'), mustWork = FALSE)
-        } else {
-          unlink(batch_input_dir, recursive = TRUE, force = TRUE)
-        }
-      }
+      if (dir.exists(batch_input_dir)) remove_batch_dir(batch_input_dir)
       dir.create(batch_input_dir, recursive = TRUE, showWarnings = FALSE)
-
-      # Déplacer les fichiers/dossiers dans le répertoire de batch.
-      # file.rename() sur le même volume = simple renommage de métadonnées, sans copie ni jonction.
-      message(sprintf("--- Batch %d/%d : déplacement de %d élément(s) ---",
-                      b, n_batches, length(batch_items)))
-      moved <- file.rename(batch_items, file.path(batch_input_dir, basename(batch_items)))
-      if (!all(moved)) {
-        # Restaurer les fichiers déjà déplacés avant d'arrêter
-        ok_idx <- which(moved)
-        if (length(ok_idx)) {
-          file.rename(file.path(batch_input_dir, basename(batch_items[ok_idx])), batch_items[ok_idx])
+      
+      if (.Platform$OS.type == "windows") {
+        message(sprintf("--- Batch %d/%d : création de %d lien(s) (junction / hardlink) ---",
+                        b, n_batches, length(batch_items)))
+        linked <- make_batch_links(batch_items, batch_input_dir)
+        if (!all(linked)) {
+          warning(sprintf("Batch %d/%d : %d lien(s) non créé(s) → ignoré(s) : %s",
+                          b, n_batches, sum(!linked),
+                          paste(basename(batch_items[!linked]), collapse = ", ")))
         }
-        stop(sprintf("Batch %d/%d : échec du déplacement de certains fichiers vers %s",
-                     b, n_batches, batch_input_dir))
+        effective_items <- batch_items[linked]
+      } else {
+        for (item in batch_items) file.symlink(item, file.path(batch_input_dir, basename(item)))
+        effective_items <- batch_items
       }
-
+      
+      if (length(effective_items) == 0) {
+        message(sprintf("--- Batch %d/%d : aucun lien créé, batch ignoré ---", b, n_batches))
+        next
+      }
+      
       findPeaksMsdial(input_files = normalizePath(batch_input_dir, winslash = "/", mustWork = FALSE),
                       output_files = output_files,
                       output_export_param = output_export_param)
-
+      
+      batch_expected_stems <- tolower(sub("\\.(d|mzML)$", "", basename(effective_items), ignore.case = TRUE))
+      
       msdial_before <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
-      run_msdial_bat()
+      msdial_before <- msdial_before[!grepl("AlignResult-", basename(msdial_before), ignore.case = TRUE)]
+      run_msdial_bat(expected_stems = batch_expected_stems, output_dir = output_files)
       msdial_after  <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
+      msdial_after  <- msdial_after[!grepl("AlignResult-", basename(msdial_after), ignore.case = TRUE)]
       new_msdial    <- setdiff(msdial_after, msdial_before)
-
-      # Remettre les fichiers sources avant la déconvolution :
-      # si after_batch_fun crashe, les .d/.mzML sont déjà en sécurité dans input_dir.
-      file.rename(file.path(batch_input_dir, basename(batch_items)), batch_items)
-      # Supprimer le dossier temporaire (ne contient plus que .dcl/.pai2/.aef)
-      if (.Platform$OS.type == "windows") {
-        shell(paste0('rd /s /q "', normalizePath(batch_input_dir, winslash = "\\"), '"'), mustWork = FALSE)
-      } else {
-        unlink(batch_input_dir, recursive = TRUE, force = TRUE)
-      }
-
-      # Déconvolution et export CSV immédiatement après chaque batch.
-      # Le CSV est la preuve durable du traitement complet et permet la reprise fine.
-      # Le cache est écrit par after_batch_fun (serveur) après déconvolution réussie.
+      
+      # Nettoyage R-natif (aucun subprocess → pas d'erreur 322)
+      Sys.sleep(2)
+      remove_batch_dir(batch_input_dir)
+      
       if (is.function(after_batch_fun) && length(new_msdial) > 0) {
         message(sprintf("--- Batch %d/%d : déconvolution de %d fichier(s) .msdial ---",
                         b, n_batches, length(new_msdial)))
         after_batch_fun(new_msdial)
       }
-
+      
       message(sprintf("--- Batch %d/%d terminé ---", b, n_batches))
       gc()
     }
-
-    # Supprimer le dossier racine temporaire (vide après le dernier batch)
-    if (dir.exists(batch_root)) unlink(batch_root, recursive = TRUE, force = TRUE)
-
+    
+    if (dir.exists(batch_root)) remove_batch_dir(batch_root)
+    
   } else {
     if (length(to_process) == 0) {
       message("--- Tous les échantillons déjà traités (cache) — peak picking ignoré ---")
       return(invisible(NULL))
     }
     findPeaksMsdial(input_files = input_files, output_files = output_files, output_export_param = output_export_param )
-    run_msdial_bat()
+    all_expected_stems <- tolower(sub("\\.(d|mzML)$", "", basename(to_process), ignore.case = TRUE))
+    run_msdial_bat(expected_stems = all_expected_stems, output_dir = output_files)
   }
-
-
-  message("--- EDN PEAK PICKING ---\n")
+  
+  # -------------------------------------------------------------------------
+  # VÉRIFICATION FINALE : détection automatique des échantillons sans CSV
+  # -------------------------------------------------------------------------
+  # Après tous les batches, on relit les CSV produits + le cache pour
+  # identifier les mzML qui n'ont toujours pas de CSV correspondant.
+  # Si des manquants existent → on les retraite par batch de 50 jusqu'à
+  # ce que tous soient traités (max 3 tentatives pour éviter boucle infinie).
+  if (is.function(after_batch_fun)) {
+    max_recovery_rounds <- 3L
+    for (round_i in seq_len(max_recovery_rounds)) {
+      # Recalculer les done_stems à partir des CSV ET du cache (état actuel)
+      csv_now     <- list.files(output_files, pattern = "\\.csv$",
+                                full.names = FALSE, ignore.case = TRUE)
+      done_now    <- tolower(sub("\\.csv$", "", csv_now, ignore.case = TRUE))
+      if (file.exists(cache_file)) {
+        cached_now  <- tolower(trimws(readLines(cache_file, warn = FALSE)))
+        cache_now   <- sub("\\.(d|mzML)$", "", cached_now[nzchar(cached_now)],
+                           ignore.case = TRUE)
+        done_now    <- unique(c(done_now, cache_now))
+      }
+      # Tous les mzML/d disponibles dans le dossier source
+      all_inputs  <- list.files(input_dir, full.names = TRUE, recursive = FALSE)
+      all_inputs  <- all_inputs[grepl("\\.d$|\\.mzML$", basename(all_inputs), ignore.case = TRUE)]
+      all_stems   <- tolower(sub("\\.(d|mzML)$", "", basename(all_inputs), ignore.case = TRUE))
+      missing     <- all_inputs[!(all_stems %in% done_now)]
+      
+      if (length(missing) == 0) {
+        message(sprintf("--- Vérification finale (tour %d) : tous les échantillons ont un CSV ✓ ---",
+                        round_i))
+        break
+      }
+      
+      message(sprintf(
+        "--- Vérification finale (tour %d/%d) : %d échantillon(s) sans CSV → retraitement par batch ---",
+        round_i, max_recovery_rounds, length(missing)))
+      
+      # Retraiter les manquants par batch de 50
+      recovery_batch_size <- if (!is.na(batch_size) && batch_size > 0) batch_size else 50L
+      n_rec <- ceiling(length(missing) / recovery_batch_size)
+      rec_root <- file.path(input_dir, "_msdial_recovery_tmp")
+      dir.create(rec_root, recursive = TRUE, showWarnings = FALSE)
+      
+      for (rb in seq_len(n_rec)) {
+        rb_start <- (rb - 1L) * recovery_batch_size + 1L
+        rb_end   <- min(rb * recovery_batch_size, length(missing))
+        rb_items <- missing[rb_start:rb_end]
+        
+        rb_dir <- file.path(rec_root, sprintf("recovery_%03d", rb))
+        dir.create(rb_dir, recursive = TRUE, showWarnings = FALSE)
+        
+        if (.Platform$OS.type == "windows") {
+          linked_rb <- make_batch_links(rb_items, rb_dir)
+          if (!all(linked_rb)) {
+            warning(sprintf("Recovery batch %d : %d lien(s) non créé(s) → ignoré(s) : %s",
+                            rb, sum(!linked_rb),
+                            paste(basename(rb_items[!linked_rb]), collapse = ", ")))
+          }
+          effective_rb <- rb_items[linked_rb]
+        } else {
+          for (item in rb_items) file.symlink(item, file.path(rb_dir, basename(item)))
+          effective_rb <- rb_items
+        }
+        
+        if (length(effective_rb) == 0) {
+          message(sprintf("--- Recovery batch %d/%d : aucun lien créé, batch ignoré ---", rb, n_rec))
+          next
+        }
+        
+        findPeaksMsdial(input_files = normalizePath(rb_dir, winslash = "/", mustWork = FALSE),
+                        output_files = output_files,
+                        output_export_param = output_export_param)
+        
+        rb_stems  <- tolower(sub("\\.(d|mzML)$", "", basename(effective_rb), ignore.case = TRUE))
+        rb_before <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
+        rb_before <- rb_before[!grepl("AlignResult-", basename(rb_before), ignore.case = TRUE)]
+        run_msdial_bat(expected_stems = rb_stems, output_dir = output_files)
+        rb_after  <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
+        rb_after  <- rb_after[!grepl("AlignResult-", basename(rb_after), ignore.case = TRUE)]
+        new_msdial_rec <- setdiff(rb_after, rb_before)
+        
+        Sys.sleep(2)
+        remove_batch_dir(rb_dir)
+        
+        if (length(new_msdial_rec) > 0) {
+          message(sprintf("--- Vérification finale batch %d/%d : déconvolution de %d fichier(s) ---",
+                          rb, n_rec, length(new_msdial_rec)))
+          after_batch_fun(new_msdial_rec)
+        }
+        gc()
+      }
+      if (dir.exists(rec_root)) remove_batch_dir(rec_root)
+    }
+  }
+  
+  message("--- END PEAK PICKING ---\n")
   
   incProgress(1/8, detail = paste("End peak detection...", round(4/8*100,0),"%",collapse=""))
-
+  
 }
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -234,7 +855,7 @@ ProcessPeaks.msdial<-function(path.peaks.msdial,
                               file_adduct,
                               mass_slice_width,
                               min_PeaksMassif
-                              ){
+){
   
   ## packages necessary
   
@@ -256,15 +877,27 @@ ProcessPeaks.msdial<-function(path.peaks.msdial,
     stop("R Package data.table is required!")
   
   
-  
- 
-  
   # read one sample
   peaks.msdial_read<-fread2(path.peaks.msdial,
                             data.table = TRUE, 
                             select = c("PeakID", "Precursor m/z", "Height",
                                        "Area", "Adduct", "Isotope", "Comment","S/N", "RT (min)",
                                        "RT left(min)", "RT right (min)"))
+  
+  if (nrow(peaks.msdial_read) == 0) {
+    message(sprintf("Fichier .msdial sans pic détecté : %s — résultat vide retourné.",
+                    basename(path.peaks.msdial)))
+    empty_peaks <- data.frame(
+      `M+H` = numeric(0), `M+H.min` = numeric(0), `M+H.max` = numeric(0),
+      `CE-time` = numeric(0), `CE-time.min` = numeric(0), `CE-time.max` = numeric(0),
+      `integrated-intensity` = numeric(0), intensity = numeric(0), sn = numeric(0),
+      sample = character(0), iso.mass = character(0), iso.mass.link = character(0),
+      mz_PeaksIsotopics_Group = character(0), rt_PeaksIsotopics_Group = character(0),
+      Height_PeaksIsotopics_Group = character(0), Adduct = character(0),
+      check.names = FALSE
+    )
+    return(empty_peaks)
+  }
   
   peaks.msdial<-data.frame(PeakID = peaks.msdial_read$PeakID,
                            Precursor.mz = peaks.msdial_read$`Precursor m/z`, 
@@ -309,6 +942,20 @@ ProcessPeaks.msdial<-function(path.peaks.msdial,
   table_filtered<- peaks.msdial %>%
     dplyr::filter(PeakID %in% liste_isotope$isotope)
   
+  if (nrow(table_filtered) == 0) {
+    message(sprintf("Aucun massif isotopique dans %s — résultat vide retourné.",
+                    basename(path.peaks.msdial)))
+    empty_peaks <- data.frame(
+      `M+H` = numeric(0), `M+H.min` = numeric(0), `M+H.max` = numeric(0),
+      `CE-time` = numeric(0), `CE-time.min` = numeric(0), `CE-time.max` = numeric(0),
+      `integrated-intensity` = numeric(0), intensity = numeric(0), sn = numeric(0),
+      sample = character(0), iso.mass = character(0), iso.mass.link = character(0),
+      mz_PeaksIsotopics_Group = character(0), rt_PeaksIsotopics_Group = character(0),
+      Height_PeaksIsotopics_Group = character(0), Adduct = character(0),
+      check.names = FALSE
+    )
+    return(empty_peaks)
+  }
   
   x <- peaks.msdial %>%
     group_by(isotope) %>%
@@ -364,7 +1011,7 @@ ProcessPeaks.msdial<-function(path.peaks.msdial,
   
   ### Filter Massif
   
-  pb_filterMassif <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
+  pb_filterMassif <- txtProgressBar(min=0, max = nrow(table_filtered), style = 3)
   cat("Filter massif...4/6 \n")
   ## Filter massif
   
@@ -381,6 +1028,20 @@ ProcessPeaks.msdial<-function(path.peaks.msdial,
   
   table_filtered<-table_filtered[-idxDelete,]
   
+  if (nrow(table_filtered) == 0) {
+    message(sprintf("Tous les massifs filtrés dans %s (min_PeaksMassif) — résultat vide retourné.",
+                    basename(path.peaks.msdial)))
+    empty_peaks <- data.frame(
+      `M+H` = numeric(0), `M+H.min` = numeric(0), `M+H.max` = numeric(0),
+      `CE-time` = numeric(0), `CE-time.min` = numeric(0), `CE-time.max` = numeric(0),
+      `integrated-intensity` = numeric(0), intensity = numeric(0), sn = numeric(0),
+      sample = character(0), iso.mass = character(0), iso.mass.link = character(0),
+      mz_PeaksIsotopics_Group = character(0), rt_PeaksIsotopics_Group = character(0),
+      Height_PeaksIsotopics_Group = character(0), Adduct = character(0),
+      check.names = FALSE
+    )
+    return(empty_peaks)
+  }
   
   #Compute mz without adduct
   
@@ -397,7 +1058,7 @@ ProcessPeaks.msdial<-function(path.peaks.msdial,
   
   table_filtered[,"M+H"] <- (table_filtered$Precursor.mz - (massdiff / table_filtered$charge) * adduct_number) * table_filtered$charge + 1.007276
   
-  pb4 <- txtProgressBar(min=1, max = nrow(table_filtered), style = 3)
+  pb4 <- txtProgressBar(min=0, max = nrow(table_filtered), style = 3)
   iso.mass_vec <- vapply(seq_len(nrow(table_filtered)), function(i) {
     setTxtProgressBar(pb4, i)
     mzs <- suppressWarnings(as.numeric(unlist(str_split(table_filtered[i,"mz_PeaksIsotopics"], pattern = ","))))
@@ -470,7 +1131,7 @@ ProcessPeaks.msdial<-function(path.peaks.msdial,
   
   table_filtered_new<-table_filtered
   
-
+  
   rColSelected<-c("M+H","rt","rtmin","rtmax","Height","Area","SN","sample",
                   "iso.mass","iso.mass.link","mz_PeaksIsotopics_Group", "rt_PeaksIsotopics_Group","Height_PeaksIsotopics_Group","Adduct")
   
@@ -494,7 +1155,7 @@ ProcessPeaks.msdial<-function(path.peaks.msdial,
   
   colnames(peaks)[1:10]<-reqColsNames
   
-
+  
   return(peaks)
 }
 
@@ -516,7 +1177,7 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
   
   message("--- DECONVOLUTION ---\n")
   incProgress(1/8, detail = paste("Grouping peaks into massifs...", round(6/8*100,0),"%",collapse=""))
-
+  
   
   if(!require(BiocParallel))
     stop("R package \"BiocParallel\" is required !")
@@ -525,22 +1186,49 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
   
   
   
-  param <- SnowParam(workers = workers, type = "SOCK")
+  # Tentative parallèle (SnowParam/SOCK) avec fallback séquentiel (SerialParam)
+  # pour éviter le blocage infini de socketConnection() après épuisement des
+  # ressources système (erreur 322 / DLL init failures).
+  Result_Msidal <- NULL
+  times <- 0
+  parallel_ok <- FALSE
+  
   tryCatch({
-  time1<-system.time(Result_Msidal<-
-                        bplapply(path_to_peakList,
-                                 ProcessPeaks.msdial,
-                                 file_adduct = file_adduct,
-                                 mass_slice_width = mass_slice_width,
-                                 min_PeaksMassif = min_PeaksMassif,
-                                 BPPARAM = param))
-  time2<-system.time(peaks_MSDIAL_mono_iso<-do.call("rbind", Result_Msidal))
-  times<-time1[[3]]+time2[[3]]
-  }, finally = {
-    # Always cleanup worker pool to prevent socket accumulation
-    bpstop(param)
-    gc()
+    param <- SnowParam(workers = workers, type = "SOCK", timeout = 120)
+    tryCatch({
+      time1 <- system.time(Result_Msidal <-
+                             bplapply(path_to_peakList,
+                                      ProcessPeaks.msdial,
+                                      file_adduct = file_adduct,
+                                      mass_slice_width = mass_slice_width,
+                                      min_PeaksMassif = min_PeaksMassif,
+                                      BPPARAM = param))
+      parallel_ok <- TRUE
+    }, finally = {
+      tryCatch(bpstop(param), error = function(e) NULL)
+      gc()
+    })
+  }, error = function(e) {
+    message(sprintf("--- Parallélisation SOCK échouée : %s ---", conditionMessage(e)))
+    message("--- Fallback vers traitement séquentiel (SerialParam) ---")
   })
+  
+  if (!parallel_ok || is.null(Result_Msidal)) {
+    message("--- Déconvolution séquentielle en cours... ---")
+    param_serial <- SerialParam()
+    time1 <- system.time(Result_Msidal <-
+                           bplapply(path_to_peakList,
+                                    ProcessPeaks.msdial,
+                                    file_adduct = file_adduct,
+                                    mass_slice_width = mass_slice_width,
+                                    min_PeaksMassif = min_PeaksMassif,
+                                    BPPARAM = param_serial))
+  }
+  
+  # Filtrer les résultats vides
+  Result_Msidal <- Result_Msidal[vapply(Result_Msidal, function(x) nrow(x) > 0, logical(1))]
+  time2 <- system.time(peaks_MSDIAL_mono_iso <- do.call("rbind", Result_Msidal))
+  times <- time1[[3]] + time2[[3]]
   
   cat(paste("Time of computing mono-isotopic peaks :",times,"... !", sep = " "))
   if(is.null(output_directory)){ 
@@ -551,10 +1239,13 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
   } else {
     cat("\n Save result...\n")
     
-    for (i in 1:length(Result_Msidal)) {
+    for (i in seq_along(Result_Msidal)) {
+      smp <- unique(Result_Msidal[[i]]$sample)
+      if (!length(smp) || !nzchar(smp)) {
+        smp <- sub("\\.msdial$", "", basename(path_to_peakList[[i]]), ignore.case = TRUE)
+      }
       write.table(Result_Msidal[[i]], 
-                  file = file.path(output_directory,
-                                   paste0(unique(Result_Msidal[[i]]$sample),".csv")), 
+                  file = file.path(output_directory, paste0(smp, ".csv")), 
                   sep = ",", row.names = FALSE)
     }
     
@@ -564,10 +1255,8 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
     incProgress(1/8, detail = paste("End grouping...", round(7/8*100,0),"%",collapse=""))
     
     colnames(peaks_MSDIAL_mono_iso)[c(1:10)]<-c("mz","mzmin","mzmax","rt","rtmin","rtmax","into","maxo","sn","sample")
-
+    
     
     return(peaks_MSDIAL_mono_iso)
   }
 }
-
-

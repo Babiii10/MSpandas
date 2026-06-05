@@ -849,33 +849,48 @@ save_checkpoint_enhanced <- function(checkpoint_id,
     jsonlite::write_json(metadata, cache_info$metadata_file,
                          auto_unbox = TRUE, pretty = TRUE)
 
-    # Update SQLite database
+    # Update SQLite database (schema compatible with DatabaseManager.lib.R)
     if (!is.null(cache_info$db_project_id)) {
       tryCatch({
         con <- DBI::dbConnect(RSQLite::SQLite(), cache_info$db_path)
+        on.exit(try(DBI::dbDisconnect(con), silent = TRUE), add = TRUE)
 
-        # Update project status
+        # Update project status/stage
         DBI::dbExecute(con, "
           UPDATE projects
-          SET processing_stage = ?, updated_at = ?
+          SET status = ?,
+              processing_stage = ?,
+              last_modified = ?
           WHERE project_id = ?",
-          params = list(step_name, format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-                        cache_info$db_project_id)
-        )
-
-        # Insert checkpoint record
-        DBI::dbExecute(con, "
-          INSERT OR REPLACE INTO checkpoints
-          (project_id, checkpoint_id, step_name, version, filename, checksum, size_bytes, created_at, is_valid)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
           params = list(
-            cache_info$db_project_id, checkpoint_id, step_name,
-            result$version, result$filename, result$checksum,
-            result$size_bytes, format(Sys.time(), "%Y-%m-%d %H:%M:%S"), 1
+            "running",
+            step_name,
+            format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+            cache_info$db_project_id
           )
         )
 
-        DBI::dbDisconnect(con)
+        # Register checkpoint in the existing 'checkpoints' table schema
+        # (columns: project_id, step_id, step_name, checkpoint_file_path, created_at, file_size_mb, checksum_md5, is_valid, variables_stored, next_step, execution_time_seconds)
+        DBI::dbExecute(con, "
+          INSERT INTO checkpoints
+          (project_id, step_id, step_name, checkpoint_file_path, created_at,
+           file_size_mb, checksum_md5, is_valid, variables_stored, next_step, execution_time_seconds)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          params = list(
+            cache_info$db_project_id,
+            checkpoint_id,
+            step_name,
+            checkpoint_file,
+            format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+            as.numeric(result$size_bytes) / (1024^2),
+            as.character(result$checksum),
+            1,
+            jsonlite::toJSON(names(variables), auto_unbox = TRUE),
+            next_step,
+            as.numeric(difftime(Sys.time(), start_time, units = "secs"))
+          )
+        )
       }, error = function(e) {
         warning("Could not update database: ", e$message)
       })

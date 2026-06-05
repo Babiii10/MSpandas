@@ -42,11 +42,84 @@ if (DB_INTEGRATION_ENABLED) {
 #' )
 init_cache_system <- function(project_name,
                               data_dir,
-                              base_cache_dir = "cache_projects") {
+                              base_cache_dir = "cache_projects",
+                              reuse_existing = TRUE) {
 
   cat("═══════════════════════════════════════════════════════\n")
   cat("🔧 Initializing Cache System\n")
   cat("═══════════════════════════════════════════════════════\n")
+
+  resolve_existing_cache <- function(project_name, base_cache_dir = "cache_projects") {
+    if (!dir.exists(base_cache_dir)) return(NULL)
+    project_pattern <- gsub("[^A-Za-z0-9_]", "_", project_name)
+    project_dirs <- list.dirs(base_cache_dir, full.names = TRUE, recursive = FALSE)
+    matching_dirs <- project_dirs[grepl(paste0("^", project_pattern, "_\\d{8}_\\d{6}$"), basename(project_dirs))]
+    if (length(matching_dirs) == 0) return(NULL)
+
+    candidates <- lapply(matching_dirs, function(dir) {
+      metadata_file <- file.path(dir, "cache", "metadata.json")
+      if (!file.exists(metadata_file)) return(NULL)
+      mtime <- file.info(metadata_file)$mtime
+      list(project_dir = dir, metadata_file = metadata_file, mtime = mtime)
+    })
+    candidates <- candidates[!sapply(candidates, is.null)]
+    if (length(candidates) == 0) return(NULL)
+
+    candidates[[which.max(sapply(candidates, function(x) as.numeric(x$mtime)))]]
+  }
+
+  db_project_id <- NULL
+  db_path <- if (DB_INTEGRATION_ENABLED) "cache_projects/mspandas.sqlite" else NULL
+
+  if (reuse_existing) {
+    existing_project_dir <- NULL
+
+    if (DB_INTEGRATION_ENABLED) {
+      tryCatch({
+        if (!file.exists(db_path)) {
+          init_database(db_path)
+        }
+
+        proj <- get_project_info(project_name = project_name, db_path = db_path)
+        if (!is.null(proj) && nrow(proj) > 0) {
+          db_project_id <- proj$project_id[1]
+          if (!is.null(proj$cache_id[1]) && nchar(proj$cache_id[1]) > 0) {
+            existing_project_dir <- file.path(base_cache_dir, proj$cache_id[1])
+          }
+        }
+      }, error = function(e) {})
+    }
+
+    if (is.null(existing_project_dir) || !dir.exists(existing_project_dir)) {
+      resolved <- resolve_existing_cache(project_name, base_cache_dir)
+      if (!is.null(resolved)) {
+        existing_project_dir <- resolved$project_dir
+      }
+    }
+
+    if (!is.null(existing_project_dir) && dir.exists(existing_project_dir)) {
+      cache_dir <- file.path(existing_project_dir, "cache")
+      metadata_file <- file.path(cache_dir, "metadata.json")
+      if (dir.exists(cache_dir) && file.exists(metadata_file)) {
+        project_id <- basename(existing_project_dir)
+        cat(sprintf("✅ Existing cache found, reusing\n"))
+        cat(sprintf("   Project ID: %s\n", project_id))
+        cat(sprintf("   Cache directory: %s\n", cache_dir))
+        cat(sprintf("   Metadata file: %s\n", metadata_file))
+        cat("═══════════════════════════════════════════════════════\n\n")
+
+        return(list(
+          project_id = project_id,
+          project_dir = existing_project_dir,
+          cache_dir = cache_dir,
+          metadata_file = metadata_file,
+          data_dir = data_dir,
+          db_project_id = db_project_id,
+          db_path = db_path
+        ))
+      }
+    }
+  }
 
   # Créer nom de projet unique avec timestamp
   timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
@@ -98,20 +171,19 @@ init_cache_system <- function(project_name,
   )
 
   # Sauvegarder metadata
+  library(jsonlite)
   metadata_file <- file.path(cache_dir, "metadata.json")
-  write_json(metadata, metadata_file, pretty = TRUE, auto_unbox = TRUE)
+  jsonlite::write_json(metadata, metadata_file, pretty = TRUE, auto_unbox = TRUE
+  )
 
   cat(sprintf("✅ Cache system initialized\n"))
   cat(sprintf("   Project ID: %s\n", project_id))
   cat(sprintf("   Cache directory: %s\n", cache_dir))
   cat(sprintf("   Metadata file: %s\n", metadata_file))
 
-  # Register project in SQLite database
-  db_project_id <- NULL
   if (DB_INTEGRATION_ENABLED) {
     tryCatch({
       # Initialize database if needed
-      db_path <- "cache_projects/mspandas.sqlite"
       if (!file.exists(db_path)) {
         init_database(db_path)
       }
@@ -149,7 +221,7 @@ init_cache_system <- function(project_name,
     metadata_file = metadata_file,
     data_dir = data_dir,
     db_project_id = db_project_id,
-    db_path = if(DB_INTEGRATION_ENABLED) "cache_projects/mspandas.sqlite" else NULL
+    db_path = db_path
   ))
 }
 
@@ -271,8 +343,10 @@ save_checkpoint <- function(checkpoint_id,
       status = "valid"
     )
 
-    write_json(metadata, cache_info$metadata_file,
-               pretty = TRUE, auto_unbox = TRUE)
+    jsonlite::write_json(metadata, cache_info$metadata_file,
+               pretty = TRUE
+               , auto_unbox = TRUE
+               )
 
     # Register checkpoint in SQLite database
     if (DB_INTEGRATION_ENABLED && !is.null(cache_info$db_project_id)) {
@@ -421,47 +495,70 @@ can_resume_from_cache <- function(cache_info) {
 
   metadata <- read_json(cache_info$metadata_file)
 
-  if (!metadata$workflow_state$can_resume) {
+  # Build list of valid checkpoints based on filesystem + metadata status
+  valid_checkpoints <- list()
+  if (!is.null(metadata$checkpoints) && length(metadata$checkpoints) > 0) {
+    for (ckpt_id in names(metadata$checkpoints)) {
+      ckpt_info <- metadata$checkpoints[[ckpt_id]]
+      ckpt_file <- file.path(cache_info$cache_dir, ckpt_info$file)
+
+      if (!isTRUE(ckpt_info$status == "valid")) next
+      if (!file.exists(ckpt_file)) next
+
+      valid_checkpoints[[ckpt_id]] <- ckpt_info
+    }
+  }
+
+  if (length(valid_checkpoints) == 0) {
+    reason <- "No valid checkpoints found"
+    if (isFALSE(metadata$workflow_state$can_resume)) {
+      reason <- "Workflow not in resumable state and no valid checkpoints found"
+    }
     return(list(
       can_resume = FALSE,
-      reason = "Workflow not in resumable state",
+      reason = reason,
       last_checkpoint = metadata$workflow_state$current_step,
       next_step = NULL
     ))
   }
 
-  # Vérifier intégrité des checkpoints
-  for (ckpt_id in names(metadata$checkpoints)) {
-    ckpt_info <- metadata$checkpoints[[ckpt_id]]
-    ckpt_file <- file.path(cache_info$cache_dir, ckpt_info$file)
+  # Pick the most advanced valid checkpoint (prefer step_number when available)
+  step_numbers <- vapply(valid_checkpoints, function(x) {
+    sn <- x$step_number
+    if (is.null(sn) || is.na(sn)) return(NA_real_)
+    as.numeric(sn)
+  }, numeric(1))
 
-    if (!file.exists(ckpt_file)) {
-      return(list(
-        can_resume = FALSE,
-        reason = sprintf("Missing checkpoint file: %s", ckpt_info$file),
-        last_checkpoint = NULL,
-        next_step = NULL
-      ))
-    }
+  if (all(is.na(step_numbers))) {
+    # Fallback: choose the most recent by timestamp if step_number is missing
+    timestamps <- vapply(valid_checkpoints, function(x) {
+      ts <- x$timestamp
+      if (is.null(ts)) return("")
+      as.character(ts)
+    }, character(1))
+    last_checkpoint <- names(valid_checkpoints)[which.max(timestamps)]
+  } else {
+    last_checkpoint <- names(valid_checkpoints)[which.max(step_numbers)]
+  }
 
-    # Vérifier checksum (quick check)
-    if (ckpt_info$status != "valid") {
-      return(list(
-        can_resume = FALSE,
-        reason = sprintf("Invalid checkpoint: %s", ckpt_id),
-        last_checkpoint = NULL,
-        next_step = NULL
-      ))
-    }
+  # completed_steps might be absent in older metadata, be defensive
+  completed_steps <- NULL
+  if (!is.null(metadata$workflow_state$completed_steps)) {
+    completed_steps <- unlist(metadata$workflow_state$completed_steps)
+  }
+
+  reason <- "Valid checkpoints found"
+  if (isFALSE(metadata$workflow_state$can_resume)) {
+    reason <- "Workflow not in resumable state (ignored); resuming from latest valid checkpoint"
   }
 
   return(list(
     can_resume = TRUE,
-    reason = "Valid cache found",
-    last_checkpoint = metadata$workflow_state$current_step,
+    reason = reason,
+    last_checkpoint = last_checkpoint,
     next_step = metadata$workflow_state$next_step,
-    completed_steps = unlist(metadata$workflow_state$completed_steps),
-    n_checkpoints = length(metadata$checkpoints)
+    completed_steps = completed_steps,
+    n_checkpoints = length(valid_checkpoints)
   ))
 }
 
