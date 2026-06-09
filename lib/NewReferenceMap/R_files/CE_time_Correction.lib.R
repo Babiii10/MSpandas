@@ -235,10 +235,7 @@ alignement_Obiwrap <- function(xdata,
         user_profile = FALSE   # never load .Rprofile in the subprocess
       ),
       error = function(e) {
-        warning(sprintf(
-          "Obiwarp lot %d/%d : sous-process échoué (%s) — pics non corrigés pour ce lot",
-          b, n_batches, conditionMessage(e)))
-        xcms::chromPeaks(xdata_batch)   # fallback: unadjusted peaks for this batch
+        e   # return condition so process_chunk can split and retry
       },
       finally = {
         unlink(tmp_rds)   # always remove temp file, even on error
