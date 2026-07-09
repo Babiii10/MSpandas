@@ -8987,9 +8987,7 @@ observeEvent(ignoreNULL = TRUE,
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               c(input$fitModel_newSample,
-                 input$SelectSample_KernelDensity_newSample)
-               
+               input$fitModel_newSample
              },
              handlerExpr = {
                
@@ -9805,6 +9803,24 @@ observeEvent(ignoreNULL = TRUE,
                
                
              })
+
+##~~~~ Re-predict RT when sample selection changes (no npreg re-fit) ~~~~##
+observeEvent(input$SelectSample_KernelDensity_newSample, ignoreNULL = TRUE, {
+
+  if (is.null(RvarsPeakDetectionNewSample$modelKernelDensity)) return()
+
+  sample_sel <- input$SelectSample_KernelDensity_newSample
+
+  if (is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]])) return()
+
+  RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[sample_sel]]$rt <-
+    predict(
+      RvarsPeakDetectionNewSample$modelKernelDensity,
+      newdata = data.frame(
+        rt.2 = RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]$rt
+      )
+    )
+})
 
 ##
 observe({
