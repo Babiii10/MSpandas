@@ -4910,7 +4910,26 @@ observeEvent(ignoreNULL = TRUE,
                                  newdata = data.frame(rt.2 = RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample ==
                                                                                                    input$SelectSample_KernelDensity,]$rt)
                                )
-                             
+
+                             ## Log parameters for this sample (update if already exists)
+                             new_row <- data.frame(
+                               Sample           = input$SelectSample_KernelDensity,
+                               Kernel_Type      = input$KernelType,
+                               Bandwidth_Model  = input$bandwidth_Model,
+                               Bandwidth_Filter = input$bandwidth_Filter,
+                               Intensity_Filter = input$intensityFilter,
+                               Min_Density      = input$minDensity,
+                               stringsAsFactors = FALSE
+                             )
+                             existing_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
+                             if (is.null(existing_log)) {
+                               RvarsCorrectionTime$kernelDensity_params_log <- new_row
+                             } else {
+                               existing_log <- existing_log[existing_log$Sample != input$SelectSample_KernelDensity, ]
+                               RvarsCorrectionTime$kernelDensity_params_log <- rbind(existing_log, new_row)
+                             }
+                             enable("validateCETimeCorrection")
+
                              ### Delete negative correction rt
                              
                              # RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity==input$SelectSample_KernelDensity,]$rt<-
@@ -6371,6 +6390,199 @@ observeEvent(ignoreNULL = TRUE,
              })
 
 
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~ Modal: RT distribution viewer (eye button) — New Reference Map ~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+output$modal_rt_dist_before <- renderPlot({
+  sample_sel <- req(input$SelectSample_KernelDensity)
+  req(RvarsCorrectionTime$peakListAligned)
+  req(RvarsCorrectionTime$ref_sample_samplePeaks)
+
+  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
+
+  ref         <- RvarsCorrectionTime$ref_sample_samplePeaks
+  table.before <- RvarsCorrectionTime$peakListAligned[
+    RvarsCorrectionTime$peakListAligned$sample == sample_sel, ]
+
+  resMatch.before <- matchMz(x = ref, table = table.before,
+                             ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
+                             session = session)
+
+  data_before <- resMatch.before$MatchTable[
+    !is.na(resMatch.before$MatchTable$rt.2),
+    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
+  ]
+
+  rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1])
+  rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2])
+  median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
+                                 y = seq(rt_min, rt_max, by = 50))
+
+  ggplot(data_before, aes(x = rt.2, y = rt.1)) +
+    geom_point(size = 0.5) +
+    coord_cartesian(xlim = c(rt_min, rt_max), ylim = c(rt_min, rt_max)) +
+    scale_x_continuous(n.breaks = 14) +
+    scale_y_continuous(n.breaks = 14) +
+    geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
+              lwd = 1, size = 1.5) +
+    ggtitle("Before CE-time correction (Kernel Density)") +
+    labs(x = paste("CE-time (", data_before$sample.2[1], ")"),
+         y = "CE-time (Reference sample)", color = "Legend") +
+    scale_color_manual(values = c("Median" = "green")) +
+    theme_ben() +
+    theme(
+      plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
+                                margin = margin(0, 0, 5, 0), hjust = 0.5),
+      plot.background = element_rect(fill = "aliceblue"),
+      legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
+      legend.text = element_text(size = rel(0.85), face = "bold.italic")
+    )
+})
+
+output$modal_rt_dist_after <- renderPlot({
+  sample_sel <- req(input$SelectSample_KernelDensity)
+  req(RvarsCorrectionTime$peakListAligned_KernelDensity)
+  req(RvarsCorrectionTime$ref_sample_samplePeaks)
+
+  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
+
+  ref        <- RvarsCorrectionTime$ref_sample_samplePeaks
+  table.after <- RvarsCorrectionTime$peakListAligned_KernelDensity[
+    RvarsCorrectionTime$peakListAligned_KernelDensity$sample == sample_sel, ]
+
+  resMatch.after <- matchMz(x = ref, table = table.after,
+                            ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
+                            session = session)
+
+  data_after <- resMatch.after$MatchTable[
+    !is.na(resMatch.after$MatchTable$rt.2),
+    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
+  ]
+
+  rt_min <- min(range(data_after$rt.2)[1], range(data_after$rt.1)[1])
+  rt_max <- max(range(data_after$rt.2)[2], range(data_after$rt.1)[2])
+  median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
+                                 y = seq(rt_min, rt_max, by = 50))
+
+  ggplot(data_after, aes(x = rt.2, y = rt.1)) +
+    geom_point(size = 0.5) +
+    coord_cartesian(xlim = c(rt_min, rt_max), ylim = c(rt_min, rt_max)) +
+    scale_x_continuous(n.breaks = 14) +
+    scale_y_continuous(n.breaks = 14) +
+    geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
+              lwd = 1, size = 1.5) +
+    ggtitle("After CE-time correction (Kernel Density)") +
+    labs(x = paste("CE-time (", data_after$sample.2[1], ")"),
+         y = "CE-time (Reference sample)", color = "Legend") +
+    scale_color_manual(values = c("Median" = "green")) +
+    theme_ben() +
+    theme(
+      plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
+                                margin = margin(0, 0, 5, 0), hjust = 0.5),
+      plot.background = element_rect(fill = "aliceblue"),
+      legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
+      legend.text = element_text(size = rel(0.85), face = "bold.italic")
+    )
+})
+
+output$modal_rt_params_info <- renderUI({
+  sample_sel <- req(input$SelectSample_KernelDensity)
+  log <- RvarsCorrectionTime$kernelDensity_params_log
+  if (is.null(log)) return(NULL)
+  row <- log[log$Sample == sample_sel, ]
+  if (nrow(row) == 0) return(NULL)
+
+  tags$div(
+    style = paste0(
+      "background:#f0f4f8; border:1px solid #c8d8e8; border-radius:6px;",
+      "padding:10px 16px; margin-top:12px; font-size:0.9em;"
+    ),
+    tags$b("Parameters used for: ", style = "color:#760001;"),
+    tags$span(sample_sel),
+    tags$br(),
+    tags$span(tags$b("Kernel type: "), row$Kernel_Type),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Bandwidth (filter): "), row$Bandwidth_Filter),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Intensity filter: "), row$Intensity_Filter),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Min density: "), row$Min_Density)
+  )
+})
+
+observeEvent(input$btn_view_rt_dist, ignoreNULL = TRUE, {
+  req(RvarsCorrectionTime$peakListAligned)
+
+  showModal(
+    modalDialog(
+      title = "RT distribution — CE-time Kernel Density correction",
+      size = "l",
+      easyClose = TRUE,
+      footer = modalButton("Close"),
+      fluidRow(
+        column(
+          6,
+          shinycssloaders::withSpinner(
+            plotOutput("modal_rt_dist_before", width = "100%", height = "400px"),
+            type = 1, size = 0.8
+          )
+        ),
+        column(
+          6,
+          shinycssloaders::withSpinner(
+            plotOutput("modal_rt_dist_after", width = "100%", height = "400px"),
+            type = 1, size = 0.8
+          )
+        )
+      ),
+      uiOutput("modal_rt_params_info")
+    )
+  )
+})
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~ Validate all CE-time corrections ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+observeEvent(input$validateCETimeCorrection, ignoreNULL = TRUE, {
+  ask_confirmation(
+    inputId = "Confirm_validateCETimeCorrection",
+    title = NULL,
+    text = tags$b(
+      "Are you sure you're finished correcting CE-time?",
+      style = "color: #FA5858;"
+    ),
+    btn_labels = c("Cancel", "OK"),
+    btn_colors = c("#00BFFF", "#FE2E2E"),
+    html = TRUE
+  )
+})
+
+observeEvent(input$Confirm_validateCETimeCorrection, ignoreNULL = TRUE, {
+  if (isTRUE(input$Confirm_validateCETimeCorrection)) {
+    shinyjs::enable(id = "SaveKernelAjust")
+
+    ## Export kernel density parameters to Excel
+    params_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
+    if (!is.null(params_log) && nrow(params_log) > 0) {
+      export_dir <- tryCatch(directoryInput$directory, error = function(e) tempdir())
+      if (is.null(export_dir) || export_dir == "") export_dir <- tempdir()
+      xlsx_path <- file.path(export_dir, "KernelDensity_Correction_Parameters.xlsx")
+      tryCatch({
+        openxlsx::write.xlsx(params_log, file = xlsx_path, rowNames = FALSE)
+        showNotification(paste("Parameters saved:", xlsx_path),
+                         type = "message", duration = 6)
+      }, error = function(e) {
+        showNotification(paste("Failed to save parameters:", e$message),
+                         type = "error", duration = 6)
+      })
+    }
+  }
+})
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~ Save CE-time Corrected Data with shinyFiles ~~~~~~~~~~~~~~~~#
