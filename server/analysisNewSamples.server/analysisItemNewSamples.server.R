@@ -9999,6 +9999,33 @@ output$modal_rt_dist_after_newSample <- renderPlot({
     )
 })
 
+output$modal_rt_params_info_newSample <- renderUI({
+  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
+  log <- RvarsPeakDetectionNewSample$kernelDensity_params_log
+  if (is.null(log)) return(NULL)
+  row <- log[log$Sample == sample_sel, ]
+  if (nrow(row) == 0) return(NULL)
+
+  tags$div(
+    style = paste0(
+      "background:#f0f4f8; border:1px solid #c8d8e8; border-radius:6px;",
+      "padding:10px 16px; margin-top:12px; font-size:0.9em;"
+    ),
+    tags$b("Parameters used for: ", style = "color:#760001;"),
+    tags$span(sample_sel),
+    tags$br(),
+    tags$span(tags$b("Kernel type: "), row$Kernel_Type),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Bandwidth (filter): "), row$Bandwidth_Filter),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Intensity filter: "), row$Intensity_Filter),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Min density: "), row$Min_Density)
+  )
+})
+
 observeEvent(input$btn_view_rt_dist_newSample, ignoreNULL = TRUE, {
   req(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)
 
@@ -10025,7 +10052,8 @@ observeEvent(input$btn_view_rt_dist_newSample, ignoreNULL = TRUE, {
             type = 1, size = 0.8
           )
         )
-      )
+      ),
+      uiOutput("modal_rt_params_info_newSample")
     )
   )
 })
