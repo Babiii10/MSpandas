@@ -113,13 +113,10 @@ server <- function(input, output, session) {
   # Load Global Cache Controller (New Reference Map)
   
   source("lib/cache/GlobalCacheController.lib.R", local = FALSE)
-  
-  # Load Analysis New Samples Cache Controller
-  
+
+  # Load ANS Cache Controller
   source("lib/cache/AnalysisNewSamplesCacheController.lib.R", local = FALSE)
-  
-  
-  
+
   # Reactive value to store the cache controller
   
   globalCacheController <- reactiveVal(NULL)
