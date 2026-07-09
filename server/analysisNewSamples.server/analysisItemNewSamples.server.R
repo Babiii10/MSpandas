@@ -9854,21 +9854,30 @@ observe({
 ##~~~~ Modal: RT distribution viewer (eye button) ~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 
 output$modal_rt_dist_before_newSample <- renderPlot({
-  req(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter)
-  req(RvarsPeakDetectionNewSample$modelKernelDensity)
+  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
+  req(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)
+  req(RvarsPeakDetectionNewSample$map_ref)
 
-  data_before <- RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter
+  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
+
+  ref <- RvarsPeakDetectionNewSample$map_ref[2:4]
+  colnames(ref) <- c("mz", "rt", "maxo")
+  ref$maxo <- 2 ^ (ref$maxo)
+
+  table.before <- RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]
+  table.before <- table.before[, c("mz", "rt", "maxo", "sample")]
+
+  resMatch.before <- matchMz(x = ref, table = table.before,
+                             ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
+                             session = session)
+
+  data_before <- resMatch.before$MatchTable[
+    !is.na(resMatch.before$MatchTable$rt.2),
+    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
+  ]
 
   rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1])
   rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2])
-
-  predict_data_model.np <- data.frame(
-    rt.2 = seq(rt_min, rt_max, by = 50),
-    rt.1 = predict(
-      RvarsPeakDetectionNewSample$modelKernelDensity,
-      newdata = data.frame(rt.2 = seq(rt_min, rt_max, by = 50))
-    )
-  )
 
   median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
                                  y = seq(rt_min, rt_max, by = 50))
@@ -9878,14 +9887,12 @@ output$modal_rt_dist_before_newSample <- renderPlot({
     coord_cartesian(xlim = c(rt_min, rt_max), ylim = c(rt_min, rt_max)) +
     scale_x_continuous(n.breaks = 14) +
     scale_y_continuous(n.breaks = 14) +
-    geom_line(data = predict_data_model.np, aes(x = rt.2, y = rt.1, color = "Model"),
-              lwd = 1, size = 1.5) +
     geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
               lwd = 1, size = 1.5) +
     ggtitle("Before CE-time correction") +
     labs(x = paste("CE-time (", data_before$sample.2[1], ")"),
          y = "CE-time (Reference map)", color = "Legend") +
-    scale_color_manual(values = c("Model" = "red", "Median" = "green")) +
+    scale_color_manual(values = c("Median" = "green")) +
     theme_ben() +
     theme(
       plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
@@ -9897,28 +9904,40 @@ output$modal_rt_dist_before_newSample <- renderPlot({
 })
 
 output$modal_rt_dist_after_newSample <- renderPlot({
-  req(RvarsPeakDetectionNewSample$Data_Plot.after_KernelDensity)
-  req(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter)
+  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
+  req(RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection)
+  req(RvarsPeakDetectionNewSample$map_ref)
 
-  data_after  <- RvarsPeakDetectionNewSample$Data_Plot.after_KernelDensity
-  data_before <- RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter
+  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
 
-  rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1])
-  rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2])
+  ref <- RvarsPeakDetectionNewSample$map_ref[2:4]
+  colnames(ref) <- c("mz", "rt", "maxo")
+  ref$maxo <- 2 ^ (ref$maxo)
 
-  median_line.after <- seq(
-    min(range(data_after$rt.2)[1], range(data_after$rt.1)[1]),
-    max(range(data_after$rt.2)[2], range(data_after$rt.1)[2]),
-    by = 50
-  )
-  median_line_data.after <- data.frame(x = median_line.after, y = median_line.after)
+  table.after <- RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[sample_sel]]
+  table.after <- table.after[, c("mz", "rt", "maxo", "sample")]
+
+  resMatch.after <- matchMz(x = ref, table = table.after,
+                            ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
+                            session = session)
+
+  data_after <- resMatch.after$MatchTable[
+    !is.na(resMatch.after$MatchTable$rt.2),
+    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
+  ]
+
+  rt_min <- min(range(data_after$rt.2)[1], range(data_after$rt.1)[1])
+  rt_max <- max(range(data_after$rt.2)[2], range(data_after$rt.1)[2])
+
+  median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
+                                 y = seq(rt_min, rt_max, by = 50))
 
   ggplot(data_after, aes(x = rt.2, y = rt.1)) +
     geom_point(size = 0.5) +
     coord_cartesian(xlim = c(rt_min, rt_max), ylim = c(rt_min, rt_max)) +
     scale_x_continuous(n.breaks = 14) +
     scale_y_continuous(n.breaks = 14) +
-    geom_line(data = median_line_data.after, aes(x = x, y = x, color = "Median"),
+    geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
               lwd = 1, size = 1.5) +
     ggtitle("After CE-time correction (Kernel Density)") +
     labs(x = paste("CE-time (", data_after$sample.2[1], ")"),
@@ -9935,7 +9954,7 @@ output$modal_rt_dist_after_newSample <- renderPlot({
 })
 
 observeEvent(input$btn_view_rt_dist_newSample, ignoreNULL = TRUE, {
-  req(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter)
+  req(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)
 
   showModal(
     modalDialog(
