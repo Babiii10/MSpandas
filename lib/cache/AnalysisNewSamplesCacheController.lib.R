@@ -536,6 +536,7 @@ extract_ans_stage_variables <- function(stage_key, reactive_vars) {
         vars$Data_Plot.newSample <- isolate(RvarsPeakDetection$Data_Plot.newSample)
         vars$Data_Plot.newSample_to_filter <- isolate(RvarsPeakDetection$Data_Plot.newSample_to_filter)
         vars$Data_Plot.after_KernelDensity <- isolate(RvarsPeakDetection$Data_Plot.after_KernelDensity)
+        vars$kernelDensity_params_log <- isolate(RvarsPeakDetection$kernelDensity_params_log)
       }
     },
 
@@ -606,7 +607,7 @@ restore_ans_stage_variables <- function(stage_key, variables, reactive_vars) {
       "samplesCuttingTable_newSample", "peaks_mono_iso_newSample_list",
       "modelKernelDensity", "peaks_newSample_list_KernelDensityCorrection",
       "Data_Plot.newSample", "Data_Plot.newSample_to_filter",
-      "Data_Plot.after_KernelDensity",
+      "Data_Plot.after_KernelDensity", "kernelDensity_params_log",
       "FeaturesList_newSample", "sample_name_newSample"
     )
     for (field in restore_fields) {
