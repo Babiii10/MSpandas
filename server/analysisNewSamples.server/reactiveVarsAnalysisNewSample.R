@@ -86,8 +86,10 @@ RvarsPeakDetectionNewSample <- reactiveValues(
   
   res_Matrix_toPlotZoomed = NULL,
   
-  matchedTable_newSample = NULL
-  
+  matchedTable_newSample = NULL,
+
+  kernelDensity_params_log = NULL
+
 )
 
 ## reactive values for match et normalization of new samples

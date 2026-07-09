@@ -5327,7 +5327,33 @@ observeEvent(ignoreNULL = TRUE,
              handlerExpr = {
                if (input$Comfirm_FinishedCEtimeCorrection == TRUE) {
                  enable("GroupingButtonIDNewSample")
-                 
+
+                 ## Export kernel density parameters to Excel
+                 params_log <- isolate(RvarsPeakDetectionNewSample$kernelDensity_params_log)
+                 if (!is.null(params_log) && nrow(params_log) > 0) {
+                   proj_dir <- tryCatch(
+                     file.path(directoryInput$directory,
+                               isolate(RvarsPeakDetectionNewSample$Project_Name)),
+                     error = function(e) directoryInput$directory
+                   )
+                   if (!dir.exists(proj_dir)) proj_dir <- directoryInput$directory
+                   xlsx_path <- file.path(proj_dir,
+                                          "KernelDensity_Correction_Parameters.xlsx")
+                   tryCatch({
+                     openxlsx::write.xlsx(params_log, file = xlsx_path, rowNames = FALSE)
+                     showNotification(
+                       paste("Parameters saved:", xlsx_path),
+                       type = "message",
+                       duration = 6
+                     )
+                   }, error = function(e) {
+                     showNotification(
+                       paste("Failed to save parameters:", e$message),
+                       type = "error",
+                       duration = 6
+                     )
+                   })
+                 }
                }
              })
 
@@ -9056,7 +9082,27 @@ observeEvent(ignoreNULL = TRUE,
                                  RvarsPeakDetectionNewSample$modelKernelDensity,
                                  newdata = data.frame(rt.2 = RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[input$SelectSample_KernelDensity_newSample]]$rt)
                                )
-                             
+
+                             ## Log parameters used for this sample
+                             new_row <- data.frame(
+                               Project          = isolate(RvarsPeakDetectionNewSample$Project_Name),
+                               Reference_Run    = basename(isolate(RvarsPeakDetectionNewSample$run_ref_path)),
+                               Sample           = input$SelectSample_KernelDensity_newSample,
+                               Kernel_Type      = input$KernelType_newSample,
+                               Bandwidth_Model  = input$bandwidth_Model_newSample,
+                               Bandwidth_Filter = input$bandwidth_Filter_newSample,
+                               Intensity_Filter = input$intensityFilter_newSample,
+                               Min_Density      = input$minDensity_newSample,
+                               stringsAsFactors = FALSE
+                             )
+                             existing_log <- isolate(RvarsPeakDetectionNewSample$kernelDensity_params_log)
+                             if (is.null(existing_log)) {
+                               RvarsPeakDetectionNewSample$kernelDensity_params_log <- new_row
+                             } else {
+                               existing_log <- existing_log[existing_log$Sample != input$SelectSample_KernelDensity_newSample, ]
+                               RvarsPeakDetectionNewSample$kernelDensity_params_log <- rbind(existing_log, new_row)
+                             }
+
                              ### Delete negative correction rt
                              
                              # RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[input$SelectSample_KernelDensity_newSample]]$rt<-
