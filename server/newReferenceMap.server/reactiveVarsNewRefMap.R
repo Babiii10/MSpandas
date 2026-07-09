@@ -65,7 +65,8 @@ initReactiveVarsNewRefMap <- function() {
     ### Correction Kernel Density
     peakListAligned_KernelDensity = NULL,
     modelKernelDensity = NULL,
-    Data_Plot.after_KernelDensity = NULL
+    Data_Plot.after_KernelDensity = NULL,
+    kernelDensity_params_log = NULL
     
     
   )

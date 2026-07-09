@@ -972,14 +972,14 @@ CorrectionTime_KernelDensity_Ui <- function() {
             div(
               class = "pull-left",
               style = "display:inline-block",
-              
+
               actionButton(
                 inputId = "fitModel",
                 label = "Adjust CE-time",
                 icon = icon("rocket"),
                 class = "btn-primary"
               )
-              
+
             )
           ),
           column(
@@ -987,18 +987,34 @@ CorrectionTime_KernelDensity_Ui <- function() {
             div(
               class = "pull-right",
               style = "display:inline-block",
-              
+
               actionButton(
                 inputId = "resetFitModel",
                 label = "Reset",
                 icon = icon("undo"),
                 class = "btn-primary"
               )
-              
+
             )
-          ))
-          
-          
+          )),
+
+          fluidRow(
+            column(
+              12,
+              div(
+                class = "text-center",
+                style = "margin-top: 8px;",
+                actionButton(
+                  inputId = "btn_view_rt_dist",
+                  label = "View RT distribution",
+                  icon = icon("eye"),
+                  class = "btn-default"
+                )
+              )
+            )
+          )
+
+
         ),
 
         # Download button for corrected CE-time data
