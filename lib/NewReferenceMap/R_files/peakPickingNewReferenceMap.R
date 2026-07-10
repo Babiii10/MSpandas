@@ -524,6 +524,21 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     invisible(!dir.exists(dir_path))
   }
   
+  make_batch_links <- function(items, dest_dir) {
+    vapply(seq_along(items), function(i) {
+      item_w <- normalizePath(items[i], winslash = "\\", mustWork = FALSE)
+      link_w <- normalizePath(file.path(dest_dir, basename(items[i])),
+                              winslash = "\\", mustWork = FALSE)
+      if (dir.exists(items[i])) {
+        cmd <- paste0('mklink /J "', link_w, '" "', item_w, '"')
+        shell(cmd, mustWork = FALSE, intern = TRUE)
+      } else {
+        file.link(items[i], file.path(dest_dir, basename(items[i])))
+      }
+      file.exists(link_w) || dir.exists(link_w)
+    }, logical(1))
+  }
+  
   run_msdial_bat <- function(expected_stems = NULL, output_dir = NULL) {
     bat_file   <- normalizePath("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat",
                                 winslash = "\\", mustWork = FALSE)
@@ -641,6 +656,9 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
   to_process  <- input_items[!(input_stems %in% done_stems)]
   
   batch_size <- suppressWarnings(as.integer(batch_size))
+  cat("batch_size  :  ", batch_size , "\n")
+  if (length(batch_size) != 1L || is.na(batch_size)) batch_size <- NA_integer_
+  # batch_size <- if(is.null(batch_size)) NA else batch_size
   if (!is.na(batch_size) && batch_size > 0) {
     if (length(to_process) == 0) {
       message("--- Tous les échantillons déjà traités (cache) — peak picking ignoré ---")
