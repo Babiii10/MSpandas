@@ -476,9 +476,34 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
   
   
   message("\n--- PEAK PICKING ---\n")
-  
+
   incProgress(1/8, detail = paste("Calling peak detection...", round(3/8*100,0),"%",collapse=""))
-  
+
+  # Nettoyage des dossiers temporaires laissés par un run précédent interrompu.
+  {
+    stale_batch <- file.path(normalizePath(input_files, winslash = "/", mustWork = FALSE),
+                             "_msdial_batches_tmp")
+    stale_rec   <- file.path(normalizePath(input_files, winslash = "/", mustWork = FALSE),
+                             "_msdial_recovery_tmp")
+    cleanup_stale <- function(dir_path) {
+      if (!dir.exists(dir_path)) return(invisible(NULL))
+      items <- list.files(dir_path, full.names = TRUE, all.files = TRUE, no.. = TRUE)
+      for (item in items) {
+        if (dir.exists(item)) {
+          if (grepl("\\.d$", item, ignore.case = TRUE)) unlink(item, recursive = FALSE)
+          else unlink(item, recursive = TRUE)
+        } else {
+          file.remove(item)
+        }
+      }
+      unlink(dir_path, recursive = FALSE)
+      if (!dir.exists(dir_path))
+        message(sprintf("--- Dossier temp précédent nettoyé : %s ---", basename(dir_path)))
+    }
+    cleanup_stale(stale_batch)
+    cleanup_stale(stale_rec)
+  }
+
   MsdialParam(input_param = file.path("lib/NewReferenceMap/parameters","paramMsdial.txt"),
               output_param = file.path(output_export_param ,"peakPicking_Parameters.txt"),
               MS1_type = as.character(MS1_type), 
