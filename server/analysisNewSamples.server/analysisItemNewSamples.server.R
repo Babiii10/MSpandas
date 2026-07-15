@@ -5330,13 +5330,15 @@ observeEvent(ignoreNULL = TRUE,
                  
                  ## Export kernel density parameters to Excel
                  params_log <- isolate(RvarsPeakDetectionNewSample$kernelDensity_params_log)
-                 if (!is.null(params_log) && nrow(params_log) > 0) {
+                 if (!is.null(params_log) && nrow(params_log) > 0 &&
+                     length(directoryInput$directory) > 0 &&
+                     nzchar(directoryInput$directory)) {
                    proj_dir <- tryCatch(
                      file.path(directoryInput$directory,
                                isolate(RvarsPeakDetectionNewSample$Project_Name)),
                      error = function(e) directoryInput$directory
                    )
-                   if (!dir.exists(proj_dir)) proj_dir <- directoryInput$directory
+                   if (length(proj_dir) == 0 || !dir.exists(proj_dir)) proj_dir <- directoryInput$directory
                    xlsx_path <- file.path(proj_dir,
                                           "KernelDensity_Correction_Parameters.xlsx")
                    tryCatch({
