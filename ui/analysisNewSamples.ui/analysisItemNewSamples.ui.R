@@ -705,12 +705,38 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
               )
             )
           )
-          
+
         ),
-        
+
+        ##~~~~~~~~~~~~~~~~~~ Batch import of known kernel density parameters ~~~~~~~~~~~~#
+        ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
         div(
           class = "well well-sm",
-          
+          h4("Batch import kernel density parameters:"),
+          fileInput(
+            inputId = "batchKernelParamsFile_newSample",
+            label = "Excel file (Datafile, Bandwith, Int filter, min den, Corr Kernel)",
+            accept = c(".xlsx", ".xls")
+          ),
+          fluidRow(
+            column(
+              12,
+              div(
+                class = "text-center",
+                actionButton(
+                  inputId = "applyBatchKernelParams_newSample",
+                  label = "Apply batch corrections",
+                  icon = icon("bolt"),
+                  class = "btn-primary"
+                )
+              )
+            )
+          )
+        ),
+
+        div(
+          class = "well well-sm",
+
           h4("Grouping massif into features:"),
           fluidRow(br()),
           fluidRow(column(
