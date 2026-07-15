@@ -657,14 +657,22 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
             div(
               class = "pull-left",
               style = "display:inline-block",
-
+              
               actionButton(
                 inputId = "fitModel_newSample",
                 label = "Adjust CE-time",
                 icon = icon("rocket"),
                 class = "btn-primary"
               )
-
+              # ,
+              # 
+              # actionButton(
+              #   inputId = "show_corrected_sampleselected",
+              #   label = "View",
+              #   icon = icon('eye'),
+              #   class = "btn-secondary"
+              # )
+              
             )
           ),
           column(
@@ -672,16 +680,16 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
             div(
               class = "pull-right",
               style = "display:inline-block",
-
+              
               actionButton(
                 inputId = "Finish_fitModel_newSample",
                 label = "Finish",
                 class = "btn-primary"
               )
-
+              
             )
           )),
-
+          # for eye button
           fluidRow(
             column(
               12,
@@ -692,12 +700,12 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
                   inputId = "btn_view_rt_dist_newSample",
                   label = "View RT distribution",
                   icon = icon("eye"),
-                  class = "btn-default"
+                  class = "btn-primary"
                 )
               )
             )
           )
-
+          
         ),
         
         div(
