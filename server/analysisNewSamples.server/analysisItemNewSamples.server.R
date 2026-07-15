@@ -9869,23 +9869,10 @@ observeEvent(ignoreNULL = TRUE,
                
              })
 
-##~~~~ Re-predict RT when sample selection changes (no npreg re-fit) ~~~~##
-observeEvent(input$SelectSample_KernelDensity_newSample, ignoreNULL = TRUE, {
-  
-  if (is.null(RvarsPeakDetectionNewSample$modelKernelDensity)) return()
-  
-  sample_sel <- input$SelectSample_KernelDensity_newSample
-  
-  if (is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]])) return()
-  
-  RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[sample_sel]]$rt <-
-    predict(
-      RvarsPeakDetectionNewSample$modelKernelDensity,
-      newdata = data.frame(
-        rt.2 = RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]$rt
-      )
-    )
-})
+## NOTE: l'ancien observer "Re-predict RT when sample selection changes" a été supprimé.
+## Il appliquait automatiquement le modèle restauré du cache au run sélectionné,
+## écrasant peaks_newSample_list_KernelDensityCorrection sans action explicite de l'utilisateur.
+## La correction ne doit s'appliquer que via le bouton "Adjust CE-time".
 
 
 
