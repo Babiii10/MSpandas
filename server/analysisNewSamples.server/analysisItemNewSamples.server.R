@@ -8638,38 +8638,49 @@ observe({
   if (!is.null(peaks_mono_iso_sample_selectedCutting_newSample())) {
     sample_name <-
       names(peaks_mono_iso_sample_selectedCutting_newSample())
-    
+
     RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list <-
       peaks_mono_iso_sample_selectedCutting_newSample()
-    
+
     peaks <-
       RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list
-    RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <-
-      peaks
-    
+
+    # Fusion au lieu d'écrasement : préserve les corrections déjà appliquées
+    # (issues d'un "Adjust CE-time" ou restaurées du cache) pour les runs déjà
+    # présents ; n'initialise avec les données brutes que les runs manquants.
+    existing_correction <- isolate(RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection)
+    if (is.null(existing_correction)) {
+      RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <- peaks
+    } else {
+      merged <- peaks
+      already_corrected <- intersect(names(existing_correction), names(peaks))
+      merged[already_corrected] <- existing_correction[already_corrected]
+      RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <- merged
+    }
+
     updatePickerInput(session = session,
                       inputId = "SelectSample_KernelDensity_newSample",
                       choices = sample_name)
-    
-    
-    
+
+
+
   } else {
     RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list <-
       peaks_mono_iso_sample_selectedCutting_newSample()
-    
+
     peaks <-
       RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list
     RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <-
       peaks
-    
+
     updatePickerInput(
       session = session,
       inputId = "SelectSample_KernelDensity_newSample",
       choices = character(0),
       selected = character(0)
     )
-    
-    
+
+
   }
 })
 
