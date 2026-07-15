@@ -6570,7 +6570,7 @@ observeEvent(input$Confirm_validateCETimeCorrection, ignoreNULL = TRUE, {
     params_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
     if (!is.null(params_log) && nrow(params_log) > 0) {
       export_dir <- tryCatch(directoryInput$directory, error = function(e) tempdir())
-      if (is.null(export_dir) || export_dir == "") export_dir <- tempdir()
+      if (length(export_dir) == 0 || !nzchar(export_dir)) export_dir <- tempdir()
       xlsx_path <- file.path(export_dir, "KernelDensity_Correction_Parameters.xlsx")
       tryCatch({
         openxlsx::write.xlsx(params_log, file = xlsx_path, rowNames = FALSE)
