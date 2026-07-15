@@ -9887,6 +9887,187 @@ observeEvent(ignoreNULL = TRUE,
 ## écrasant peaks_newSample_list_KernelDensityCorrection sans action explicite de l'utilisateur.
 ## La correction ne doit s'appliquer que via le bouton "Adjust CE-time".
 
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+##~~~~ Batch import kernel density parameters (reuse of fitModel_newSample logic) ~~##
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+## Reprend exactement les mêmes étapes que l'observer "fitModel_newSample"
+## (matchMz -> filtre intensité -> kde2d -> filtre densité -> npreg -> predict -> log),
+## mais paramétrées explicitement au lieu de lire input$..., pour pouvoir être
+## rejouées en boucle sur une liste de runs sans dépendre des widgets Shiny.
+apply_kernel_density_correction_newSample <- function(sample_sel,
+                                                      kernel_type,
+                                                      bandwidth_model,
+                                                      bandwidth_filter,
+                                                      intensity_filter,
+                                                      min_density,
+                                                      grid_size = 500) {
+
+  if (is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]) ||
+      is.null(RvarsPeakDetectionNewSample$map_ref)) {
+    return(list(success = FALSE, reason = "run introuvable ou map_ref manquant"))
+  }
+
+  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
+
+  ref <- RvarsPeakDetectionNewSample$map_ref[2:4]
+  colnames(ref) <- c("mz", "rt", "maxo")
+  ref$maxo <- 2 ^ ref$maxo
+
+  table.newSample <- RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]
+  table.newSample <- table.newSample[, c("mz", "rt", "maxo", "sample")]
+
+  resMatch <- matchMz(x = ref, table = table.newSample, ppm_tolereance = 1000,
+                      mzcol = "mz", rtcol = "rt", session = session)
+
+  data_to_filter <- resMatch$MatchTable[!is.na(resMatch$MatchTable$rt.2),
+                                        c("mz.1", "rt.1", "maxo.1",
+                                          "mz.2", "rt.2", "maxo.2", "sample.2")]
+  if (nrow(data_to_filter) == 0)
+    return(list(success = FALSE, reason = "aucune correspondance avec map_ref"))
+
+  data_to_filter$maxo.2 <- log2(data_to_filter$maxo.2)
+
+  data_filtered <- data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter)
+  if (nrow(data_filtered) == 0)
+    return(list(success = FALSE, reason = "filtre d'intensité trop restrictif"))
+
+  dens <- MASS::kde2d(data_filtered$rt.2, data_filtered$rt.1,
+                      h = bandwidth_filter, n = grid_size)
+  df <- expand.grid(x = dens$x, y = dens$y)
+  df$density <- as.vector(dens$z)
+  df$density <- df$density / max(df$density)
+  colnames(df)[1:2] <- c("rt.2", "rt.1")
+  dataDensity <- df %>% dplyr::filter(density >= min_density)
+  if (nrow(dataDensity) == 0)
+    return(list(success = FALSE, reason = "min density trop restrictif"))
+
+  model <- tryCatch(
+    npreg(
+      rt.1 ~ rt.2,
+      bws = bandwidth_model,
+      bwtype = "fixed",
+      regtype = "ll",
+      ckertype = kernel_type,
+      gradients = TRUE,
+      data = dataDensity
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(model))
+    return(list(success = FALSE, reason = "échec de l'ajustement npreg"))
+
+  RvarsPeakDetectionNewSample$modelKernelDensity <- model
+  RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[sample_sel]]$rt <-
+    predict(
+      model,
+      newdata = data.frame(rt.2 = RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]$rt)
+    )
+
+  new_row <- data.frame(
+    Project          = isolate(RvarsPeakDetectionNewSample$Project_Name),
+    Reference_Run    = basename(isolate(RvarsPeakDetectionNewSample$run_ref_path)),
+    Sample           = sample_sel,
+    Kernel_Type      = kernel_type,
+    Bandwidth_Model  = bandwidth_model,
+    Bandwidth_Filter = bandwidth_filter,
+    Intensity_Filter = intensity_filter,
+    Min_Density      = min_density,
+    stringsAsFactors = FALSE
+  )
+  existing_log <- isolate(RvarsPeakDetectionNewSample$kernelDensity_params_log)
+  if (is.null(existing_log)) {
+    RvarsPeakDetectionNewSample$kernelDensity_params_log <- new_row
+  } else {
+    existing_log <- existing_log[existing_log$Sample != sample_sel, ]
+    RvarsPeakDetectionNewSample$kernelDensity_params_log <- rbind(existing_log, new_row)
+  }
+
+  list(success = TRUE, reason = NULL)
+}
+
+observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
+  req(input$batchKernelParamsFile_newSample)
+
+  df <- tryCatch(
+    openxlsx::read.xlsx(input$batchKernelParamsFile_newSample$datapath, sheet = 1),
+    error = function(e) NULL
+  )
+  if (is.null(df)) {
+    showNotification("Impossible de lire le fichier Excel.", type = "error", duration = 8)
+    return()
+  }
+
+  col_names <- colnames(df)
+  datafile_col <- col_names[grepl("^Datafile", col_names, ignore.case = TRUE)][1]
+  bandwith_col <- col_names[grepl("^Bandwith$|^Bandwidth$", col_names, ignore.case = TRUE)][1]
+  intfilter_col <- col_names[grepl("^Int.?filter$", col_names, ignore.case = TRUE)][1]
+  minden_col <- col_names[grepl("^min.?den", col_names, ignore.case = TRUE)][1]
+  corrkernel_col <- col_names[grepl("^Corr.?Kernel$", col_names, ignore.case = TRUE)][1]
+
+  missing_cols <- c("Datafile", "Bandwith", "Int filter", "min den", "Corr Kernel")[
+    is.na(c(datafile_col, bandwith_col, intfilter_col, minden_col, corrkernel_col))
+  ]
+  if (length(missing_cols) > 0) {
+    showNotification(
+      paste("Colonnes manquantes dans le fichier :", paste(missing_cols, collapse = ", ")),
+      type = "error", duration = 10
+    )
+    return()
+  }
+
+  n <- nrow(df)
+  results <- data.frame(Sample = character(0), Status = character(0), stringsAsFactors = FALSE)
+
+  withProgress(message = "Import batch des corrections kernel density...", value = 0, {
+    for (i in seq_len(n)) {
+      incProgress(1 / n, detail = sprintf("%d/%d", i, n))
+
+      sample_sel <- trimws(as.character(df[[datafile_col]][i]))
+      bw_filter  <- suppressWarnings(as.numeric(df[[bandwith_col]][i]))
+      int_filter <- suppressWarnings(as.numeric(df[[intfilter_col]][i]))
+      min_dens   <- suppressWarnings(as.numeric(df[[minden_col]][i]))
+      bw_model   <- suppressWarnings(as.numeric(df[[corrkernel_col]][i]))
+
+      if (!nzchar(sample_sel) || is.na(bw_filter) || is.na(int_filter) ||
+          is.na(min_dens) || is.na(bw_model)) {
+        results <- rbind(results, data.frame(Sample = sample_sel, Status = "Ignoré (valeurs manquantes)"))
+        next
+      }
+
+      if (is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]])) {
+        results <- rbind(results, data.frame(Sample = sample_sel, Status = "Ignoré (run non chargé)"))
+        next
+      }
+
+      res <- apply_kernel_density_correction_newSample(
+        sample_sel       = sample_sel,
+        kernel_type      = "gaussian",
+        bandwidth_model  = bw_model,
+        bandwidth_filter = bw_filter,
+        intensity_filter = int_filter,
+        min_density      = min_dens
+      )
+
+      results <- rbind(results, data.frame(
+        Sample = sample_sel,
+        Status = if (isTRUE(res$success)) "OK" else paste("Échec :", res$reason)
+      ))
+    }
+  })
+
+  n_ok <- sum(results$Status == "OK")
+  n_other <- nrow(results) - n_ok
+
+  cat("--- Batch import kernel density : résultats ---\n")
+  print(results)
+
+  showNotification(
+    sprintf("Import batch terminé : %d run(s) corrigé(s), %d ignoré(s)/échoué(s).", n_ok, n_other),
+    type = if (n_other == 0) "message" else "warning",
+    duration = 10
+  )
+})
+
 
 
 ##
