@@ -1017,6 +1017,32 @@ CorrectionTime_KernelDensity_Ui <- function() {
 
         ),
 
+        ##~~~~~~~~~~~~~~~~~~ Batch import of known kernel density parameters ~~~~~~~~~~~~#
+        ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+        div(
+          class = "well well-sm",
+          h4("Batch import kernel density parameters:"),
+          fileInput(
+            inputId = "batchKernelParamsFile",
+            label = "Excel file (Datafile, Bandwith, Int filter, min den, Corr Kernel)",
+            accept = c(".xlsx", ".xls")
+          ),
+          fluidRow(
+            column(
+              12,
+              div(
+                class = "text-center",
+                actionButton(
+                  inputId = "applyBatchKernelParams",
+                  label = "Apply batch corrections",
+                  icon = icon("bolt"),
+                  class = "btn-primary"
+                )
+              )
+            )
+          )
+        ),
+
         # Download button for corrected CE-time data
         fluidRow(column(12, br())),
         fluidRow(column(
