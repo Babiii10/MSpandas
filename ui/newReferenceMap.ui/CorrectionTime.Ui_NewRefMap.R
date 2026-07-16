@@ -1029,7 +1029,7 @@ CorrectionTime_KernelDensity_Ui <- function() {
           ),
           fluidRow(
             column(
-              12,
+              6,
               div(
                 class = "text-center",
                 actionButton(
@@ -1037,6 +1037,18 @@ CorrectionTime_KernelDensity_Ui <- function() {
                   label = "Apply batch corrections",
                   icon = icon("bolt"),
                   class = "btn-primary"
+                )
+              )
+            ),
+            column(
+              6,
+              div(
+                class = "text-center",
+                actionButton(
+                  inputId = "viewBatchKernelParamsResults",
+                  label = "View results",
+                  icon = icon("table"),
+                  class = "btn-default"
                 )
               )
             )

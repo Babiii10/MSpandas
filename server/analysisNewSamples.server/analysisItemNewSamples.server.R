@@ -10145,7 +10145,14 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
     duration = 10
   )
 
-  ## Détail par run (dont la raison de chaque échec/ignoré) dans une fenêtre modale
+  ## Conserve les résultats pour pouvoir les rouvrir plus tard via le bouton "View results"
+  RvarsPeakDetectionNewSample$batchKernelParamsResults_newSample <- results
+
+  show_batch_kernel_results_modal_newSample(results)
+})
+
+## Affiche (ou réaffiche) le tableau des résultats du dernier import batch
+show_batch_kernel_results_modal_newSample <- function(results) {
   output$batchKernelParamsResultTable_newSample <- DT::renderDataTable({
     DT::datatable(
       results,
@@ -10162,6 +10169,16 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
       DT::dataTableOutput("batchKernelParamsResultTable_newSample")
     )
   )
+}
+
+observeEvent(input$viewBatchKernelParamsResults_newSample, ignoreNULL = TRUE, {
+  results <- isolate(RvarsPeakDetectionNewSample$batchKernelParamsResults_newSample)
+  if (is.null(results) || nrow(results) == 0) {
+    showNotification("Aucun résultat d'import batch disponible pour l'instant.",
+                     type = "message", duration = 6)
+    return()
+  }
+  show_batch_kernel_results_modal_newSample(results)
 })
 
 
