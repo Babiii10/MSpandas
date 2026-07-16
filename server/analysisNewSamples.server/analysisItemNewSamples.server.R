@@ -9977,10 +9977,7 @@ apply_kernel_density_correction_newSample <- function(sample_sel,
   
   data_filtered <- data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter)
   if (nrow(data_filtered) == 0)
-    return(list(success = FALSE, reason = sprintf(
-      "filtre d'intensité trop restrictif (log2 intensité max disponible : %.2f, seuil demandé : %.2f)",
-      max(data_to_filter$maxo.2, na.rm = TRUE), intensity_filter
-    )))
+    return(list(success = FALSE, reason = "filtre d'intensité trop restrictif"))
   
   dens <- MASS::kde2d(data_filtered$rt.2, data_filtered$rt.1,
                       h = bandwidth_filter, n = grid_size)
@@ -9990,10 +9987,7 @@ apply_kernel_density_correction_newSample <- function(sample_sel,
   colnames(df)[1:2] <- c("rt.2", "rt.1")
   dataDensity <- df %>% dplyr::filter(density >= min_density)
   if (nrow(dataDensity) == 0)
-    return(list(success = FALSE, reason = sprintf(
-      "min density trop restrictif (densité max disponible : %.3f, seuil demandé : %.3f)",
-      max(df$density, na.rm = TRUE), min_density
-    )))
+    return(list(success = FALSE, reason = "min density trop restrictif"))
   
   model <- tryCatch(
     npreg(
@@ -10098,6 +10092,10 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
     for (i in seq_len(n)) {
       incProgress(1 / n, detail = sprintf("%d/%d", i, n))
       
+      if (grepl("\\.d$", datafile_col)) {
+        datafile_col <- sub("\\.d$", "", datafile_col)
+      }
+      
       # sample_sel <- trimws(as.character(df[[datafile_col]][i]))
       sample_raw <- trimws(as.character(df[[datafile_col]][i]))
       bw_filter  <- suppressWarnings(as.numeric(df[[bandwith_col]][i]))
@@ -10110,7 +10108,10 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
         results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (valeurs manquantes)"))
         next
       }
-
+      
+      cat("sample_raw : \n")
+      print(sample_raw)
+      
       sample_sel <- unname(loaded_key_lookup[normalize_run_key_newSample(sample_raw)])
       if (is.na(sample_sel)) {
         results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (run non chargé)"))
@@ -10144,11 +10145,28 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
     type = if (n_other == 0) "message" else "warning",
     duration = 10
   )
-
-  ## Conserve les résultats pour pouvoir les rouvrir plus tard via le bouton "View results"
+  
   RvarsPeakDetectionNewSample$batchKernelParamsResults_newSample <- results
-
+  
   show_batch_kernel_results_modal_newSample(results)
+  
+  ## Détail par run (dont la raison de chaque échec/ignoré) dans une fenêtre modale
+  # output$batchKernelParamsResultTable_newSample <- DT::renderDataTable({
+  #   DT::datatable(
+  #     results,
+  #     rownames = FALSE,
+  #     options = list(pageLength = 15, scrollX = TRUE)
+  #   )
+  # })
+  # showModal(
+  #   modalDialog(
+  #     title = "Résultats de l'import batch — kernel density",
+  #     size = "l",
+  #     easyClose = TRUE,
+  #     footer = modalButton("Close"),
+  #     DT::dataTableOutput("batchKernelParamsResultTable_newSample")
+  #   )
+  # )
 })
 
 ## Affiche (ou réaffiche) le tableau des résultats du dernier import batch
@@ -11026,16 +11044,17 @@ output$modal_rt_dist_before_newSample <- renderPlot({
   ]
   
   rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1])
-  # rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2])
-  rt_max  <- max(data_before$rt.1) + 100
+  rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2])
+  rt_max.x  <- max(data_before$rt.2) + 100
+  rt_max.y <- max(data_before$rt.1) + 100
   
   median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
                                  y = seq(rt_min, rt_max, by = 50))
   
   ggplot(data_before, aes(x = rt.2, y = rt.1)) +
     geom_point(size = 0.5) +
-    coord_cartesian(xlim = c(rt_min, rt_max), 
-                    ylim = c(rt_min, rt_max)) +
+    coord_cartesian(xlim = c(rt_min, rt_max.x), 
+                    ylim = c(rt_min, rt_max.y)) +
     scale_x_continuous(n.breaks = 14) +
     scale_y_continuous(n.breaks = 14) +
     geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
@@ -11251,13 +11270,13 @@ output$modal_rt_params_info_newSample <- renderUI({
     tags$br(),
     tags$span(tags$b("Kernel type: "), row$Kernel_Type),
     tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model),
-    tags$span(" | ", style = "color:#aaa;"),
     tags$span(tags$b("Bandwidth (filter): "), row$Bandwidth_Filter),
     tags$span(" | ", style = "color:#aaa;"),
     tags$span(tags$b("Intensity filter: "), row$Intensity_Filter),
     tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Min density: "), row$Min_Density)
+    tags$span(tags$b("Min density: "), row$Min_Density),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model)
   )
 })
 
