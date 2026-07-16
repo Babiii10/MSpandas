@@ -5789,8 +5789,8 @@ observeEvent(input$applyBatchKernelParams, ignoreNULL = TRUE, {
         next
       }
 
-      sample_sel <- loaded_key_lookup[[normalize_run_key(sample_raw)]]
-      if (is.null(sample_sel)) {
+      sample_sel <- unname(loaded_key_lookup[normalize_run_key(sample_raw)])
+      if (is.na(sample_sel)) {
         results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (run non chargé)"))
         next
       }
@@ -5821,6 +5821,24 @@ observeEvent(input$applyBatchKernelParams, ignoreNULL = TRUE, {
     sprintf("Import batch terminé : %d run(s) corrigé(s), %d ignoré(s)/échoué(s).", n_ok, n_other),
     type = if (n_other == 0) "message" else "warning",
     duration = 10
+  )
+
+  ## Détail par run (dont la raison de chaque échec/ignoré) dans une fenêtre modale
+  output$batchKernelParamsResultTable <- DT::renderDataTable({
+    DT::datatable(
+      results,
+      rownames = FALSE,
+      options = list(pageLength = 15, scrollX = TRUE)
+    )
+  })
+  showModal(
+    modalDialog(
+      title = "Résultats de l'import batch — kernel density",
+      size = "l",
+      easyClose = TRUE,
+      footer = modalButton("Close"),
+      DT::dataTableOutput("batchKernelParamsResultTable")
+    )
   )
 })
 
