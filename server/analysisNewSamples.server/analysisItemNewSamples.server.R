@@ -11020,41 +11020,62 @@ observeEvent(ignoreNULL = TRUE,
 
 
 ##~~~~ Modal: RT distribution viewer (eye button) ~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-output$modal_rt_dist_before_newSample <- renderPlot({
+## Calcule une seule fois les données Before/After et une plage d'axes COMMUNE
+## aux deux graphiques, pour qu'ils soient alignés et comparables visuellement.
+modal_rt_data_newSample <- reactive({
   sample_sel <- req(input$SelectSample_KernelDensity_newSample)
   req(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)
+  req(RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection)
   req(RvarsPeakDetectionNewSample$map_ref)
-  
+
   source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
-  
+
   ref <- RvarsPeakDetectionNewSample$map_ref[2:4]
   colnames(ref) <- c("mz", "rt", "maxo")
   ref$maxo <- 2 ^ (ref$maxo)
-  
+
   table.before <- RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]
   table.before <- table.before[, c("mz", "rt", "maxo", "sample")]
-  
   resMatch.before <- matchMz(x = ref, table = table.before,
                              ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
                              session = session)
-  
   data_before <- resMatch.before$MatchTable[
     !is.na(resMatch.before$MatchTable$rt.2),
     c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
   ]
-  
-  rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1])
-  rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2])
-  rt_max.x  <- max(data_before$rt.2) + 100
-  rt_max.y <- max(data_before$rt.1) + 100
-  
+
+  table.after <- RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[sample_sel]]
+  table.after <- table.after[, c("mz", "rt", "maxo", "sample")]
+  resMatch.after <- matchMz(x = ref, table = table.after,
+                            ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
+                            session = session)
+  data_after <- resMatch.after$MatchTable[
+    !is.na(resMatch.after$MatchTable$rt.2),
+    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
+  ]
+
+  rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1],
+               range(data_after$rt.2)[1], range(data_after$rt.1)[1])
+  rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2],
+               range(data_after$rt.2)[2], range(data_after$rt.1)[2])
+
+  list(data_before = data_before, data_after = data_after,
+      rt_min = rt_min, rt_max = rt_max)
+})
+
+output$modal_rt_dist_before_newSample <- renderPlot({
+  rt_data <- modal_rt_data_newSample()
+  data_before <- rt_data$data_before
+  rt_min <- rt_data$rt_min
+  rt_max <- rt_data$rt_max
+
   median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
                                  y = seq(rt_min, rt_max, by = 50))
-  
+
   ggplot(data_before, aes(x = rt.2, y = rt.1)) +
     geom_point(size = 0.5) +
-    coord_cartesian(xlim = c(rt_min, rt_max.x), 
-                    ylim = c(rt_min, rt_max.y)) +
+    coord_cartesian(xlim = c(rt_min, rt_max),
+                    ylim = c(rt_min, rt_max)) +
     scale_x_continuous(n.breaks = 14) +
     scale_y_continuous(n.breaks = 14) +
     geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
@@ -11120,34 +11141,14 @@ output$modal_rt_dist_before_newSample <- renderPlot({
 
 
 output$modal_rt_dist_after_newSample <- renderPlot({
-  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-  req(RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection)
-  req(RvarsPeakDetectionNewSample$map_ref)
-  
-  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
-  
-  ref <- RvarsPeakDetectionNewSample$map_ref[2:4]
-  colnames(ref) <- c("mz", "rt", "maxo")
-  ref$maxo <- 2 ^ (ref$maxo)
-  
-  table.after <- RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[sample_sel]]
-  table.after <- table.after[, c("mz", "rt", "maxo", "sample")]
-  
-  resMatch.after <- matchMz(x = ref, table = table.after,
-                            ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
-                            session = session)
-  
-  data_after <- resMatch.after$MatchTable[
-    !is.na(resMatch.after$MatchTable$rt.2),
-    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
-  ]
-  
-  rt_min <- min(range(data_after$rt.2)[1], range(data_after$rt.1)[1])
-  rt_max <- max(range(data_after$rt.2)[2], range(data_after$rt.1)[2])
-  
+  rt_data <- modal_rt_data_newSample()
+  data_after <- rt_data$data_after
+  rt_min <- rt_data$rt_min
+  rt_max <- rt_data$rt_max
+
   median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
                                  y = seq(rt_min, rt_max, by = 50))
-  
+
   ggplot(data_after, aes(x = rt.2, y = rt.1)) +
     geom_point(size = 0.5) +
     coord_cartesian(xlim = c(rt_min, rt_max), 
