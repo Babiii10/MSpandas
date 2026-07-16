@@ -6629,28 +6629,53 @@ observeEvent(ignoreNULL = TRUE,
 ##~~~~ Modal: RT distribution viewer (eye button) — New Reference Map ~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-output$modal_rt_dist_before <- renderPlot({
+## Calcule une seule fois les données Before/After et une plage d'axes COMMUNE
+## aux deux graphiques, pour qu'ils soient alignés et comparables visuellement.
+modal_rt_data <- reactive({
   sample_sel <- req(input$SelectSample_KernelDensity)
   req(RvarsCorrectionTime$peakListAligned)
+  req(RvarsCorrectionTime$peakListAligned_KernelDensity)
   req(RvarsCorrectionTime$ref_sample_samplePeaks)
 
   source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
 
-  ref         <- RvarsCorrectionTime$ref_sample_samplePeaks
+  ref <- RvarsCorrectionTime$ref_sample_samplePeaks
+
   table.before <- RvarsCorrectionTime$peakListAligned[
     RvarsCorrectionTime$peakListAligned$sample == sample_sel, ]
-
   resMatch.before <- matchMz(x = ref, table = table.before,
                              ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
                              session = session)
-
   data_before <- resMatch.before$MatchTable[
     !is.na(resMatch.before$MatchTable$rt.2),
     c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
   ]
 
-  rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1])
-  rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2])
+  table.after <- RvarsCorrectionTime$peakListAligned_KernelDensity[
+    RvarsCorrectionTime$peakListAligned_KernelDensity$sample == sample_sel, ]
+  resMatch.after <- matchMz(x = ref, table = table.after,
+                            ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
+                            session = session)
+  data_after <- resMatch.after$MatchTable[
+    !is.na(resMatch.after$MatchTable$rt.2),
+    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
+  ]
+
+  rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1],
+               range(data_after$rt.2)[1], range(data_after$rt.1)[1])
+  rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2],
+               range(data_after$rt.2)[2], range(data_after$rt.1)[2])
+
+  list(data_before = data_before, data_after = data_after,
+      rt_min = rt_min, rt_max = rt_max)
+})
+
+output$modal_rt_dist_before <- renderPlot({
+  rt_data <- modal_rt_data()
+  data_before <- rt_data$data_before
+  rt_min <- rt_data$rt_min
+  rt_max <- rt_data$rt_max
+
   median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
                                  y = seq(rt_min, rt_max, by = 50))
 
@@ -6676,27 +6701,11 @@ output$modal_rt_dist_before <- renderPlot({
 })
 
 output$modal_rt_dist_after <- renderPlot({
-  sample_sel <- req(input$SelectSample_KernelDensity)
-  req(RvarsCorrectionTime$peakListAligned_KernelDensity)
-  req(RvarsCorrectionTime$ref_sample_samplePeaks)
+  rt_data <- modal_rt_data()
+  data_after <- rt_data$data_after
+  rt_min <- rt_data$rt_min
+  rt_max <- rt_data$rt_max
 
-  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
-
-  ref        <- RvarsCorrectionTime$ref_sample_samplePeaks
-  table.after <- RvarsCorrectionTime$peakListAligned_KernelDensity[
-    RvarsCorrectionTime$peakListAligned_KernelDensity$sample == sample_sel, ]
-
-  resMatch.after <- matchMz(x = ref, table = table.after,
-                            ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
-                            session = session)
-
-  data_after <- resMatch.after$MatchTable[
-    !is.na(resMatch.after$MatchTable$rt.2),
-    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
-  ]
-
-  rt_min <- min(range(data_after$rt.2)[1], range(data_after$rt.1)[1])
-  rt_max <- max(range(data_after$rt.2)[2], range(data_after$rt.1)[2])
   median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
                                  y = seq(rt_min, rt_max, by = 50))
 
