@@ -10048,8 +10048,8 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
         next
       }
 
-      sample_sel <- loaded_key_lookup[[normalize_run_key_newSample(sample_raw)]]
-      if (is.null(sample_sel)) {
+      sample_sel <- unname(loaded_key_lookup[normalize_run_key_newSample(sample_raw)])
+      if (is.na(sample_sel)) {
         results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (run non chargé)"))
         next
       }
