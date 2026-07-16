@@ -10138,6 +10138,24 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
     type = if (n_other == 0) "message" else "warning",
     duration = 10
   )
+
+  ## Détail par run (dont la raison de chaque échec/ignoré) dans une fenêtre modale
+  output$batchKernelParamsResultTable_newSample <- DT::renderDataTable({
+    DT::datatable(
+      results,
+      rownames = FALSE,
+      options = list(pageLength = 15, scrollX = TRUE)
+    )
+  })
+  showModal(
+    modalDialog(
+      title = "Résultats de l'import batch — kernel density",
+      size = "l",
+      easyClose = TRUE,
+      footer = modalButton("Close"),
+      DT::dataTableOutput("batchKernelParamsResultTable_newSample")
+    )
+  )
 })
 
 
