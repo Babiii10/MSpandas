@@ -5670,7 +5670,10 @@ apply_kernel_density_correction <- function(sample_sel,
 
   data_filtered <- data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter)
   if (nrow(data_filtered) == 0)
-    return(list(success = FALSE, reason = "filtre d'intensité trop restrictif"))
+    return(list(success = FALSE, reason = sprintf(
+      "filtre d'intensité trop restrictif (log2 intensité max disponible : %.2f, seuil demandé : %.2f)",
+      max(data_to_filter$maxo.2, na.rm = TRUE), intensity_filter
+    )))
 
   dens <- MASS::kde2d(data_filtered$rt.2, data_filtered$rt.1,
                       h = bandwidth_filter, n = grid_size)
@@ -5680,7 +5683,10 @@ apply_kernel_density_correction <- function(sample_sel,
   colnames(df)[1:2] <- c("rt.2", "rt.1")
   dataDensity <- df %>% dplyr::filter(density >= min_density)
   if (nrow(dataDensity) == 0)
-    return(list(success = FALSE, reason = "min density trop restrictif"))
+    return(list(success = FALSE, reason = sprintf(
+      "min density trop restrictif (densité max disponible : %.3f, seuil demandé : %.3f)",
+      max(df$density, na.rm = TRUE), min_density
+    )))
 
   model <- tryCatch(
     npreg(
