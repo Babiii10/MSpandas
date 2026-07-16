@@ -5724,6 +5724,17 @@ apply_kernel_density_correction <- function(sample_sel,
   list(success = TRUE, reason = NULL)
 }
 
+## Normalise un nom de run pour comparaison robuste aux variations de format
+## (séparateurs "_"/" - "/"-" et zero-padding différent du numéro de run,
+## ex: "..._Run-00008" (Excel) vs "...Run000008" (nom interne de l'app)).
+normalize_run_key <- function(x) {
+  x <- tolower(trimws(as.character(x)))
+  x <- gsub("[-_]+", " ", x)
+  x <- gsub("\\s+", " ", x)
+  x <- sub("run\\s*0*([0-9]+)\\s*$", "run\\1", x)
+  x
+}
+
 observeEvent(input$applyBatchKernelParams, ignoreNULL = TRUE, {
   req(input$batchKernelParamsFile)
 
@@ -5735,6 +5746,11 @@ observeEvent(input$applyBatchKernelParams, ignoreNULL = TRUE, {
     showNotification("Impossible de lire le fichier Excel.", type = "error", duration = 8)
     return()
   }
+
+  loaded_samples <- if (!is.null(RvarsCorrectionTime$peakListAligned)) {
+    unique(as.character(RvarsCorrectionTime$peakListAligned$sample))
+  } else character(0)
+  loaded_key_lookup <- stats::setNames(loaded_samples, normalize_run_key(loaded_samples))
 
   col_names <- colnames(df)
   datafile_col <- col_names[grepl("^Datafile", col_names, ignore.case = TRUE)][1]
@@ -5761,21 +5777,21 @@ observeEvent(input$applyBatchKernelParams, ignoreNULL = TRUE, {
     for (i in seq_len(n)) {
       incProgress(1 / n, detail = sprintf("%d/%d", i, n))
 
-      sample_sel <- trimws(as.character(df[[datafile_col]][i]))
+      sample_raw <- trimws(as.character(df[[datafile_col]][i]))
       bw_filter  <- suppressWarnings(as.numeric(df[[bandwith_col]][i]))
       int_filter <- suppressWarnings(as.numeric(df[[intfilter_col]][i]))
       min_dens   <- suppressWarnings(as.numeric(df[[minden_col]][i]))
       bw_model   <- suppressWarnings(as.numeric(df[[corrkernel_col]][i]))
 
-      if (!nzchar(sample_sel) || is.na(bw_filter) || is.na(int_filter) ||
+      if (!nzchar(sample_raw) || is.na(bw_filter) || is.na(int_filter) ||
           is.na(min_dens) || is.na(bw_model)) {
-        results <- rbind(results, data.frame(Sample = sample_sel, Status = "Ignoré (valeurs manquantes)"))
+        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (valeurs manquantes)"))
         next
       }
 
-      if (is.null(RvarsCorrectionTime$peakListAligned) ||
-          !(sample_sel %in% RvarsCorrectionTime$peakListAligned$sample)) {
-        results <- rbind(results, data.frame(Sample = sample_sel, Status = "Ignoré (run non chargé)"))
+      sample_sel <- loaded_key_lookup[[normalize_run_key(sample_raw)]]
+      if (is.null(sample_sel)) {
+        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (run non chargé)"))
         next
       }
 
