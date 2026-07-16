@@ -720,7 +720,7 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
           ),
           fluidRow(
             column(
-              12,
+              6,
               div(
                 class = "text-center",
                 actionButton(
@@ -728,6 +728,18 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
                   label = "Apply batch corrections",
                   icon = icon("bolt"),
                   class = "btn-primary"
+                )
+              )
+            ),
+            column(
+              6,
+              div(
+                class = "text-center",
+                actionButton(
+                  inputId = "viewBatchKernelParamsResults_newSample",
+                  label = "View results",
+                  icon = icon("table"),
+                  class = "btn-default"
                 )
               )
             )
