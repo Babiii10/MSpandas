@@ -5413,18 +5413,21 @@ observeEvent(ignoreNULL = TRUE,
                  disable("runPeakPicking")
                  shinyjs::disable(selector = '.navbar-nav a[data-value="Match reference map"')
                  
-               } else if (file.exists(file.path(ref_map_directory, input$chosseRef, "run_ref.mzML")) &
-                          file.exists(file.path(ref_map_directory, input$chosseRef, "map_ref.csv")) &
-                          file.exists(file.path(ref_map_directory, input$chosseRef, "paramMsdial.txt")) &
-                          file.exists(file.path(ref_map_directory, input$chosseRef, "defaultParam.txt")) &
-                          file.exists(file.path(
-                            ref_map_directory,
-                            input$chosseRef,
-                            "peaksList_run_ref.csv"
-                          )) &
-                          file.exists(file.path(ref_map_directory, input$chosseRef, "rt_ref.csv")) &
-                          file.exists(file.path(ref_map_directory, input$chosseRef, "normalizers_ref.csv")) &
-                          file.exists(file.path(ref_map_directory, input$chosseRef, "Parameters_Used.txt"))) {
+               } else if ({
+                 file_exists_nonempty <- function(path) file.exists(path) && file.size(path) > 0
+                 file_exists_nonempty(file.path(ref_map_directory, input$chosseRef, "run_ref.mzML")) &
+                   file_exists_nonempty(file.path(ref_map_directory, input$chosseRef, "map_ref.csv")) &
+                   file_exists_nonempty(file.path(ref_map_directory, input$chosseRef, "paramMsdial.txt")) &
+                   file_exists_nonempty(file.path(ref_map_directory, input$chosseRef, "defaultParam.txt")) &
+                   file_exists_nonempty(file.path(
+                     ref_map_directory,
+                     input$chosseRef,
+                     "peaksList_run_ref.csv"
+                   )) &
+                   file_exists_nonempty(file.path(ref_map_directory, input$chosseRef, "rt_ref.csv")) &
+                   file_exists_nonempty(file.path(ref_map_directory, input$chosseRef, "normalizers_ref.csv")) &
+                   file_exists_nonempty(file.path(ref_map_directory, input$chosseRef, "Parameters_Used.txt"))
+               }) {
                  print("Tout est OK !")
                  
                  source_python('lib/AnalysisNewSample/Python_files/modify_ParamMsdial.py')
