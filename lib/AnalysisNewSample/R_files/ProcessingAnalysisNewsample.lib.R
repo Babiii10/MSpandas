@@ -459,11 +459,20 @@ ProcessPeaks.msdial.NewSample<-function(path.peaks.msdial,
   
   # read one sample
   peaks.msdial_read<-fread2(path.peaks.msdial,
-                            data.table = TRUE, 
+                            data.table = TRUE,
                             select = c("PeakID", "Precursor m/z", "Height",
                                        "Area", "Adduct", "Isotope", "Comment","S/N", "RT (min)",
                                        "RT left(min)", "RT right (min)"))
-  
+
+  # Fichier .msdial vide ou tronqué (ex: écriture MSDIAL interrompue) :
+  # fread2 retourne alors une table NULL ou à 0 ligne. Éviter de construire
+  # le data.frame dans ce cas (colonnes à 0 ligne + "sample" à 1 ligne
+  # provoquerait "arguments imply differing number of rows").
+  if (is.null(peaks.msdial_read) || nrow(peaks.msdial_read) == 0) {
+    warning(sprintf("Fichier .msdial vide ou illisible, échantillon ignoré : %s", path.peaks.msdial))
+    return(data.frame())
+  }
+
   peaks.msdial<-data.frame(PeakID = peaks.msdial_read$PeakID,
                            Precursor.mz = peaks.msdial_read$`Precursor m/z`, 
                            rt = peaks.msdial_read$`RT (min)`*60,
