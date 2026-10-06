@@ -221,6 +221,7 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
   to_process  <- input_items[!(input_stems %in% done_stems)]
   
   batch_size <- suppressWarnings(as.integer(batch_size))
+  if (length(batch_size) != 1L || is.na(batch_size)) batch_size <- NA_integer_
   if (!is.na(batch_size) && batch_size > 0) {
     if (length(to_process) == 0) {
       message("--- Tous les échantillons déjà traités (cache) — peak picking ignoré ---")
