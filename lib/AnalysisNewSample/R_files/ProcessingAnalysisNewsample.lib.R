@@ -116,7 +116,24 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     unlink(dir_path, recursive = FALSE)
     invisible(!dir.exists(dir_path))
   }
-  
+
+  # Définie en dehors du bloc batching : utilisée aussi par la vérification
+  # finale / recovery, qui s'exécute indépendamment de batch_size.
+  make_batch_links <- function(items, dest_dir) {
+    vapply(seq_along(items), function(i) {
+      item_w <- normalizePath(items[i], winslash = "\\", mustWork = FALSE)
+      link_w <- normalizePath(file.path(dest_dir, basename(items[i])),
+                              winslash = "\\", mustWork = FALSE)
+      if (dir.exists(items[i])) {
+        cmd <- paste0('mklink /J "', link_w, '" "', item_w, '"')
+        shell(cmd, mustWork = FALSE, intern = TRUE)
+      } else {
+        file.link(items[i], file.path(dest_dir, basename(items[i])))
+      }
+      file.exists(link_w) || dir.exists(link_w)
+    }, logical(1))
+  }
+
   run_msdial_bat <- function(expected_stems = NULL, output_dir = NULL) {
     bat_file   <- normalizePath("lib/AnalysisNewSample/cmd/RunMsdialPeakPicking.bat",
                                 winslash = "\\", mustWork = FALSE)
@@ -231,22 +248,7 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     n_batches  <- ceiling(length(to_process) / batch_size)
     batch_root <- file.path(input_dir, "_msdial_batches_tmp")
     dir.create(batch_root, recursive = TRUE, showWarnings = FALSE)
-    
-    make_batch_links <- function(items, dest_dir) {
-      vapply(seq_along(items), function(i) {
-        item_w <- normalizePath(items[i], winslash = "\\", mustWork = FALSE)
-        link_w <- normalizePath(file.path(dest_dir, basename(items[i])),
-                                winslash = "\\", mustWork = FALSE)
-        if (dir.exists(items[i])) {
-          cmd <- paste0('mklink /J "', link_w, '" "', item_w, '"')
-          shell(cmd, mustWork = FALSE, intern = TRUE)
-        } else {
-          file.link(items[i], file.path(dest_dir, basename(items[i])))
-        }
-        file.exists(link_w) || dir.exists(link_w)
-      }, logical(1))
-    }
-    
+
     for (b in seq_len(n_batches)) {
       idx_start <- (b - 1) * batch_size + 1
       idx_end   <- min(b * batch_size, length(to_process))
