@@ -927,7 +927,7 @@ ProcessPeaks.msdial<-function(path.peaks.msdial,
                                        "Area", "Adduct", "Isotope", "Comment","S/N", "RT (min)",
                                        "RT left(min)", "RT right (min)"))
   
-  if (nrow(peaks.msdial_read) == 0) {
+  if (is.null(peaks.msdial_read) || nrow(peaks.msdial_read) == 0) {
     message(sprintf("Fichier .msdial sans pic détecté : %s — résultat vide retourné.",
                     basename(path.peaks.msdial)))
     empty_peaks <- data.frame(
