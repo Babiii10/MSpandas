@@ -476,12 +476,10 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
   
   
   message("\n--- PEAK PICKING ---\n")
-  message("=== findPeaks_MSDIAL build marker : 2026-10-07-r-direct-bat-v1 (NRM) ===")
-
+  
   incProgress(1/8, detail = paste("Calling peak detection...", round(3/8*100,0),"%",collapse=""))
-
+  
   # Nettoyage des dossiers temporaires laissés par un run précédent interrompu.
-  {
     stale_batch <- file.path(normalizePath(input_files, winslash = "/", mustWork = FALSE),
                              "_msdial_batches_tmp")
     stale_rec   <- file.path(normalizePath(input_files, winslash = "/", mustWork = FALSE),
@@ -503,11 +501,12 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     }
     cleanup_stale(stale_batch)
     cleanup_stale(stale_rec)
-  }
-
+  
+  
   MsdialParam(input_param = file.path("lib/NewReferenceMap/parameters","paramMsdial.txt"),
-              output_param = normalizePath(file.path(output_export_param, "peakPicking_Parameters.txt"),
-                                           winslash = "/", mustWork = FALSE),
+              output_param = file.path(output_export_param ,"peakPicking_Parameters.txt"),
+              # output_param = normalizePath(file.path(output_export_param, "peakPicking_Parameters.txt"),
+              #                             winslash = "/", mustWork = FALSE), # version R de findPeaksMsdial
               MS1_type = as.character(MS1_type), 
               MS2_type = as.character(MS2_type), 
               ion = as.character(ion), 
@@ -565,7 +564,7 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
       file.exists(link_w) || dir.exists(link_w)
     }, logical(1))
   }
-
+  
   # Génère le .bat DIRECTEMENT en R (remplace l'ancien aller-retour par Python
   # qui pouvait échouer silencieusement et laisser un .bat périmé d'une
   # session/projet précédent — cause confirmée de plantages/incohérences
@@ -589,6 +588,7 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     invisible(bat_file)
   }
 
+  
   run_msdial_bat <- function(expected_stems = NULL, output_dir = NULL) {
     bat_file   <- normalizePath("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat",
                                 winslash = "\\", mustWork = FALSE)
@@ -598,7 +598,7 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     }
     poll_interval_s <- 10L
     grace_after_complete_s <- 30L
-
+    
     # Diagnostic (observabilité uniquement, aucun chemin n'est modifié) :
     # contenu réel du .bat généré, existence du fichier param (-m), et
     # contenu réel du dossier -i / existence du dossier -o.
@@ -630,7 +630,7 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
         message(sprintf("--- Dossier -o existe : %s (%s) ---", dir.exists(o_path[1]), o_path[1]))
       }
     }, error = function(e) message("--- Impossible de lire le .bat pour diagnostic : ", conditionMessage(e), " ---"))
-
+    
     if (.Platform$OS.type == "windows") {
       # Fichier sentinelle : le .bat écrira "DONE" dedans en terminant.
       # Ceci permet de détecter la fin du processus SANS spawner de subprocess.
@@ -707,7 +707,7 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
       
       suppressWarnings(file.remove(sentinel, wrapper_bat))
       if (completed_early) message("--- Kill anticipé : RAM libérée, fichiers intacts ---")
-
+      
       # Diagnostic : que contient réellement -o juste après l'arrêt de
       # MsdialConsoleApp ? Permet de savoir si le processus a écrit quoi
       # que ce soit malgré un temps d'exécution substantiel.
@@ -719,7 +719,6 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
             message("--- Fichiers dans -o ---\n", paste(o_contents, collapse = "\n"))
         }
       }, error = function(e) message("--- Impossible de lister -o : ", conditionMessage(e), " ---"))
-
       return(invisible(NULL))
     }
     # Linux/Mac fallback
@@ -820,12 +819,15 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
                       output_export_param = output_export_param)
       
       batch_expected_stems <- tolower(sub("\\.(d|mzML)$", "", basename(effective_items), ignore.case = TRUE))
-
+      
+      msdial_before <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
+      msdial_before <- msdial_before[!grepl("AlignResult-", basename(msdial_before), ignore.case = TRUE)]
+      bat_content <- readLines("lib/AnalysisNewSample/cmd/RunMsdialPeakPicking.bat", warn = FALSE)
+      message("--- Contenu du .bat ---\n", paste(bat_content, collapse="\n"))
       run_msdial_bat(expected_stems = batch_expected_stems, output_dir = output_files)
       msdial_after  <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
       msdial_after  <- msdial_after[!grepl("AlignResult-", basename(msdial_after), ignore.case = TRUE)]
-      msdial_after_stems <- tolower(sub("\\.msdial$", "", basename(msdial_after), ignore.case = TRUE))
-      new_msdial    <- msdial_after[msdial_after_stems %in% batch_expected_stems]
+      new_msdial    <- setdiff(msdial_after, msdial_before)
       
       # Nettoyage R-natif (aucun subprocess → pas d'erreur 322)
       Sys.sleep(2)
@@ -848,20 +850,11 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
       message("--- Tous les échantillons déjà traités (cache) — peak picking ignoré ---")
       return(invisible(NULL))
     }
-    all_expected_stems <- tolower(sub("\\.(d|mzML)$", "", basename(to_process), ignore.case = TRUE))
     findPeaksMsdial(input_files = input_files, output_files = output_files, output_export_param = output_export_param )
+    all_expected_stems <- tolower(sub("\\.(d|mzML)$", "", basename(to_process), ignore.case = TRUE))
+    bat_content <- readLines("lib/AnalysisNewSample/cmd/RunMsdialPeakPicking.bat", warn = FALSE)
+    message("--- Contenu du .bat ---\n", paste(bat_content, collapse="\n"))
     run_msdial_bat(expected_stems = all_expected_stems, output_dir = output_files)
-
-    if (is.function(after_batch_fun)) {
-      produced_msdial <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
-      produced_msdial <- produced_msdial[!grepl("AlignResult-", basename(produced_msdial), ignore.case = TRUE)]
-      produced_stems  <- tolower(sub("\\.msdial$", "", basename(produced_msdial), ignore.case = TRUE))
-      new_msdial      <- produced_msdial[produced_stems %in% all_expected_stems]
-      if (length(new_msdial) > 0) {
-        message(sprintf("--- Déconvolution de %d fichier(s) .msdial ---", length(new_msdial)))
-        after_batch_fun(new_msdial)
-      }
-    }
   }
   
   # -------------------------------------------------------------------------
@@ -937,11 +930,14 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
                         output_export_param = output_export_param)
         
         rb_stems  <- tolower(sub("\\.(d|mzML)$", "", basename(effective_rb), ignore.case = TRUE))
+        rb_before <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
+        rb_before <- rb_before[!grepl("AlignResult-", basename(rb_before), ignore.case = TRUE)]
+        bat_content <- readLines("lib/AnalysisNewSample/cmd/RunMsdialPeakPicking.bat", warn = FALSE)
+        message("--- Contenu du .bat ---\n", paste(bat_content, collapse="\n"))
         run_msdial_bat(expected_stems = rb_stems, output_dir = output_files)
         rb_after  <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
         rb_after  <- rb_after[!grepl("AlignResult-", basename(rb_after), ignore.case = TRUE)]
-        rb_after_stems <- tolower(sub("\\.msdial$", "", basename(rb_after), ignore.case = TRUE))
-        new_msdial_rec <- rb_after[rb_after_stems %in% rb_stems]
+        new_msdial_rec <- setdiff(rb_after, rb_before)
         
         Sys.sleep(2)
         remove_batch_dir(rb_dir)
