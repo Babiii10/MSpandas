@@ -185,6 +185,22 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
           message("--- Contenu du fichier param (-m) ---\n", paste(param_lines, collapse = "\n"))
         }
       }
+      # Vérifier le contenu réel du dossier -i et l'existence du dossier -o,
+      # pour écarter/confirmer l'hypothèse d'une junction vide ou d'un
+      # dossier de sortie manquant.
+      i_path <- regmatches(bat_lines, regexpr('(?<=-i ")[^"]+', bat_lines, perl = TRUE))
+      o_path <- regmatches(bat_lines, regexpr('(?<=-o ")[^"]+', bat_lines, perl = TRUE))
+      if (length(i_path) > 0 && nzchar(i_path[1])) {
+        i_exists <- dir.exists(i_path[1])
+        i_contents <- if (i_exists) list.files(i_path[1], full.names = FALSE, all.files = TRUE, no.. = TRUE) else character(0)
+        message(sprintf("--- Dossier -i existe : %s (%s) | %d élément(s) ---",
+                        i_exists, i_path[1], length(i_contents)))
+        if (length(i_contents) > 0)
+          message("--- Contenu du dossier -i ---\n", paste(i_contents, collapse = "\n"))
+      }
+      if (length(o_path) > 0 && nzchar(o_path[1])) {
+        message(sprintf("--- Dossier -o existe : %s (%s) ---", dir.exists(o_path[1]), o_path[1]))
+      }
     }, error = function(e) message("--- Impossible de lire le .bat pour diagnostic : ", conditionMessage(e), " ---"))
 
     if (.Platform$OS.type == "windows") {
