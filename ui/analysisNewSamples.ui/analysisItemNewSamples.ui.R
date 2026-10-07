@@ -704,14 +704,17 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
                 )
               )
             )
+          ),
+          br(),
+          fluidRow(
+            uiOutput("showKernel_param")
           )
-
+          
         ),
-
-        ##~~~~~~~~~~~~~~~~~~ Batch import of known kernel density parameters ~~~~~~~~~~~~#
-        ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+        
         div(
           class = "well well-sm",
+          
           h4("Batch import kernel density parameters:"),
           fileInput(
             inputId = "batchKernelParamsFile_newSample",
@@ -745,10 +748,10 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
             )
           )
         ),
-
+        
         div(
           class = "well well-sm",
-
+          
           h4("Grouping massif into features:"),
           fluidRow(br()),
           fluidRow(column(
