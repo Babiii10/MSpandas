@@ -143,7 +143,26 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     }
     poll_interval_s <- 10L
     grace_after_complete_s <- 30L
-    
+
+    # Diagnostic (observabilité uniquement, aucun chemin n'est modifié) :
+    # contenu réel du .bat généré + existence du fichier param (-m), pour
+    # confirmer si MsdialConsoleApp reçoit un chemin/param invalide.
+    tryCatch({
+      bat_lines <- readLines(bat_file, warn = FALSE, encoding = "latin1")
+      message("--- Contenu du .bat ---\n", paste(bat_lines, collapse = "\n"))
+      m_path <- regmatches(bat_lines, regexpr('(?<=-m ")[^"]+', bat_lines, perl = TRUE))
+      if (length(m_path) > 0 && nzchar(m_path[1])) {
+        exists_m <- file.exists(m_path[1])
+        message(sprintf("--- Fichier param (-m) existe : %s (%s) ---",
+                        exists_m, m_path[1]))
+        if (exists_m) {
+          param_lines <- tryCatch(readLines(m_path[1], warn = FALSE), error = function(e) character(0))
+          message(sprintf("--- Fichier param (-m) : %d ligne(s) ---", length(param_lines)))
+          message("--- Contenu du fichier param (-m) ---\n", paste(param_lines, collapse = "\n"))
+        }
+      }
+    }, error = function(e) message("--- Impossible de lire le .bat pour diagnostic : ", conditionMessage(e), " ---"))
+
     if (.Platform$OS.type == "windows") {
       sentinel <- tempfile(fileext = "_msdial_done.flag")
       wrapper_bat <- tempfile(fileext = "_msdial_wrapper.bat")
