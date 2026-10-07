@@ -750,13 +750,12 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
                       output_export_param = output_export_param)
       
       batch_expected_stems <- tolower(sub("\\.(d|mzML)$", "", basename(effective_items), ignore.case = TRUE))
-      
-      msdial_before <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
-      msdial_before <- msdial_before[!grepl("AlignResult-", basename(msdial_before), ignore.case = TRUE)]
+
       run_msdial_bat(expected_stems = batch_expected_stems, output_dir = output_files)
       msdial_after  <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
       msdial_after  <- msdial_after[!grepl("AlignResult-", basename(msdial_after), ignore.case = TRUE)]
-      new_msdial    <- setdiff(msdial_after, msdial_before)
+      msdial_after_stems <- tolower(sub("\\.msdial$", "", basename(msdial_after), ignore.case = TRUE))
+      new_msdial    <- msdial_after[msdial_after_stems %in% batch_expected_stems]
       
       # Nettoyage R-natif (aucun subprocess → pas d'erreur 322)
       Sys.sleep(2)
@@ -779,9 +778,20 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
       message("--- Tous les échantillons déjà traités (cache) — peak picking ignoré ---")
       return(invisible(NULL))
     }
-    findPeaksMsdial(input_files = input_files, output_files = output_files, output_export_param = output_export_param )
     all_expected_stems <- tolower(sub("\\.(d|mzML)$", "", basename(to_process), ignore.case = TRUE))
+    findPeaksMsdial(input_files = input_files, output_files = output_files, output_export_param = output_export_param )
     run_msdial_bat(expected_stems = all_expected_stems, output_dir = output_files)
+
+    if (is.function(after_batch_fun)) {
+      produced_msdial <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
+      produced_msdial <- produced_msdial[!grepl("AlignResult-", basename(produced_msdial), ignore.case = TRUE)]
+      produced_stems  <- tolower(sub("\\.msdial$", "", basename(produced_msdial), ignore.case = TRUE))
+      new_msdial      <- produced_msdial[produced_stems %in% all_expected_stems]
+      if (length(new_msdial) > 0) {
+        message(sprintf("--- Déconvolution de %d fichier(s) .msdial ---", length(new_msdial)))
+        after_batch_fun(new_msdial)
+      }
+    }
   }
   
   # -------------------------------------------------------------------------
@@ -857,12 +867,11 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
                         output_export_param = output_export_param)
         
         rb_stems  <- tolower(sub("\\.(d|mzML)$", "", basename(effective_rb), ignore.case = TRUE))
-        rb_before <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
-        rb_before <- rb_before[!grepl("AlignResult-", basename(rb_before), ignore.case = TRUE)]
         run_msdial_bat(expected_stems = rb_stems, output_dir = output_files)
         rb_after  <- list.files(output_files, pattern = "\\.msdial$", full.names = TRUE, ignore.case = TRUE)
         rb_after  <- rb_after[!grepl("AlignResult-", basename(rb_after), ignore.case = TRUE)]
-        new_msdial_rec <- setdiff(rb_after, rb_before)
+        rb_after_stems <- tolower(sub("\\.msdial$", "", basename(rb_after), ignore.case = TRUE))
+        new_msdial_rec <- rb_after[rb_after_stems %in% rb_stems]
         
         Sys.sleep(2)
         remove_batch_dir(rb_dir)
