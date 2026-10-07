@@ -789,15 +789,14 @@ ProcessPeaks.msdial.NewSample<-function(path.peaks.msdial,
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-deconv_peaks_MSDIAL<-function(path_to_peakList, 
+deconv_peaks_MSDIAL<-function(path_to_peakList,
                               file_adduct,
-                              output_directory = NULL, 
+                              output_directory = NULL,
                               mass_slice_width,
                               min_PeaksMassif,
                               workers = ceiling((detectCores())-1),
-                              bpparam = NULL,
                               shinyProgressData=NULL){
-  
+
   if (!is.null(shinyProgressData)) {
     if (!require(shinyWidgets)) {
       warning("R package shinyWidgets not present... Disabling progress ",
@@ -836,25 +835,16 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
   cat("lemme show the file_adduct : --> adduct.csv")
   print(file_adduct)
   
-  # Si un cluster externe est fourni (bpparam != NULL), l'utiliser directement.
-  # Son cycle de vie (création / arrêt) est géré par l'appelant — aucun socket
-  # n'est créé ou détruit ici, ce qui évite l'accumulation TIME_WAIT entre batches.
-  # Sinon, créer un cluster local avec un port libre garanti par l'OS (serverSocket(0)).
-  find_free_port <- function() {
-    tryCatch({
-      con <- serverSocket(port = 0)
-      port <- as.integer(sub(".*:(\\d+)$", "\\1", summary(con)$description))
-      close(con)
-      port
-    }, error = function(e) NULL)
-  }
-
+  # Tentative parallèle (SnowParam/SOCK) avec fallback séquentiel (SerialParam).
+  # Port géré automatiquement par BiocParallel (pas de détection manuelle de
+  # port libre) — stratégie simple et robuste, identique à NRM qui ne
+  # rencontre jamais le bug "NAs introduced by coercion / port NA".
   Result_Msidal <- NULL
   times <- 0
+  parallel_ok <- FALSE
 
-  if (!is.null(bpparam)) {
-    # ── Cluster externe : utiliser tel quel, ne pas bpstop ──────────────────
-    message("--- Déconvolution parallèle (cluster externe) ---")
+  tryCatch({
+    param <- SnowParam(workers = workers, type = "SOCK", timeout = 120)
     tryCatch({
       time1 <- system.time(Result_Msidal <-
                              bplapply(path_to_peakList,
@@ -862,45 +852,18 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
                                       file_adduct = file_adduct,
                                       mass_slice_width = mass_slice_width,
                                       min_PeaksMassif = min_PeaksMassif,
-                                      BPPARAM = bpparam))
-    }, error = function(e) {
-      message(sprintf("--- Parallélisation échouée (cluster externe) : %s ---",
-                      conditionMessage(e)))
-      message("--- Fallback vers SerialParam ---")
+                                      BPPARAM = param))
+      parallel_ok <- TRUE
+    }, finally = {
+      tryCatch(bpstop(param), error = function(e) NULL)
+      gc()
     })
-  } else {
-    # ── Cluster local : port libre + create/stop ici ─────────────────────────
-    parallel_ok <- FALSE
-    free_port <- find_free_port()
-    if (!is.null(free_port)) {
-      message(sprintf("--- Port libre trouvé : %d → création SnowParam ---", free_port))
-      tryCatch({
-        param <- SnowParam(workers = workers, type = "SOCK", timeout = 120,
-                           port = free_port)
-        tryCatch({
-          time1 <- system.time(Result_Msidal <-
-                                 bplapply(path_to_peakList,
-                                          ProcessPeaks.msdial.NewSample,
-                                          file_adduct = file_adduct,
-                                          mass_slice_width = mass_slice_width,
-                                          min_PeaksMassif = min_PeaksMassif,
-                                          BPPARAM = param))
-          parallel_ok <- TRUE
-        }, finally = {
-          tryCatch(bpstop(param), error = function(e) NULL)
-          gc()
-        })
-      }, error = function(e) {
-        message(sprintf("--- Parallélisation SOCK échouée (port %d) : %s ---",
-                        free_port, conditionMessage(e)))
-        message("--- Fallback vers traitement séquentiel (SerialParam) ---")
-      })
-    } else {
-      message("--- Aucun port libre trouvé → SerialParam directement ---")
-    }
-  }
+  }, error = function(e) {
+    message(sprintf("--- Parallélisation SOCK échouée : %s ---", conditionMessage(e)))
+    message("--- Fallback vers traitement séquentiel (SerialParam) ---")
+  })
 
-  if (is.null(Result_Msidal)) {
+  if (!parallel_ok || is.null(Result_Msidal)) {
     message("--- Déconvolution séquentielle en cours... ---")
     time1 <- system.time(Result_Msidal <-
                            bplapply(path_to_peakList,
@@ -910,7 +873,7 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
                                     min_PeaksMassif = min_PeaksMassif,
                                     BPPARAM = SerialParam()))
   }
-  
+
   # Filtrer les résultats vides
   Result_Msidal <- Result_Msidal[vapply(Result_Msidal, function(x) nrow(x) > 0, logical(1))]
   time2 <- system.time(peaks_MSDIAL_mono_iso <- do.call("rbind", Result_Msidal))

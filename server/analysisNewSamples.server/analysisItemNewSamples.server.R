@@ -5952,49 +5952,20 @@ observeEvent(ignoreNULL = TRUE,
                    
                    cache_path_srv <- file.path(req(directoryInput$directory),
                                                ".msdial_processed_cache.txt")
-                   
-                   # Créer le cluster parallèle UNE SEULE FOIS pour tous les batches.
-                   # Cela évite la création/destruction répétée de sockets TCP (TIME_WAIT)
-                   # qui bloquait l'application au 5e-6e batch.
-                   .find_free_port_deconv <- function() {
-                     tryCatch({
-                       con <- serverSocket(port = 0)
-                       port <- as.integer(sub(".*:(\\d+)$", "\\1", summary(con)$description))
-                       close(con)
-                       port
-                     }, error = function(e) NULL)
-                   }
-                   deconv_bpparam <- NULL
-                   .free_port_deconv <- .find_free_port_deconv()
-                   if (!is.null(.free_port_deconv)) {
-                     deconv_bpparam <- tryCatch(
-                       BiocParallel::SnowParam(
-                         workers = max(1L, parallel::detectCores() - 1L),
-                         type = "SOCK", timeout = 120,
-                         port = .free_port_deconv
-                       ),
-                       error = function(e) {
-                         message(sprintf(
-                           "--- Cluster déconvolution : création SnowParam échouée : %s → SerialParam ---",
-                           conditionMessage(e)))
-                         NULL
-                       }
-                     )
-                     if (!is.null(deconv_bpparam))
-                       message(sprintf(
-                         "--- Cluster déconvolution créé (port %d, %d workers) ---",
-                         .free_port_deconv,
-                         BiocParallel::bpworkers(deconv_bpparam)))
-                   } else {
-                     message("--- Aucun port libre → déconvolution séquentielle ---")
-                   }
 
+                   # NOTE : un cluster unique réutilisé pour tous les batches (avec port
+                   # pré-détecté manuellement) a été tenté puis retiré : la détection de
+                   # port (serverSocket(0) + regex sur summary()$description) échoue sur
+                   # certaines installations R ("NAs introduced by coercion", port NA).
+                   # deconv_peaks_MSDIAL() crée maintenant son propre cluster par appel,
+                   # sans port manuel — stratégie simple, identique à NRM, qui ne
+                   # rencontre jamais ce bug.
                    processed_msdial_files <- character(0)
                    after_batch_fun <- function(new_msdial_files) {
                      new_msdial_files <- setdiff(new_msdial_files, processed_msdial_files)
                      if (length(new_msdial_files) == 0) return(invisible(NULL))
                      processed_msdial_files <<- c(processed_msdial_files, new_msdial_files)
-                     
+
                      deconv_peaks_MSDIAL(path_to_peakList = req(new_msdial_files),
                                          output_directory = directoryOutput,
                                          file_adduct = "data/Adduit.csv",
@@ -6004,7 +5975,6 @@ observeEvent(ignoreNULL = TRUE,
                                          min_PeaksMassif = as.numeric(
                                            req(RvarsPeakDetectionNewSample$defaultParam$min_PeaksMassif)
                                          ),
-                                         bpparam = deconv_bpparam,
                                          shinyProgressData =
                                            list(session = session,
                                                 progressId = "preprocessProgressBar",
@@ -6179,7 +6149,6 @@ observeEvent(ignoreNULL = TRUE,
                          min_PeaksMassif = as.numeric(
                            req(RvarsPeakDetectionNewSample$defaultParam$min_PeaksMassif)
                          ),
-                         bpparam = deconv_bpparam,
                          shinyProgressData =
                            list(session = session,
                                 progressId = "preprocessProgressBar",
@@ -6208,12 +6177,8 @@ observeEvent(ignoreNULL = TRUE,
                      }
                    }
 
-                   # Arrêter le cluster une fois tous les batches et la déconvolution finale terminés
-                   if (!is.null(deconv_bpparam)) {
-                     tryCatch(BiocParallel::bpstop(deconv_bpparam), error = function(e) NULL)
-                     message("--- Cluster déconvolution arrêté ---")
-                     deconv_bpparam <- NULL
-                   }
+                   # Chaque appel à deconv_peaks_MSDIAL() crée et arrête son propre
+                   # cluster — rien à nettoyer ici (plus de cluster partagé).
 
                    if (!is.null(RvarsPeakDetectionNewSample$peaks_MSDIAL_mono_iso_newSample)) {
                      RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample <-
