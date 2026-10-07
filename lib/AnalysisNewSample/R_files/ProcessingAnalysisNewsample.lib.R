@@ -36,24 +36,8 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
   
   
   message("\n--- PEAK PICKING ---\n")
-  message("=== findPeaks_MSDIAL build marker : 2026-10-07-r-direct-bat-v1 (ANS) ===")
-
-  incProgress(1/8, detail = paste("Calling peak detection...", collapse=""))
   
-  ########################################################################
-  updateShinyProgressBar(
-    shinyProgressData=list(
-      session=session,
-      progressId="preprocessProgressBar",
-      progressTotal=8,
-      textId="analysis_pre"
-    ),
-    pbValue=3,
-    headerMsg="Calling peak picking...",
-    footerMsg="peak picking in progress..."
-  )
-  ########################################################################
-  
+  incProgress(1/8, detail = paste("Calling peak detection...", round(3/8*100,0),"%",collapse=""))
   
   # Nettoyage des dossiers temporaires laissés par un run précédent interrompu.
   {
@@ -162,7 +146,7 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
   #   writeLines(cmd, bat_file, useBytes = TRUE)
   #   invisible(bat_file)
   # }
-  # 
+  # # 
   run_msdial_bat <- function(expected_stems = NULL, output_dir = NULL) {
     bat_file   <- normalizePath("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat",
                                 winslash = "\\", mustWork = FALSE)
@@ -284,7 +268,6 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
       
       suppressWarnings(file.remove(sentinel, wrapper_bat))
       if (completed_early) message("--- Kill anticipé : RAM libérée, fichiers intacts ---")
-
       # Diagnostic : que contient réellement -o juste après l'arrêt de
       # MsdialConsoleApp ? Permet de savoir si le processus a écrit quoi
       # que ce soit malgré un temps d'exécution substantiel.
@@ -296,7 +279,8 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
             message("--- Fichiers dans -o ---\n", paste(o_contents, collapse = "\n"))
         }
       }, error = function(e) message("--- Impossible de lister -o : ", conditionMessage(e), " ---"))
-
+      
+      
       return(invisible(NULL))
     }
     # Linux/Mac fallback
@@ -541,6 +525,7 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
 }
 
 
+# old version
 # findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
 #                            output_export_param,
 #                            MS1_type = "Profile",
