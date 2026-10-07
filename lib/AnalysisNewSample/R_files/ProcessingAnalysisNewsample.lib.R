@@ -64,8 +64,9 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     cleanup_stale(stale_rec)
   }
   
-  MsdialParam(input_param = file.path("lib/NewReferenceMap/parameters","paramMsdial.txt"),
-              output_param = file.path(output_export_param ,"peakPicking_Parameters.txt"),
+  MsdialParam(input_param = req(RvarsPeakDetectionNewSample$paramMsdial_ref_path),
+              output_param = normalizePath(file.path(output_export_param, "peakPicking_Parameters.txt"),
+                                           winslash = "/", mustWork = FALSE),
               MS1_type = as.character(MS1_type), 
               MS2_type = as.character(MS2_type), 
               ion = as.character(ion), 
@@ -130,25 +131,25 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
   # MSDIAL). Masque localement la fonction Python de même nom (source_python
   # en tête de fichier) : tous les appels existants à findPeaksMsdial()
   # utilisent désormais cette version sans aucun changement de point d'appel.
-  # findPeaksMsdial <- function(input_files, output_files, output_export_param) {
-  #   exe_path <- normalizePath(
-  #     file.path(getwd(), "lib", "MSDIAL", "MSDIAL ver.4.80 Windows", "MsdialConsoleApp.exe"),
-  #     winslash = "\\", mustWork = FALSE
-  #   )
-  #   input_abs  <- normalizePath(input_files, winslash = "/", mustWork = FALSE)
-  #   output_abs <- normalizePath(output_files, winslash = "/", mustWork = FALSE)
-  #   param_abs  <- normalizePath(file.path(output_export_param, "peakPicking_Parameters.txt"),
-  #                               winslash = "/", mustWork = FALSE)
-  #   cmd <- sprintf('"%s" lcmsdda -i "%s" -o "%s" -m "%s"',
-  #                  exe_path, input_abs, output_abs, param_abs)
-  #   bat_file <- normalizePath("lib/AnalysisNewSample/cmd/RunMsdialPeakPicking.bat",
-  #                             winslash = "\\", mustWork = FALSE)
-  #   writeLines(cmd, bat_file, useBytes = TRUE)
-  #   invisible(bat_file)
-  # }
-  # # 
+  findPeaksMsdial <- function(input_files, output_files, output_export_param) {
+    exe_path <- normalizePath(
+      file.path(getwd(), "lib", "MSDIAL", "MSDIAL ver.4.80 Windows", "MsdialConsoleApp.exe"),
+      winslash = "\\", mustWork = FALSE
+    )
+    input_abs  <- normalizePath(input_files, winslash = "/", mustWork = FALSE)
+    output_abs <- normalizePath(output_files, winslash = "/", mustWork = FALSE)
+    param_abs  <- normalizePath(file.path(output_export_param, "peakPicking_Parameters.txt"),
+                                winslash = "/", mustWork = FALSE)
+    cmd <- sprintf('"%s" lcmsdda -i "%s" -o "%s" -m "%s"',
+                   exe_path, input_abs, output_abs, param_abs)
+    bat_file <- normalizePath("lib/AnalysisNewSample/cmd/RunMsdialPeakPicking.bat",
+                              winslash = "\\", mustWork = FALSE)
+    writeLines(cmd, bat_file, useBytes = TRUE)
+    invisible(bat_file)
+  }
+
   run_msdial_bat <- function(expected_stems = NULL, output_dir = NULL) {
-    bat_file   <- normalizePath("lib/NewReferenceMap/cmd/RunMsdialPeakPicking.bat",
+    bat_file   <- normalizePath("lib/AnalysisNewSample/cmd/RunMsdialPeakPicking.bat",
                                 winslash = "\\", mustWork = FALSE)
     timeout_s <- {
       t <- suppressWarnings(as.integer(timeout_sec))
