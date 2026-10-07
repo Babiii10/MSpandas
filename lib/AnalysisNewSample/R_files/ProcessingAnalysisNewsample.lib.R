@@ -143,7 +143,18 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     }
     poll_interval_s <- 10L
     grace_after_complete_s <- 30L
-    
+
+    # Diagnostic : contenu réel du .bat généré, pour détecter immédiatement un
+    # chemin -i/-o/-m incohérent (ex: relatif résolu contre le mauvais cwd).
+    tryCatch({
+      bat_lines <- readLines(bat_file, warn = FALSE, encoding = "latin1")
+      message("--- Contenu du .bat ---\n", paste(bat_lines, collapse = "\n"))
+      m_path <- regmatches(bat_lines, regexpr('(?<=-m ")[^"]+', bat_lines, perl = TRUE))
+      if (length(m_path) > 0 && nzchar(m_path[1])) {
+        message(sprintf("--- Fichier param (-m) existe : %s ---", file.exists(m_path[1])))
+      }
+    }, error = function(e) message("--- Impossible de lire le .bat pour diagnostic : ", conditionMessage(e), " ---"))
+
     if (.Platform$OS.type == "windows") {
       sentinel <- tempfile(fileext = "_msdial_done.flag")
       wrapper_bat <- tempfile(fileext = "_msdial_wrapper.bat")
