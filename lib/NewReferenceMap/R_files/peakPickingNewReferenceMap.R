@@ -597,7 +597,39 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     }
     poll_interval_s <- 10L
     grace_after_complete_s <- 30L
-    
+
+    # Diagnostic (observabilité uniquement, aucun chemin n'est modifié) :
+    # contenu réel du .bat généré, existence du fichier param (-m), et
+    # contenu réel du dossier -i / existence du dossier -o.
+    tryCatch({
+      bat_lines <- readLines(bat_file, warn = FALSE, encoding = "latin1")
+      message("--- Contenu du .bat ---\n", paste(bat_lines, collapse = "\n"))
+      m_path <- regmatches(bat_lines, regexpr('(?<=-m ")[^"]+', bat_lines, perl = TRUE))
+      if (length(m_path) > 0 && nzchar(m_path[1])) {
+        exists_m <- file.exists(m_path[1])
+        message(sprintf("--- Fichier param (-m) existe : %s (%s) ---",
+                        exists_m, m_path[1]))
+        if (exists_m) {
+          param_lines <- tryCatch(readLines(m_path[1], warn = FALSE), error = function(e) character(0))
+          message(sprintf("--- Fichier param (-m) : %d ligne(s) ---", length(param_lines)))
+          message("--- Contenu du fichier param (-m) ---\n", paste(param_lines, collapse = "\n"))
+        }
+      }
+      i_path <- regmatches(bat_lines, regexpr('(?<=-i ")[^"]+', bat_lines, perl = TRUE))
+      o_path <- regmatches(bat_lines, regexpr('(?<=-o ")[^"]+', bat_lines, perl = TRUE))
+      if (length(i_path) > 0 && nzchar(i_path[1])) {
+        i_exists <- dir.exists(i_path[1])
+        i_contents <- if (i_exists) list.files(i_path[1], full.names = FALSE, all.files = TRUE, no.. = TRUE) else character(0)
+        message(sprintf("--- Dossier -i existe : %s (%s) | %d élément(s) ---",
+                        i_exists, i_path[1], length(i_contents)))
+        if (length(i_contents) > 0)
+          message("--- Contenu du dossier -i ---\n", paste(i_contents, collapse = "\n"))
+      }
+      if (length(o_path) > 0 && nzchar(o_path[1])) {
+        message(sprintf("--- Dossier -o existe : %s (%s) ---", dir.exists(o_path[1]), o_path[1]))
+      }
+    }, error = function(e) message("--- Impossible de lire le .bat pour diagnostic : ", conditionMessage(e), " ---"))
+
     if (.Platform$OS.type == "windows") {
       # Fichier sentinelle : le .bat écrira "DONE" dedans en terminant.
       # Ceci permet de détecter la fin du processus SANS spawner de subprocess.
