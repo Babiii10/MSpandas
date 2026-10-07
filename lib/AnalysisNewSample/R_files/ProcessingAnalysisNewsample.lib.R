@@ -36,8 +36,24 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
   
   
   message("\n--- PEAK PICKING ---\n")
+  message("=== findPeaks_MSDIAL build marker : 2026-10-07-r-direct-bat-v1 (ANS) ===")
+
+  incProgress(1/8, detail = paste("Calling peak detection...", collapse=""))
   
-  incProgress(1/8, detail = paste("Calling peak detection...", round(3/8*100,0),"%",collapse=""))
+  ########################################################################
+  updateShinyProgressBar(
+    shinyProgressData=list(
+      session=session,
+      progressId="preprocessProgressBar",
+      progressTotal=8,
+      textId="analysis_pre"
+    ),
+    pbValue=3,
+    headerMsg="Calling peak picking...",
+    footerMsg="peak picking in progress..."
+  )
+  ########################################################################
+  
   
   # Nettoyage des dossiers temporaires laissés par un run précédent interrompu.
   {
