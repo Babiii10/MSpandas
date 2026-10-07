@@ -476,6 +476,7 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
   
   
   message("\n--- PEAK PICKING ---\n")
+  message("=== findPeaks_MSDIAL build marker : 2026-10-07-r-direct-bat-v1 (NRM) ===")
 
   incProgress(1/8, detail = paste("Calling peak detection...", round(3/8*100,0),"%",collapse=""))
 
