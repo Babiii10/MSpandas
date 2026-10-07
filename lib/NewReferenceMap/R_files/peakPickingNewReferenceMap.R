@@ -707,6 +707,19 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
       
       suppressWarnings(file.remove(sentinel, wrapper_bat))
       if (completed_early) message("--- Kill anticipé : RAM libérée, fichiers intacts ---")
+
+      # Diagnostic : que contient réellement -o juste après l'arrêt de
+      # MsdialConsoleApp ? Permet de savoir si le processus a écrit quoi
+      # que ce soit malgré un temps d'exécution substantiel.
+      tryCatch({
+        if (!is.null(output_dir) && dir.exists(output_dir)) {
+          o_contents <- list.files(output_dir, full.names = FALSE, all.files = TRUE, no.. = TRUE)
+          message(sprintf("--- Contenu de -o après exécution : %d élément(s) ---", length(o_contents)))
+          if (length(o_contents) > 0)
+            message("--- Fichiers dans -o ---\n", paste(o_contents, collapse = "\n"))
+        }
+      }, error = function(e) message("--- Impossible de lister -o : ", conditionMessage(e), " ---"))
+
       return(invisible(NULL))
     }
     # Linux/Mac fallback
