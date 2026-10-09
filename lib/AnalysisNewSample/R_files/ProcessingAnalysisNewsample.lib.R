@@ -9,6 +9,7 @@ library(data.table)
 ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Peak Pecking with MSDIAL ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 
+
 findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
                            output_export_param,
                            MS1_type = "Profile",
@@ -147,7 +148,7 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
     writeLines(cmd, bat_file, useBytes = TRUE)
     invisible(bat_file)
   }
-
+  
   run_msdial_bat <- function(expected_stems = NULL, output_dir = NULL) {
     bat_file   <- normalizePath("lib/AnalysisNewSample/cmd/RunMsdialPeakPicking.bat",
                                 winslash = "\\", mustWork = FALSE)
@@ -524,7 +525,6 @@ findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
   incProgress(1/8, detail = paste("End peak detection...", round(4/8*100,0),"%",collapse=""))
   
 }
-
 
 # old version
 # findPeaks_MSDIAL<-function(input_files, output_files = getwd(),
@@ -1366,32 +1366,10 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
   
   cat("path_to_peakList : \n")
   print(path_to_peakList)
-
+  
   cat("lemme show the file_adduct : --> adduct.csv")
   print(file_adduct)
-
-  # Filtrer les .msdial vides (0 octet) AVANT tout traitement parallèle,
-  # plutôt que de laisser bplapply() les traiter puis filtrer après coup.
-  # Plus simple : un seul point de contrôle, pas de cas particulier à gérer
-  # plus loin si le lot entier se retrouve vide.
-  valid_sizes <- file.size(path_to_peakList)
-  empty_peakList <- path_to_peakList[is.na(valid_sizes) | valid_sizes == 0]
-  if (length(empty_peakList) > 0) {
-    message(sprintf("--- %d fichier(s) .msdial vide(s) ignoré(s) : %s ---",
-                    length(empty_peakList), paste(basename(empty_peakList), collapse = ", ")))
-  }
-  path_to_peakList <- path_to_peakList[!is.na(valid_sizes) & valid_sizes > 0]
-
-  if (length(path_to_peakList) == 0) {
-    message("--- Aucun .msdial exploitable dans ce lot ---")
-    return(data.frame(
-      mz = numeric(0), mzmin = numeric(0), mzmax = numeric(0),
-      rt = numeric(0), rtmin = numeric(0), rtmax = numeric(0),
-      into = numeric(0), maxo = numeric(0), sn = numeric(0),
-      sample = character(0), stringsAsFactors = FALSE
-    ))
-  }
-
+  
   # Si un cluster externe est fourni (bpparam != NULL), l'utiliser directement.
   # Son cycle de vie (création / arrêt) est géré par l'appelant — aucun socket
   # n'est créé ou détruit ici, ce qui évite l'accumulation TIME_WAIT entre batches.
@@ -1469,25 +1447,6 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
   
   # Filtrer les résultats vides
   Result_Msidal <- Result_Msidal[vapply(Result_Msidal, function(x) nrow(x) > 0, logical(1))]
-
-  # Si TOUS les .msdial du lot étaient vides/invalides (ex: un seul fichier
-  # dans le lot et il est vide), Result_Msidal est une liste vide :
-  # do.call("rbind", list()) renvoie NULL, et colnames<-(NULL, ...) plante
-  # ("attempt to set 'colnames' on an object with less than two dimensions").
-  # Retourner proprement un data.frame vide plutôt que de laisser planter
-  # tout l'observer Shiny (et perdre le reste du traitement en cours).
-  if (length(Result_Msidal) == 0) {
-    message("--- Aucun pic exploitable dans ce lot (tous les .msdial étaient vides/invalides) ---")
-    empty_peaks <- data.frame(
-      mz = numeric(0), mzmin = numeric(0), mzmax = numeric(0),
-      rt = numeric(0), rtmin = numeric(0), rtmax = numeric(0),
-      into = numeric(0), maxo = numeric(0), sn = numeric(0),
-      sample = character(0), stringsAsFactors = FALSE
-    )
-    if (!is.null(output_directory)) message("--- END ANNOTATION (rien à sauvegarder) ---")
-    return(empty_peaks)
-  }
-
   time2 <- system.time(peaks_MSDIAL_mono_iso <- do.call("rbind", Result_Msidal))
   times <- time1[[3]] + time2[[3]]
   

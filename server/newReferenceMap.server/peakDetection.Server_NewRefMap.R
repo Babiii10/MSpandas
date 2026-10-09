@@ -1274,7 +1274,7 @@ observeEvent(
                                   mass_slice_width = req(input$mass_slice_width_NewRefMap),
                                   min_PeaksMassif = req(input$minPeaksMassif_NewRefMap))
               removeFiles(path_to_files = directoryOutput_NewRefMap, ext = '.msdial')
-
+              
               # Écrire dans le cache APRÈS déconvolution réussie.
               # Le cache (inter-session) et les CSV (intra-session) sont les deux
               # preuves durables qu'un échantillon est entièrement traité.
@@ -1286,25 +1286,26 @@ observeEvent(
               input_stems_srv <- tolower(sub("\\.(d|mzML)$", "", all_inputs_srv,
                                              ignore.case = TRUE))
               matched_srv <- all_inputs_srv[input_stems_srv %in% msdial_stems]
-              if (length(matched_srv) > 0) {
-                # Ne marquer "traité" que les échantillons ayant réellement un CSV :
-                # un .msdial vide/corrompu passe par deconv_peaks_MSDIAL() sans
-                # erreur mais sans produire de CSV (filtré en interne) — sans ce
-                # garde-fou, l'échantillon serait marqué "fait" à tort et ne
-                # serait plus jamais retraité automatiquement.
-                existing_csv_stems <- tolower(sub("\\.csv$", "",
-                                                  list.files(directoryOutput_NewRefMap, pattern = "\\.csv$",
-                                                             full.names = FALSE, ignore.case = TRUE),
-                                                  ignore.case = TRUE))
-                matched_stems_srv <- tolower(sub("\\.(d|mzML)$", "", matched_srv, ignore.case = TRUE))
-                skipped_no_csv <- matched_srv[!(matched_stems_srv %in% existing_csv_stems)]
-                if (length(skipped_no_csv) > 0) {
-                  message(sprintf(
-                    "--- Cache : %d échantillon(s) NON ajoutés (pas de CSV produit) : %s ---",
-                    length(skipped_no_csv), paste(skipped_no_csv, collapse = ", ")))
-                }
-                matched_srv <- matched_srv[matched_stems_srv %in% existing_csv_stems]
-              }
+              # if (length(matched_srv) > 0) {
+              #   # Ne marquer "traité" que les échantillons ayant réellement un CSV :
+              #   # un .msdial vide/corrompu passe par deconv_peaks_MSDIAL() sans
+              #   # erreur mais sans produire de CSV (filtré en interne) — sans ce
+              #   # garde-fou, l'échantillon serait marqué "fait" à tort et ne
+              #   # serait plus jamais retraité automatiquement.
+              #   existing_csv_stems <- tolower(sub("\\.csv$", "",
+              #                                     list.files(directoryOutput_NewRefMap, pattern = "\\.csv$",
+              #                                                full.names = FALSE, ignore.case = TRUE),
+              #                                     ignore.case = TRUE))
+              #   matched_stems_srv <- tolower(sub("\\.(d|mzML)$", "", matched_srv, ignore.case = TRUE))
+              #   skipped_no_csv <- matched_srv[!(matched_stems_srv %in% existing_csv_stems)]
+              #   if (length(skipped_no_csv) > 0) {
+              #     message(sprintf(
+              #       "--- Cache : %d échantillon(s) NON ajoutés (pas de CSV produit) : %s ---",
+              #       length(skipped_no_csv), paste(skipped_no_csv, collapse = ", ")))
+              #   }
+              #   matched_srv <- matched_srv[matched_stems_srv %in% existing_csv_stems]
+              # }
+              
               if (length(matched_srv) > 0) {
                 existing_c <- if (file.exists(cache_path_srv)) {
                   tolower(trimws(readLines(cache_path_srv, warn = FALSE)))
