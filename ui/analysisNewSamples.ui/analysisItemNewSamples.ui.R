@@ -262,6 +262,7 @@ Load the directory containing the files to be analyzed."
                                                        id =
                                                          "progressBarFooter_analysis_pre", "")
                                                  )),
+                                                 uiOutput("defectiveRunsPanel_newSample"),
                                                  class =
                                                    "well-panel"
                                                )

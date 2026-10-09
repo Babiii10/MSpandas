@@ -304,6 +304,7 @@ Load the directory containing the files to be analyzed."))
                                         label="Run peak detction",
                                         class="btn-primary",
                                         icon=icon("rocket"))),
+                         uiOutput("defectiveRunsPanel_NewRefMap"),
                          hidden(
                            div(
                              id= "Id_resetAll_NewRefMap_PeakDetectionView",
