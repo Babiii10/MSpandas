@@ -1366,10 +1366,32 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
   
   cat("path_to_peakList : \n")
   print(path_to_peakList)
-  
+
   cat("lemme show the file_adduct : --> adduct.csv")
   print(file_adduct)
-  
+
+  # Filtrer les .msdial vides (0 octet) AVANT tout traitement parallèle,
+  # plutôt que de laisser bplapply() les traiter puis filtrer après coup.
+  # Plus simple : un seul point de contrôle, pas de cas particulier à gérer
+  # plus loin si le lot entier se retrouve vide.
+  valid_sizes <- file.size(path_to_peakList)
+  empty_peakList <- path_to_peakList[is.na(valid_sizes) | valid_sizes == 0]
+  if (length(empty_peakList) > 0) {
+    message(sprintf("--- %d fichier(s) .msdial vide(s) ignoré(s) : %s ---",
+                    length(empty_peakList), paste(basename(empty_peakList), collapse = ", ")))
+  }
+  path_to_peakList <- path_to_peakList[!is.na(valid_sizes) & valid_sizes > 0]
+
+  if (length(path_to_peakList) == 0) {
+    message("--- Aucun .msdial exploitable dans ce lot ---")
+    return(data.frame(
+      mz = numeric(0), mzmin = numeric(0), mzmax = numeric(0),
+      rt = numeric(0), rtmin = numeric(0), rtmax = numeric(0),
+      into = numeric(0), maxo = numeric(0), sn = numeric(0),
+      sample = character(0), stringsAsFactors = FALSE
+    ))
+  }
+
   # Si un cluster externe est fourni (bpparam != NULL), l'utiliser directement.
   # Son cycle de vie (création / arrêt) est géré par l'appelant — aucun socket
   # n'est créé ou détruit ici, ce qui évite l'accumulation TIME_WAIT entre batches.

@@ -1301,9 +1301,31 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
     stop("R package \"BiocParallel\" is required !")
   if(!require(parallel))
     stop("R package \"parallel\" is required !")
-  
-  
-  
+
+  # Filtrer les .msdial vides (0 octet) AVANT tout traitement parallèle,
+  # plutôt que de laisser bplapply() les traiter puis filtrer après coup.
+  # Plus simple : un seul point de contrôle, pas de cas particulier à gérer
+  # plus loin si le lot entier se retrouve vide.
+  valid_sizes <- file.size(path_to_peakList)
+  empty_peakList <- path_to_peakList[is.na(valid_sizes) | valid_sizes == 0]
+  if (length(empty_peakList) > 0) {
+    message(sprintf("--- %d fichier(s) .msdial vide(s) ignoré(s) : %s ---",
+                    length(empty_peakList), paste(basename(empty_peakList), collapse = ", ")))
+  }
+  path_to_peakList <- path_to_peakList[!is.na(valid_sizes) & valid_sizes > 0]
+
+  if (length(path_to_peakList) == 0) {
+    message("--- Aucun .msdial exploitable dans ce lot ---")
+    return(data.frame(
+      mz = numeric(0), mzmin = numeric(0), mzmax = numeric(0),
+      rt = numeric(0), rtmin = numeric(0), rtmax = numeric(0),
+      into = numeric(0), maxo = numeric(0), sn = numeric(0),
+      sample = character(0), stringsAsFactors = FALSE
+    ))
+  }
+
+
+
   # Tentative parallèle (SnowParam/SOCK) avec fallback séquentiel (SerialParam)
   # pour éviter le blocage infini de socketConnection() après épuisement des
   # ressources système (erreur 322 / DLL init failures).
