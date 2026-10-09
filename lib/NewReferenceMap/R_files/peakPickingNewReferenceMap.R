@@ -1301,31 +1301,33 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
     stop("R package \"BiocParallel\" is required !")
   if(!require(parallel))
     stop("R package \"parallel\" is required !")
-
-  # Filtrer les .msdial vides (0 octet) AVANT tout traitement parallèle,
+  
+  
+    # Filtrer les .msdial vides (0 octet) AVANT tout traitement parallèle,
   # plutôt que de laisser bplapply() les traiter puis filtrer après coup.
   # Plus simple : un seul point de contrôle, pas de cas particulier à gérer
   # plus loin si le lot entier se retrouve vide.
-  valid_sizes <- file.size(path_to_peakList)
-  empty_peakList <- path_to_peakList[is.na(valid_sizes) | valid_sizes == 0]
-  if (length(empty_peakList) > 0) {
-    message(sprintf("--- %d fichier(s) .msdial vide(s) ignoré(s) : %s ---",
-                    length(empty_peakList), paste(basename(empty_peakList), collapse = ", ")))
-  }
-  path_to_peakList <- path_to_peakList[!is.na(valid_sizes) & valid_sizes > 0]
-
-  if (length(path_to_peakList) == 0) {
-    message("--- Aucun .msdial exploitable dans ce lot ---")
-    return(data.frame(
-      mz = numeric(0), mzmin = numeric(0), mzmax = numeric(0),
-      rt = numeric(0), rtmin = numeric(0), rtmax = numeric(0),
-      into = numeric(0), maxo = numeric(0), sn = numeric(0),
-      sample = character(0), stringsAsFactors = FALSE
-    ))
-  }
-
-
-
+  # valid_sizes <- file.size(path_to_peakList)
+  # empty_peakList <- path_to_peakList[is.na(valid_sizes) | valid_sizes == 0]
+  # if (length(empty_peakList) > 0) {
+  #   message(sprintf("--- %d fichier(s) .msdial vide(s) ignoré(s) : %s ---",
+  #                   length(empty_peakList), paste(basename(empty_peakList), collapse = ", ")))
+  # }
+  # path_to_peakList <- path_to_peakList[!is.na(valid_sizes) & valid_sizes > 0]
+  # 
+  # if (length(path_to_peakList) == 0) {
+  #   message("--- Aucun .msdial exploitable dans ce lot ---")
+  #   return(data.frame(
+  #     mz = numeric(0), mzmin = numeric(0), mzmax = numeric(0),
+  #     rt = numeric(0), rtmin = numeric(0), rtmax = numeric(0),
+  #     into = numeric(0), maxo = numeric(0), sn = numeric(0),
+  #     sample = character(0), stringsAsFactors = FALSE
+  #   ))
+  # }
+  
+  
+  
+  
   # Tentative parallèle (SnowParam/SOCK) avec fallback séquentiel (SerialParam)
   # pour éviter le blocage infini de socketConnection() après épuisement des
   # ressources système (erreur 322 / DLL init failures).
@@ -1367,25 +1369,25 @@ deconv_peaks_MSDIAL<-function(path_to_peakList,
   
   # Filtrer les résultats vides
   Result_Msidal <- Result_Msidal[vapply(Result_Msidal, function(x) nrow(x) > 0, logical(1))]
-
-  # Si TOUS les .msdial du lot étaient vides/invalides (ex: un seul fichier
-  # dans le lot et il est vide), Result_Msidal est une liste vide :
-  # do.call("rbind", list()) renvoie NULL, et colnames<-(NULL, ...) plante
-  # ("attempt to set 'colnames' on an object with less than two dimensions").
-  # Retourner proprement un data.frame vide plutôt que de laisser planter
-  # tout l'observer Shiny (et perdre le reste du traitement en cours).
-  if (length(Result_Msidal) == 0) {
-    message("--- Aucun pic exploitable dans ce lot (tous les .msdial étaient vides/invalides) ---")
-    empty_peaks <- data.frame(
-      mz = numeric(0), mzmin = numeric(0), mzmax = numeric(0),
-      rt = numeric(0), rtmin = numeric(0), rtmax = numeric(0),
-      into = numeric(0), maxo = numeric(0), sn = numeric(0),
-      sample = character(0), stringsAsFactors = FALSE
-    )
-    if (!is.null(output_directory)) message("--- END ANNOTATION (rien à sauvegarder) ---")
-    return(empty_peaks)
-  }
-
+  
+  # # Si TOUS les .msdial du lot étaient vides/invalides (ex: un seul fichier
+  # # dans le lot et il est vide), Result_Msidal est une liste vide :
+  # # do.call("rbind", list()) renvoie NULL, et colnames<-(NULL, ...) plante
+  # # ("attempt to set 'colnames' on an object with less than two dimensions").
+  # # Retourner proprement un data.frame vide plutôt que de laisser planter
+  # # tout l'observer Shiny (et perdre le reste du traitement en cours).
+  # if (length(Result_Msidal) == 0) {
+  #   message("--- Aucun pic exploitable dans ce lot (tous les .msdial étaient vides/invalides) ---")
+  #   empty_peaks <- data.frame(
+  #     mz = numeric(0), mzmin = numeric(0), mzmax = numeric(0),
+  #     rt = numeric(0), rtmin = numeric(0), rtmax = numeric(0),
+  #     into = numeric(0), maxo = numeric(0), sn = numeric(0),
+  #     sample = character(0), stringsAsFactors = FALSE
+  #   )
+  #   if (!is.null(output_directory)) message("--- END ANNOTATION (rien à sauvegarder) ---")
+  #   return(empty_peaks)
+  # }
+  
   time2 <- system.time(peaks_MSDIAL_mono_iso <- do.call("rbind", Result_Msidal))
   times <- time1[[3]] + time2[[3]]
   
