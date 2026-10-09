@@ -1263,6 +1263,7 @@ observeEvent(
                                         ".msdial_processed_cache.txt")
             
             processed_msdial_files <- character(0)
+            RvarsPeakDetection$defective_runs_NewRefMap <- NULL
             after_batch_fun <- function(new_msdial_files) {
               new_msdial_files <- setdiff(new_msdial_files, processed_msdial_files)
               if (length(new_msdial_files) == 0) return(invisible(NULL))
@@ -1435,12 +1436,43 @@ observeEvent(
                 }
               }
             }
-            
-            
-            
+
+            # Détection des runs non traités (ex : .msdial de taille 0, run MSDIAL
+            # inexploitable) : tout échantillon d'entrée qui n'a ni CSV produit ni
+            # entrée dans le cache, après l'intégralité du pipeline (y compris les
+            # tours de récupération internes à findPeaks_MSDIAL). Affiché via un
+            # panneau dédié (pas de popup automatique) pour ne pas se télescoper
+            # avec le sendSweetAlert "Preprocess complete !" ci-dessous.
+            {
+              all_inputs_final <- list.files(req(RvarsPeakDetection$directory_rawData),
+                                             pattern = "\\.d$|\\.mzML$",
+                                             full.names = FALSE, ignore.case = TRUE)
+              input_stems_final <- tolower(sub("\\.(d|mzML)$", "", all_inputs_final,
+                                               ignore.case = TRUE))
+              csv_stems_final <- tolower(sub("\\.csv$", "",
+                                             list.files(directoryOutput_NewRefMap, pattern = "\\.csv$",
+                                                        full.names = FALSE, ignore.case = TRUE),
+                                             ignore.case = TRUE))
+              cache_stems_final <- character(0)
+              if (file.exists(cache_path_srv)) {
+                cached_final <- tolower(trimws(readLines(cache_path_srv, warn = FALSE)))
+                cache_stems_final <- sub("\\.(d|mzML)$", "", cached_final[nzchar(cached_final)],
+                                         ignore.case = TRUE)
+              }
+              done_stems_final <- unique(c(csv_stems_final, cache_stems_final))
+              RvarsPeakDetection$defective_runs_NewRefMap <-
+                all_inputs_final[!(input_stems_final %in% done_stems_final)]
+              if (length(RvarsPeakDetection$defective_runs_NewRefMap) > 0) {
+                message(sprintf(
+                  "--- %d run(s) non traité(s) (msdial vide/défectueux) : %s ---",
+                  length(RvarsPeakDetection$defective_runs_NewRefMap),
+                  paste(RvarsPeakDetection$defective_runs_NewRefMap, collapse = ", ")))
+              }
+            }
+
             message(" \n --- Preprocess complete ! ---\n")
             incProgress(1/8, detail = paste("Peaks detection and deconvolution complete !", round(8/8*100,0),"%",collapse=""))
-            
+
             #### End Processing
             sendSweetAlert(
               session = session,
@@ -1543,10 +1575,38 @@ observeEvent(
     ####~~~~~~~~~~~~~~~~~~~~~~~~~~ End process (peak detection with api MSDIAL) ~~~~~~~~~~~~~~~~~~~#
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     
-    
+
   }
-  
+
 )
+
+## Panneau des runs non traités (msdial vide/défectueux) — affiché uniquement
+## quand la liste est non vide, pas de popup automatique.
+output$defectiveRunsPanel_NewRefMap <- renderUI({
+  defective <- RvarsPeakDetection$defective_runs_NewRefMap
+  if (is.null(defective) || length(defective) == 0) return(NULL)
+  div(style = "margin-top:10px;",
+      tags$span(class = "label label-warning",
+                sprintf("%d run(s) non traité(s) (msdial vide/défectueux)", length(defective))),
+      actionButton("viewDefectiveRuns_NewRefMap", "Voir la liste",
+                   class = "btn-xs btn-warning", style = "margin-left:8px;")
+  )
+})
+
+observeEvent(input$viewDefectiveRuns_NewRefMap, {
+  defective <- RvarsPeakDetection$defective_runs_NewRefMap
+  showModal(modalDialog(
+    title = "Runs non traités (msdial vide ou défectueux)",
+    tags$p(sprintf(
+      "%d échantillon(s) n'ont pas pu être convertis en CSV après les tours de récupération. ",
+      length(defective)),
+      "Le fichier .msdial généré pour ces runs est probablement vide (run MSDIAL inexploitable) ou corrompu."),
+    tags$ul(lapply(defective, tags$li)),
+    easyClose = TRUE,
+    footer = modalButton("Fermer"),
+    size = "m"
+  ))
+})
 
 
 
