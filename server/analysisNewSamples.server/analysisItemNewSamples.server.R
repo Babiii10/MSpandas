@@ -8593,9 +8593,100 @@ peaks_mono_iso_sample_selectedCutting_newSample <- reactive({
     
     
   }
-  
+
 })
 
+
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save cut samples as CSV (end of Step 2) ~~~~~~~~~~~~~~~~~~~~~~#*
+## Même mécanisme que le "Save CE-time Corrected Data" côté NRM
+## (shinyFileSave + parseSavePath + write.csv, un seul fichier combiné).
+## N'exporte que les échantillons effectivement coupés, c'est-à-dire ceux
+## dont samplesCuttingTable_newSample a au moins une borne (rt_min_cut /
+## rt_max_cut) non NA ; les runs jamais découpés sont identiques au CSV
+## déjà présent dans Massif-List, donc inutiles à réexporter ici.
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$SaveCutSamples_newSample
+             },
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "SaveCutSamples_newSample",
+                             roots = volumes,
+                             session = session)
+
+               path_Save_File <- parseSavePath(volumes, input$SaveCutSamples_newSample)$datapath
+
+               if (length(path_Save_File) > 0) {
+                 cutting_table <- RvarsPeakDetectionNewSample$samplesCuttingTable_newSample
+                 cut_data <- peaks_mono_iso_sample_selectedCutting_newSample()
+
+                 if (!is.null(cutting_table) && !is.null(cut_data)) {
+                   already_cut <- rownames(cutting_table)[
+                     !is.na(cutting_table$rt_min_cut_newSample) |
+                       !is.na(cutting_table$rt_max_cut_newSample)
+                   ]
+
+                   if (length(already_cut) > 0) {
+                     showNotification(
+                       "Creating CSV file with cut samples...",
+                       type = "message",
+                       duration = NULL,
+                       id = "save_cut_csv_progress"
+                     )
+
+                     tryCatch({
+                       combined_cut_data <- do.call("rbind", cut_data[already_cut])
+
+                       if (!grepl("\\.csv$", path_Save_File, ignore.case = TRUE)) {
+                         path_Save_File <- paste0(path_Save_File, ".csv")
+                       }
+
+                       write.csv(combined_cut_data,
+                                 file = path_Save_File,
+                                 row.names = FALSE,
+                                 quote = TRUE,
+                                 na = "")
+
+                       removeNotification(id = "save_cut_csv_progress")
+                       showNotification(
+                         paste0("CSV file saved successfully to:\n", basename(path_Save_File)),
+                         type = "message",
+                         duration = 5
+                       )
+
+                       cat(paste0(
+                         "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
+                         "Cut samples saved as CSV to: ", path_Save_File,
+                         " (", length(already_cut), " sample(s) : ",
+                         paste(already_cut, collapse = ", "), ")\n"
+                       ))
+
+                     }, error = function(e) {
+                       removeNotification(id = "save_cut_csv_progress")
+                       showNotification(
+                         paste0("Error saving CSV file: ", e$message),
+                         type = "error",
+                         duration = 10
+                       )
+                     })
+
+                   } else {
+                     showNotification(
+                       "No cut samples to export (no Cut-off applied yet).",
+                       type = "warning",
+                       duration = 5
+                     )
+                   }
+                 } else {
+                   showNotification(
+                     "No data available.",
+                     type = "warning",
+                     duration = 5
+                   )
+                 }
+               }
+             })
 
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button server for cutting new samples ~~~~~~~~~~~~~~~~~~~~~~~~#*

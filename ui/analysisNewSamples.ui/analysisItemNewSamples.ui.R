@@ -452,7 +452,24 @@ analysisTabPanelNewSamples_Filtering <- function() {
         fluidRow(br()),
         fluidRow(br()),
         hr(),
-        
+
+        fluidRow(column(
+          12,
+          div(
+            class = "pull-left",
+            style = "display:inline-block; margin-bottom: 10px;",
+            shinySaveButton(
+              id = "SaveCutSamples_newSample",
+              label = "Save cut samples",
+              title = "Save cut samples as CSV...",
+              filename = "Cut_samples",
+              filetype = list(CSV = "csv"),
+              class = "btn-success",
+              icon = icon("save")
+            )
+          )
+        )),
+
         fluidRow(column(
           6,
           div(
@@ -464,7 +481,7 @@ analysisTabPanelNewSamples_Filtering <- function() {
               class = "btn-primary",
               icon = icon("arrow-left")
             )
-            
+
           )
         ),
         column(
