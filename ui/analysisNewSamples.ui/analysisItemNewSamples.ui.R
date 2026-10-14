@@ -445,30 +445,35 @@ analysisTabPanelNewSamples_Filtering <- function() {
                            )
                          )
                        ))),
+
+            column(
+              6,
+
+              div(
+                class = "pull-right",
+                style = "display:inline-block",
+                disabled(
+                  shinySaveButton(
+                    id = "SaveCuttingSample_newSample",
+                    label = "Save to",
+                    title = "Save file as...",
+                    filename = "Massif-list-Cutted-sample",
+                    filetype = list(text = "csv"),
+                    viewtype = "icon",
+                    icon = icon("save", lib = "glyphicon"),
+                    class = "btn-primary"
+                  )
+                )
+              )
+
+            )
           )
         ),
-        
+
         fluidRow(br()),
         fluidRow(br()),
         fluidRow(br()),
         hr(),
-
-        fluidRow(column(
-          12,
-          div(
-            class = "pull-left",
-            style = "display:inline-block; margin-bottom: 10px;",
-            shinySaveButton(
-              id = "SaveCutSamples_newSample",
-              label = "Save cut samples",
-              title = "Save cut samples as CSV...",
-              filename = "Cut_samples",
-              filetype = list(CSV = "csv"),
-              class = "btn-success",
-              icon = icon("save")
-            )
-          )
-        )),
 
         fluidRow(column(
           6,
