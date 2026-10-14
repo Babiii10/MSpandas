@@ -6233,7 +6233,7 @@ observeEvent(ignoreNULL = TRUE,
                      message("--- Cluster déconvolution arrêté ---")
                      deconv_bpparam <- NULL
                    }
-
+                   
                    # Détection des runs non traités (ex : .msdial de taille 0, run MSDIAL
                    # inexploitable) : tout échantillon d'entrée qui n'a ni CSV produit ni
                    # entrée dans le cache, après l'intégralité du pipeline (y compris les
@@ -6266,6 +6266,7 @@ observeEvent(ignoreNULL = TRUE,
                          paste(RvarsPeakDetectionNewSample$defective_runs_newSample, collapse = ", ")))
                      }
                    }
+                   
 
                    if (!is.null(RvarsPeakDetectionNewSample$peaks_MSDIAL_mono_iso_newSample)) {
                      RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample <-
@@ -6447,10 +6448,11 @@ observeEvent(ignoreNULL = TRUE,
                shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
                
                shinyjs::show("id_PlotCutt_newSample")
-
-
-
+               
+               
+               
              })
+
 
 ## Panneau des runs non traités (msdial vide/défectueux) — affiché uniquement
 ## quand la liste est non vide, pas de popup automatique.
