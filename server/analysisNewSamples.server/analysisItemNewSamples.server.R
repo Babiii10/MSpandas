@@ -6233,7 +6233,7 @@ observeEvent(ignoreNULL = TRUE,
                      message("--- Cluster déconvolution arrêté ---")
                      deconv_bpparam <- NULL
                    }
-
+                   
                    # Détection des runs non traités (ex : .msdial de taille 0, run MSDIAL
                    # inexploitable) : tout échantillon d'entrée qui n'a ni CSV produit ni
                    # entrée dans le cache, après l'intégralité du pipeline (y compris les
@@ -6266,6 +6266,7 @@ observeEvent(ignoreNULL = TRUE,
                          paste(RvarsPeakDetectionNewSample$defective_runs_newSample, collapse = ", ")))
                      }
                    }
+                   
 
                    if (!is.null(RvarsPeakDetectionNewSample$peaks_MSDIAL_mono_iso_newSample)) {
                      RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample <-
@@ -6447,10 +6448,11 @@ observeEvent(ignoreNULL = TRUE,
                shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
                
                shinyjs::show("id_PlotCutt_newSample")
-
-
-
+               
+               
+               
              })
+
 
 ## Panneau des runs non traités (msdial vide/défectueux) — affiché uniquement
 ## quand la liste est non vide, pas de popup automatique.
@@ -8745,7 +8747,19 @@ observe({
     } else {
       merged <- peaks
       already_corrected <- intersect(names(existing_correction), names(peaks))
-      merged[already_corrected] <- existing_correction[already_corrected]
+      # Un re-découpage (cutOff_newSample) change le nombre de lignes de
+      # peaks_mono_iso_newSample_list pour l'échantillon concerné. Si on
+      # préserve quand même l'ancienne correction (taille différente), le
+      # prochain "Fit model" assigne un predict() de N lignes à une colonne
+      # $rt qui en a M → crash $<-.data.frame ("replacement has N rows,
+      # data has M"). On n'écrase donc PAS avec les données fraîches, sauf
+      # si la taille a changé depuis la dernière correction : dans ce cas la
+      # correction est invalidée (il faudra la relancer pour ce run).
+      for (s in already_corrected) {
+        if (nrow(existing_correction[[s]]) == nrow(peaks[[s]])) {
+          merged[[s]] <- existing_correction[[s]]
+        }
+      }
       RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <- merged
     }
     
