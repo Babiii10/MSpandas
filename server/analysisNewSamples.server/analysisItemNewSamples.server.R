@@ -8598,94 +8598,119 @@ peaks_mono_iso_sample_selectedCutting_newSample <- reactive({
 
 
 
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save cut samples as CSV (end of Step 2) ~~~~~~~~~~~~~~~~~~~~~~#*
-## Même mécanisme que le "Save CE-time Corrected Data" côté NRM
-## (shinyFileSave + parseSavePath + write.csv, un seul fichier combiné).
-## N'exporte que les échantillons effectivement coupés, c'est-à-dire ceux
-## dont samplesCuttingTable_newSample a au moins une borne (rt_min_cut /
-## rt_max_cut) non NA ; les runs jamais découpés sont identiques au CSV
-## déjà présent dans Massif-List, donc inutiles à réexporter ici.
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save cutting samples (end of Step 2) ~~~~~~~~~~~~~~~~~~~~~~~~~#*
+## Port fidèle de la logique "SaveCuttingSample" côté NRM : le bouton est
+## désactivé par défaut et n'est activé qu'après confirmation de "Finish"
+## (voir enable("SaveCuttingSample_newSample") plus bas). Contrairement à
+## un export limité aux échantillons coupés, ici TOUS les échantillons sont
+## exportés (coupés ou non — peaks_mono_iso_sample_selectedCutting_newSample()
+## renvoie déjà chaque échantillon tel quel s'il n'a pas été coupé), et
+## chacun dans son propre fichier nommé "<sample>-<nom choisi par l'utilisateur>",
+## tous dans le même dossier — donc un nom de fichier cohérent et traçable
+## par run, au lieu d'un seul CSV combiné.
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$SaveCutSamples_newSample
+               input$SaveCuttingSample_newSample
              },
              handlerExpr = {
                shinyFileSave(input,
-                             id = "SaveCutSamples_newSample",
+                             id = "SaveCuttingSample_newSample",
                              roots = volumes,
                              session = session)
 
-               path_Save_File <- parseSavePath(volumes, input$SaveCutSamples_newSample)$datapath
+               path_Save_Files_origine <- parseSavePath(volumes, input$SaveCuttingSample_newSample)$datapath
+               valuestoSave <- peaks_mono_iso_sample_selectedCutting_newSample()
+               if (length(valuestoSave) > 0) {
+                 valuestoSave <- do.call("rbind", valuestoSave)
+                 reqColsSaved <- c('M+H',
+                                   'M+H.min',
+                                   'M+H.max',
+                                   'CE-time',
+                                   'CE-time.min',
+                                   'CE-time.max',
+                                   'integrated-intensity',
+                                   'intensity',
+                                   'sn',
+                                   'sample'
+                                 )
 
-               if (length(path_Save_File) > 0) {
-                 cutting_table <- RvarsPeakDetectionNewSample$samplesCuttingTable_newSample
-                 cut_data <- peaks_mono_iso_sample_selectedCutting_newSample()
+                 reqColsUsed <- c('mz',
+                                  'mzmin',
+                                  'mzmax',
+                                  'rt',
+                                  'rtmin',
+                                  'rtmax',
+                                  'into',
+                                  'maxo',
+                                  'sn',
+                                  'sample')
 
-                 if (!is.null(cutting_table) && !is.null(cut_data)) {
-                   already_cut <- rownames(cutting_table)[
-                     !is.na(cutting_table$rt_min_cut_newSample) |
-                       !is.na(cutting_table$rt_max_cut_newSample)
-                   ]
+                 idx_reqColsSaved <- which(colnames(valuestoSave) %in% reqColsUsed)
+                 colnames(valuestoSave)[idx_reqColsSaved] <- reqColsSaved
+                 valuestoSave <- split(valuestoSave, f = valuestoSave$sample)
 
-                   if (length(already_cut) > 0) {
-                     showNotification(
-                       "Creating CSV file with cut samples...",
-                       type = "message",
-                       duration = NULL,
-                       id = "save_cut_csv_progress"
+                 if (length(path_Save_Files_origine) > 0) {
+                   path_Save_Files <-
+                     strsplit(path_Save_Files_origine, split = "/")[[1]]
+                   directory_Save_Files <-
+                     paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
+
+
+                   if (length(valuestoSave) == 1) {
+                     write.table(
+                       valuestoSave[[1]],
+                       file = paste0(c(
+                         directory_Save_Files,
+                         paste(
+                           names(valuestoSave)[1],
+                           path_Save_Files[length(path_Save_Files)],
+                           collapse = "",
+                           sep = "-"
+                         )
+                       ), collapse = "/"),
+
+                       sep = ",",
+                       row.names = FALSE
                      )
-
-                     tryCatch({
-                       combined_cut_data <- do.call("rbind", cut_data[already_cut])
-
-                       if (!grepl("\\.csv$", path_Save_File, ignore.case = TRUE)) {
-                         path_Save_File <- paste0(path_Save_File, ".csv")
+                     print("Save ok")
+                   } else{
+                     withProgress(message = 'Saving files...', value = 0, {
+                       for (i in 1:length(valuestoSave)) {
+                         incProgress(1 / length(valuestoSave),
+                                     detail = "")
+                         print(paste0(c(
+                           directory_Save_Files,
+                           paste(
+                             names(valuestoSave)[i],
+                             path_Save_Files[length(path_Save_Files)],
+                             collapse = "",
+                             sep = "-"
+                           )
+                         ), collapse = "/"))
+                         write.table(
+                           valuestoSave[[i]],
+                           file = paste0(c(
+                             directory_Save_Files,
+                             paste(
+                               names(valuestoSave)[i],
+                               path_Save_Files[length(path_Save_Files)],
+                               collapse = "",
+                               sep = "-"
+                             )
+                           ), collapse = "/"),
+                           sep = ",",
+                           row.names = FALSE
+                         )
+                         print("Save ok")
                        }
 
-                       write.csv(combined_cut_data,
-                                 file = path_Save_File,
-                                 row.names = FALSE,
-                                 quote = TRUE,
-                                 na = "")
-
-                       removeNotification(id = "save_cut_csv_progress")
-                       showNotification(
-                         paste0("CSV file saved successfully to:\n", basename(path_Save_File)),
-                         type = "message",
-                         duration = 5
-                       )
-
-                       cat(paste0(
-                         "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
-                         "Cut samples saved as CSV to: ", path_Save_File,
-                         " (", length(already_cut), " sample(s) : ",
-                         paste(already_cut, collapse = ", "), ")\n"
-                       ))
-
-                     }, error = function(e) {
-                       removeNotification(id = "save_cut_csv_progress")
-                       showNotification(
-                         paste0("Error saving CSV file: ", e$message),
-                         type = "error",
-                         duration = 10
-                       )
                      })
 
-                   } else {
-                     showNotification(
-                       "No cut samples to export (no Cut-off applied yet).",
-                       type = "warning",
-                       duration = 5
-                     )
                    }
-                 } else {
-                   showNotification(
-                     "No data available.",
-                     type = "warning",
-                     duration = 5
-                   )
+
                  }
                }
+
              })
 
 
