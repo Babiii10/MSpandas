@@ -8747,7 +8747,19 @@ observe({
     } else {
       merged <- peaks
       already_corrected <- intersect(names(existing_correction), names(peaks))
-      merged[already_corrected] <- existing_correction[already_corrected]
+      # Un re-découpage (cutOff_newSample) change le nombre de lignes de
+      # peaks_mono_iso_newSample_list pour l'échantillon concerné. Si on
+      # préserve quand même l'ancienne correction (taille différente), le
+      # prochain "Fit model" assigne un predict() de N lignes à une colonne
+      # $rt qui en a M → crash $<-.data.frame ("replacement has N rows,
+      # data has M"). On n'écrase donc PAS avec les données fraîches, sauf
+      # si la taille a changé depuis la dernière correction : dans ce cas la
+      # correction est invalidée (il faudra la relancer pour ce run).
+      for (s in already_corrected) {
+        if (nrow(existing_correction[[s]]) == nrow(peaks[[s]])) {
+          merged[[s]] <- existing_correction[[s]]
+        }
+      }
       RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <- merged
     }
     
