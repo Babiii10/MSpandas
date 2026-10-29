@@ -8593,11 +8593,12 @@ peaks_mono_iso_sample_selectedCutting_newSample <- reactive({
     
     
   }
-
+  
 })
 
 
 
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save cut samples as CSV (end of Step 2) ~~~~~~~~~~~~~~~~~~~~~~#*
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save cutting samples (end of Step 2) ~~~~~~~~~~~~~~~~~~~~~~~~~#*
 ## Port fidèle de la logique "SaveCuttingSample" côté NRM : le bouton est
 ## désactivé par défaut et n'est activé qu'après confirmation de "Finish"
@@ -8617,7 +8618,7 @@ observeEvent(ignoreNULL = TRUE,
                              id = "SaveCuttingSample_newSample",
                              roots = volumes,
                              session = session)
-
+               
                path_Save_Files_origine <- parseSavePath(volumes, input$SaveCuttingSample_newSample)$datapath
                valuestoSave <- peaks_mono_iso_sample_selectedCutting_newSample()
                if (length(valuestoSave) > 0) {
@@ -8632,8 +8633,8 @@ observeEvent(ignoreNULL = TRUE,
                                    'intensity',
                                    'sn',
                                    'sample'
-                                 )
-
+                 )
+                 
                  reqColsUsed <- c('mz',
                                   'mzmin',
                                   'mzmax',
@@ -8644,18 +8645,18 @@ observeEvent(ignoreNULL = TRUE,
                                   'maxo',
                                   'sn',
                                   'sample')
-
+                 
                  idx_reqColsSaved <- which(colnames(valuestoSave) %in% reqColsUsed)
                  colnames(valuestoSave)[idx_reqColsSaved] <- reqColsSaved
                  valuestoSave <- split(valuestoSave, f = valuestoSave$sample)
-
+                 
                  if (length(path_Save_Files_origine) > 0) {
                    path_Save_Files <-
                      strsplit(path_Save_Files_origine, split = "/")[[1]]
                    directory_Save_Files <-
                      paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
-
-
+                   
+                   
                    if (length(valuestoSave) == 1) {
                      write.table(
                        valuestoSave[[1]],
@@ -8668,7 +8669,7 @@ observeEvent(ignoreNULL = TRUE,
                            sep = "-"
                          )
                        ), collapse = "/"),
-
+                       
                        sep = ",",
                        row.names = FALSE
                      )
@@ -8703,15 +8704,15 @@ observeEvent(ignoreNULL = TRUE,
                          )
                          print("Save ok")
                        }
-
+                       
                      })
-
+                     
                    }
-
+                   
                  }
                }
-
-             })
+               
+})
 
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button server for cutting new samples ~~~~~~~~~~~~~~~~~~~~~~~~#*
@@ -8863,6 +8864,7 @@ observe({
     } else {
       merged <- peaks
       already_corrected <- intersect(names(existing_correction), names(peaks))
+      # merged[already_corrected] <- existing_correction[already_corrected]
       # Un re-découpage (cutOff_newSample) change le nombre de lignes de
       # peaks_mono_iso_newSample_list pour l'échantillon concerné. Si on
       # préserve quand même l'ancienne correction (taille différente), le
@@ -10273,11 +10275,11 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
   loaded_key_lookup <- stats::setNames(loaded_samples, normalize_run_key_newSample(loaded_samples))
   
   col_names <- colnames(df)
-  datafile_col <- col_names[grepl(pattern = "^Datafile", col_names, ignore.case = TRUE)][1]
-  bandwith_col <- col_names[grepl(pattern = "^Bandwith$|^Bandwidth$", col_names, ignore.case = TRUE)][1]
-  intfilter_col <- col_names[grepl(pattern = "^Int.?filter$", col_names, ignore.case = TRUE)][1]
-  minden_col <- col_names[grepl(pattern = "^min.?den", col_names, ignore.case = TRUE)][1]
-  corrkernel_col <- col_names[grepl(pattern = "^Corr.?Kernel$", col_names, ignore.case = TRUE)][1]
+  datafile_col <- col_names[grepl(pattern = "^Sample", col_names, ignore.case = TRUE)][1]
+  bandwith_col <- col_names[grepl(pattern = "^Bandwidth_Model", col_names, ignore.case = TRUE)][1]
+  intfilter_col <- col_names[grepl(pattern = "^Intensity_Filter", col_names, ignore.case = TRUE)][1]
+  minden_col <- col_names[grepl(pattern = "Min_Density", col_names, ignore.case = TRUE)][1]
+  corrkernel_col <- col_names[grepl(pattern = "Kernel_Type", col_names, ignore.case = TRUE)][1]
   cat("datafile_col :  ", datafile_col , '\n')
   cat("bandwith_col :  ", bandwith_col , '\n')
   cat("intfilter_col :  ", intfilter_col , '\n')
@@ -10287,7 +10289,7 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
   print(head(df[,c(datafile_col, bandwith_col, intfilter_col,minden_col, corrkernel_col)]))
     
   
-  missing_cols <- c("Datafile", "Bandwith", "Int filter", "min den", "Corr Kernel")[
+  missing_cols <- c("Sample", "Bandwidth_Model", "Intensity_Filter", "Min_Density", "Kernel_Type")[
     is.na(c(datafile_col, bandwith_col, intfilter_col, minden_col, corrkernel_col))
   ]
   if (length(missing_cols) > 0) {
@@ -10315,6 +10317,10 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
       int_filter <- suppressWarnings(as.numeric(df[[intfilter_col]][i]))
       min_dens   <- suppressWarnings(as.numeric(df[[minden_col]][i]))
       bw_model   <- suppressWarnings(as.numeric(df[[corrkernel_col]][i]))
+      
+      cat("bw_filter : ", bw_filter  , "\n")
+      cat("int_filter : ", int_filter  , "\n")
+      cat('sample_raw  :  ', sample_raw ,"\n")
       
       if (!nzchar(sample_raw) || is.na(bw_filter) || is.na(int_filter) ||
           is.na(min_dens) || is.na(bw_model)) {
