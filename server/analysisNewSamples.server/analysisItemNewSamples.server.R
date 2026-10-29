@@ -10272,23 +10272,40 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
   loaded_samples <- names(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)
   loaded_key_lookup <- stats::setNames(loaded_samples, normalize_run_key_newSample(loaded_samples))
   
+  ## Le schéma de référence est celui produit par l'export
+  ## "KernelDensity_Correction_Parameters.xlsx" (voir new_row dans
+  ## apply_kernel_density_correction_newSample) : Sample, Kernel_Type,
+  ## Bandwidth_Model, Bandwidth_Filter, Intensity_Filter, Min_Density.
+  ## L'ancienne version cherchait UNE SEULE colonne "bandwidth" (Bandwith/
+  ## Bandwidth) et la réutilisait pour bandwidth_filter, puis cherchait une
+  ## colonne "Corr Kernel" pour bandwidth_model — qui, dans un export réel,
+  ## n'existe pas : seule "Kernel_Type" (texte, ex. "gaussian") matchait par
+  ## recouvrement partiel, donc as.numeric("gaussian") valait toujours NA et
+  ## CHAQUE ligne finissait "Ignoré (valeurs manquantes)", même avec des
+  ## données par ailleurs valides. On distingue maintenant explicitement les
+  ## 6 colonnes et kernel_type est lu comme texte, pas comme nombre.
   col_names <- colnames(df)
-  datafile_col <- col_names[grepl(pattern = "^Datafile", col_names, ignore.case = TRUE)][1]
-  bandwith_col <- col_names[grepl(pattern = "^Bandwith$|^Bandwidth$", col_names, ignore.case = TRUE)][1]
-  intfilter_col <- col_names[grepl(pattern = "^Int.?filter$", col_names, ignore.case = TRUE)][1]
-  minden_col <- col_names[grepl(pattern = "^min.?den", col_names, ignore.case = TRUE)][1]
-  corrkernel_col <- col_names[grepl(pattern = "^Corr.?Kernel$", col_names, ignore.case = TRUE)][1]
+  datafile_col        <- col_names[grepl(pattern = "^Datafile$|^Sample$", col_names, ignore.case = TRUE)][1]
+  kerneltype_col       <- col_names[grepl(pattern = "^Kernel.?Type$|^Corr.?Kernel$", col_names, ignore.case = TRUE)][1]
+  bandwidth_model_col  <- col_names[grepl(pattern = "^Bandwidth.?Model$|^Bandwidth$|^Bandwith$", col_names, ignore.case = TRUE)][1]
+  bandwidth_filter_col <- col_names[grepl(pattern = "^Bandwidth.?Filter$", col_names, ignore.case = TRUE)][1]
+  intfilter_col        <- col_names[grepl(pattern = "^Intensity.?Filter$|^Int.?filter$", col_names, ignore.case = TRUE)][1]
+  minden_col           <- col_names[grepl(pattern = "^Min.?Density$|^min.?den", col_names, ignore.case = TRUE)][1]
   cat("datafile_col :  ", datafile_col , '\n')
-  cat("bandwith_col :  ", bandwith_col , '\n')
+  cat("kerneltype_col :  ", kerneltype_col , '\n')
+  cat("bandwidth_model_col :  ", bandwidth_model_col , '\n')
+  cat("bandwidth_filter_col :  ", bandwidth_filter_col , '\n')
   cat("intfilter_col :  ", intfilter_col , '\n')
   cat("minden_col :  ", minden_col , '\n')
-  cat("corrkernel_col :  ", corrkernel_col , '\n')
-  
-  print(head(df[,c(datafile_col, bandwith_col, intfilter_col,minden_col, corrkernel_col)]))
-    
-  
-  missing_cols <- c("Datafile", "Bandwith", "Int filter", "min den", "Corr Kernel")[
-    is.na(c(datafile_col, bandwith_col, intfilter_col, minden_col, corrkernel_col))
+
+  print(head(df[, c(datafile_col, kerneltype_col, bandwidth_model_col,
+                    bandwidth_filter_col, intfilter_col, minden_col)]))
+
+
+  missing_cols <- c("Datafile/Sample", "Kernel_Type/Corr Kernel", "Bandwidth_Model",
+                    "Bandwidth_Filter", "Intensity_Filter", "Min_Density")[
+    is.na(c(datafile_col, kerneltype_col, bandwidth_model_col,
+           bandwidth_filter_col, intfilter_col, minden_col))
   ]
   if (length(missing_cols) > 0) {
     showNotification(
@@ -10297,47 +10314,51 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
     )
     return()
   }
-  
+
+  valid_kernel_types <- c("gaussian", "truncated gaussian", "epanechnikov", "uniform")
+
   n <- nrow(df)
   results <- data.frame(Sample = character(0), Status = character(0), stringsAsFactors = FALSE)
-  
+
   withProgress(message = "Import batch des corrections kernel density...", value = 0, {
     for (i in seq_len(n)) {
       incProgress(1 / n, detail = sprintf("%d/%d", i, n))
-      
-      if (grepl("\\.d$", datafile_col)) {
-        datafile_col <- sub("\\.d$", "", datafile_col)
-      }
-      
-      # sample_sel <- trimws(as.character(df[[datafile_col]][i]))
+
       sample_raw <- trimws(as.character(df[[datafile_col]][i]))
-      bw_filter  <- suppressWarnings(as.numeric(df[[bandwith_col]][i]))
-      int_filter <- suppressWarnings(as.numeric(df[[intfilter_col]][i]))
-      min_dens   <- suppressWarnings(as.numeric(df[[minden_col]][i]))
-      bw_model   <- suppressWarnings(as.numeric(df[[corrkernel_col]][i]))
-      
-      if (!nzchar(sample_raw) || is.na(bw_filter) || is.na(int_filter) ||
-          is.na(min_dens) || is.na(bw_model)) {
+      if (grepl("\\.d$", sample_raw, ignore.case = TRUE)) {
+        sample_raw <- sub("\\.d$", "", sample_raw, ignore.case = TRUE)
+      }
+
+      bw_model    <- suppressWarnings(as.numeric(df[[bandwidth_model_col]][i]))
+      bw_filter   <- suppressWarnings(as.numeric(df[[bandwidth_filter_col]][i]))
+      int_filter  <- suppressWarnings(as.numeric(df[[intfilter_col]][i]))
+      min_dens    <- suppressWarnings(as.numeric(df[[minden_col]][i]))
+      kernel_raw  <- trimws(as.character(df[[kerneltype_col]][i]))
+      kernel_type <- valid_kernel_types[match(tolower(kernel_raw), tolower(valid_kernel_types))]
+      if (is.na(kernel_type)) kernel_type <- "gaussian"
+
+      if (!nzchar(sample_raw) || is.na(bw_model) || is.na(bw_filter) ||
+          is.na(int_filter) || is.na(min_dens)) {
         results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (valeurs manquantes)"))
         next
       }
-      
+
       cat("sample_raw : \n")
       print(sample_raw)
-      
+
       sample_sel <- unname(loaded_key_lookup[normalize_run_key_newSample(sample_raw)])
       if (is.na(sample_sel)) {
         results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (run non chargé)"))
         next
       }
-      
+
       res <- apply_kernel_density_correction_newSample(
         sample_sel       = sample_sel,
-        kernel_type      = "gaussian",
-        bandwidth_model  = as.numeric(bw_model),
-        bandwidth_filter = as.numeric(bw_filter),
-        intensity_filter = as.numeric(int_filter),
-        min_density      = as.numeric(min_dens)
+        kernel_type      = kernel_type,
+        bandwidth_model  = bw_model,
+        bandwidth_filter = bw_filter,
+        intensity_filter = int_filter,
+        min_density      = min_dens
       )
       
       results <- rbind(results, data.frame(
