@@ -909,7 +909,62 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
                 size = 0.8
               )
             ),
-            
+
+            ##~~~~~~~~~~~~~~~ Anchor points (fixed waypoints) ~~~~~~~~~~~~~###
+            ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+            ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+            fluidRow(br()),
+            h4("Anchor points (fixed correction waypoints):"),
+            tags$p(
+              style = "font-style:italic; color:#666;",
+              "Click on the plot below to pin a point the correction model should be pulled toward."
+            ),
+            div(
+              style = "position:relative",
+              shinycssloaders::withSpinner(
+                plotOutput(
+                  "AnchorPlot_newSample",
+                  width = "100%",
+                  height = "350px",
+                  click = "AnchorPlot_click_newSample"
+                ),
+                type = 1,
+                size = 0.8
+              )
+            ),
+            fluidRow(
+              column(
+                6,
+                uiOutput("anchorCount_newSample")
+              ),
+              column(
+                6,
+                div(
+                  class = "pull-right",
+                  style = "display:inline-block",
+                  numericInput(
+                    inputId = "anchorWeight_newSample",
+                    label = "Anchor weight",
+                    value = 25,
+                    min = 1,
+                    max = 200,
+                    step = 1,
+                    width = "120px"
+                  )
+                ),
+                div(
+                  class = "pull-right",
+                  style = "display:inline-block; margin-right:10px; margin-top:24px;",
+                  actionButton(
+                    inputId = "clearAnchors_newSample",
+                    label = "Clear anchors",
+                    icon = icon("eraser"),
+                    class = "btn-danger btn-sm"
+                  )
+                )
+              )
+            ),
+
             ##~~~~~~~~~~~~~~~ Correction time ~~~~~~~~~~~~~###
             ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
             ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
