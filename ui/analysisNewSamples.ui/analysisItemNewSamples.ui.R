@@ -703,10 +703,29 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
                 value = 0.15
               )
             )
+          ),
+
+          hr(),
+
+          awesomeCheckbox(
+            inputId = "useRobustLineFilter_newSample",
+            label = "Use robust line filter instead of Intensity filter",
+            value = FALSE
+          ),
+          conditionalPanel(
+            condition = "input.useRobustLineFilter_newSample == true",
+            numericInput(
+              inputId = "robustLineThreshold_newSample",
+              label = "Residual threshold (x MAD)",
+              min = 0.5,
+              max = 20,
+              step = 0.5,
+              value = 3
+            )
           )
-          
+
         ),
-        
+
         ##~~~~~~~~~~~~~~~~~~ Parameters for correction model with kernel density ~~~~~~~~~~~~#
         ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
         ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
