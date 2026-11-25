@@ -429,8 +429,45 @@ analysisTabPanelNewSamples_Filtering <- function() {
                 )
               ))
             )
-            
+
           ),
+
+          div(
+            class = "well well-sm",
+            h4("Batch import cut-off:"),
+            fileInput(
+              inputId = "batchCutOffFile_newSample",
+              label = "Excel file (Sample, Min, Max, Unit [optional])",
+              accept = c(".xlsx", ".xls")
+            ),
+            fluidRow(
+              column(
+                6,
+                div(
+                  class = "text-center",
+                  actionButton(
+                    inputId = "applyBatchCutOff_newSample",
+                    label = "Apply batch cut-off",
+                    icon = icon("bolt"),
+                    class = "btn-primary"
+                  )
+                )
+              ),
+              column(
+                6,
+                div(
+                  class = "text-center",
+                  actionButton(
+                    inputId = "viewBatchCutOffResults_newSample",
+                    label = "View results",
+                    icon = icon("table"),
+                    class = "btn-default"
+                  )
+                )
+              )
+            )
+          ),
+
           hr(),
           fluidRow(
             div(id = "id_validCuttingRun_newSample",
