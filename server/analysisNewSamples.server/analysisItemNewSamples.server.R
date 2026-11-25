@@ -5595,6 +5595,57 @@ output$ui_existingProjects_newSample <- renderUI({
 })
 
 
+## Résumé réactif avant "Execute" : combien de runs sont détectés dans le
+## dossier source, combien ont déjà un CSV (projet repris) ou une entrée
+## dans le cache inter-session (donc seraient ignorés), combien restent à
+## convertir si on lance le traitement maintenant.
+output$runsDetectionSummary_newSample <- renderUI({
+  raw_dir <- directoryInput$directory
+  req(raw_dir, nzchar(raw_dir), raw_dir != "Choose working directory")
+
+  all_inputs <- list.files(raw_dir, pattern = "\\.d$|\\.mzML$",
+                           full.names = FALSE, ignore.case = TRUE)
+  if (length(all_inputs) == 0) {
+    return(tags$p(style = "font-style:italic;",
+                  "Aucun fichier .d/.mzML détecté dans ce dossier."))
+  }
+  input_stems <- tolower(sub("\\.(d|mzML)$", "", all_inputs, ignore.case = TRUE))
+
+  csv_stems <- character(0)
+  if (isTRUE(input$resumeMode_newSample == "resume") &&
+      !is.null(input$selectedProject_newSample) &&
+      nzchar(input$selectedProject_newSample)) {
+    massif_dir <- file.path(raw_dir, input$selectedProject_newSample, "Massif-List")
+    if (dir.exists(massif_dir)) {
+      csv_stems <- tolower(sub("\\.csv$", "",
+                               list.files(massif_dir, pattern = "\\.csv$",
+                                          full.names = FALSE, ignore.case = TRUE),
+                               ignore.case = TRUE))
+    }
+  }
+
+  cache_stems <- character(0)
+  cache_path <- file.path(raw_dir, ".msdial_processed_cache.txt")
+  if (file.exists(cache_path)) {
+    cached <- tolower(trimws(readLines(cache_path, warn = FALSE)))
+    cache_stems <- sub("\\.(d|mzML)$", "", cached[nzchar(cached)], ignore.case = TRUE)
+  }
+
+  done_stems <- unique(c(csv_stems, cache_stems))
+  n_total <- length(input_stems)
+  n_done  <- sum(input_stems %in% done_stems)
+  n_todo  <- n_total - n_done
+
+  div(
+    class = "well well-sm",
+    style = "margin-top:10px;",
+    tags$b(sprintf("%d run(s) détecté(s)", n_total)),
+    tags$br(),
+    sprintf("%d déjà converti(s), %d à convertir", n_done, n_todo)
+  )
+})
+
+
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 ###~~~~~~~~~~~~~~~~~~~~~~~~~ Default for some inputs ~~~~~~~~~~~~~~~~~~~~~~~###
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
@@ -6011,11 +6062,25 @@ observeEvent(ignoreNULL = TRUE,
 
                    processed_msdial_files <- character(0)
                    RvarsPeakDetectionNewSample$defective_runs_newSample <- NULL
+                   RvarsPeakDetectionNewSample$empty_msdial_runs_newSample <- NULL
+                   RvarsPeakDetectionNewSample$runs_summary_newSample <- NULL
                    after_batch_fun <- function(new_msdial_files) {
                      new_msdial_files <- setdiff(new_msdial_files, processed_msdial_files)
                      if (length(new_msdial_files) == 0) return(invisible(NULL))
                      processed_msdial_files <<- c(processed_msdial_files, new_msdial_files)
-                     
+
+                     # Repérer les .msdial de taille 0 (run MSDIAL inexploitable) AVANT la
+                     # déconvolution : deconv_peaks_MSDIAL() les filtre silencieusement et
+                     # removeFiles() les supprime ensuite — sans cette capture, impossible
+                     # de distinguer au moment du panneau récapitulatif un run "vide" d'un
+                     # échec pour une autre raison.
+                     empty_now <- new_msdial_files[file.size(new_msdial_files) %in% c(0, NA)]
+                     if (length(empty_now) > 0) {
+                       empty_stems <- tolower(sub("\\.msdial$", "", basename(empty_now), ignore.case = TRUE))
+                       RvarsPeakDetectionNewSample$empty_msdial_runs_newSample <-
+                         unique(c(RvarsPeakDetectionNewSample$empty_msdial_runs_newSample, empty_stems))
+                     }
+
                      deconv_peaks_MSDIAL(path_to_peakList = req(new_msdial_files),
                                          output_directory = directoryOutput,
                                          file_adduct = "data/Adduit.csv",
@@ -6282,6 +6347,15 @@ observeEvent(ignoreNULL = TRUE,
                      done_stems_final <- unique(c(csv_stems_final, cache_stems_final))
                      RvarsPeakDetectionNewSample$defective_runs_newSample <-
                        all_inputs_final[!(input_stems_final %in% done_stems_final)]
+
+                     # Compte global (feature "nombre de runs transformés") : total
+                     # détecté dans le dossier source vs. effectivement converti (CSV
+                     # ou cache) à l'issue du pipeline.
+                     RvarsPeakDetectionNewSample$runs_summary_newSample <- list(
+                       total   = length(all_inputs_final),
+                       success = sum(input_stems_final %in% done_stems_final)
+                     )
+
                      if (length(RvarsPeakDetectionNewSample$defective_runs_newSample) > 0) {
                        message(sprintf(
                          "--- %d run(s) non traité(s) (msdial vide/défectueux) : %s ---",
@@ -6477,28 +6551,52 @@ observeEvent(ignoreNULL = TRUE,
              })
 
 
-## Panneau des runs non traités (msdial vide/défectueux) — affiché uniquement
-## quand la liste est non vide, pas de popup automatique.
+## Panneau récapitulatif après peak picking : nombre de runs transformés
+## avec succès, et (si non vide) le badge + bouton pour la liste des runs
+## non traités (msdial vide/défectueux). Pas de popup automatique, pour ne
+## pas se télescoper avec le sendSweetAlert "Preprocess complete !".
 output$defectiveRunsPanel_newSample <- renderUI({
+  summary_info <- RvarsPeakDetectionNewSample$runs_summary_newSample
   defective <- RvarsPeakDetectionNewSample$defective_runs_newSample
-  if (is.null(defective) || length(defective) == 0) return(NULL)
-  div(style = "margin-top:10px;",
-      tags$span(class = "label label-warning",
-                sprintf("%d run(s) non traité(s) (msdial vide/défectueux)", length(defective))),
-      actionButton("viewDefectiveRuns_newSample", "Voir la liste",
-                   class = "btn-xs btn-warning", style = "margin-left:8px;")
+  if (is.null(summary_info)) return(NULL)
+
+  tagList(
+    div(style = "margin-top:10px;",
+        tags$span(class = "label label-info",
+                  sprintf("%d/%d run(s) transformé(s) avec succès",
+                         summary_info$success, summary_info$total))
+    ),
+    if (!is.null(defective) && length(defective) > 0) {
+      div(style = "margin-top:5px;",
+          tags$span(class = "label label-warning",
+                    sprintf("%d run(s) non traité(s) (msdial vide/défectueux)", length(defective))),
+          actionButton("viewDefectiveRuns_newSample", "Voir la liste",
+                       class = "btn-xs btn-warning", style = "margin-left:8px;")
+      )
+    }
   )
 })
 
 observeEvent(input$viewDefectiveRuns_newSample, {
   defective <- RvarsPeakDetectionNewSample$defective_runs_newSample
+  empty_stems <- RvarsPeakDetectionNewSample$empty_msdial_runs_newSample
+
+  defective_items <- lapply(defective, function(f) {
+    stem <- tolower(sub("\\.(d|mzML)$", "", f, ignore.case = TRUE))
+    reason <- if (!is.null(empty_stems) && stem %in% empty_stems) {
+      " — Run vide (MSDIAL n'a rien détecté)"
+    } else {
+      " — Non traité (raison inconnue)"
+    }
+    tags$li(paste0(f, reason))
+  })
+
   showModal(modalDialog(
     title = "Runs non traités (msdial vide ou défectueux)",
     tags$p(sprintf(
-      "%d échantillon(s) n'ont pas pu être convertis en CSV après les tours de récupération. ",
-      length(defective)),
-      "Le fichier .msdial généré pour ces runs est probablement vide (run MSDIAL inexploitable) ou corrompu."),
-    tags$ul(lapply(defective, tags$li)),
+      "%d échantillon(s) n'ont pas pu être convertis en CSV après les tours de récupération.",
+      length(defective))),
+    tags$ul(defective_items),
     easyClose = TRUE,
     footer = modalButton("Fermer"),
     size = "m"

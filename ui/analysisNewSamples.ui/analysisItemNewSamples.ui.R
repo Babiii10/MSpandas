@@ -184,13 +184,15 @@ Load the directory containing the files to be analyzed."
                             conditionalPanel(
                               condition = "input.resumeMode_newSample == 'resume'",
                               uiOutput("ui_existingProjects_newSample")
-                            )
+                            ),
+
+                            uiOutput("runsDetectionSummary_newSample")
                           ),
-                          
-                          
-                          
+
+
+
                         )),
-                        
+
                         fluidRow(column(
                           4,
                           div(
