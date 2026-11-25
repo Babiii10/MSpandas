@@ -9282,16 +9282,12 @@ observeEvent(ignoreNULL = TRUE,
                  
                  
                  
-                 ## Filter intensity (ou filtre robuste optionnel, voir ci-dessous)
+                 ## Filter intensity
                  observe({
                    if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter)) {
                      RvarsPeakDetectionNewSample$Data_Plot.newSample <-
-                       filter_newSample_points_for_correction(
-                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter,
-                         use_robust = isTRUE(input$useRobustLineFilter_newSample),
-                         intensity_filter = req(input$intensityFilter_newSample),
-                         robust_threshold = input$robustLineThreshold_newSample
-                       )
+                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter %>%
+                       dplyr::filter(maxo.2 >= req(input$intensityFilter_newSample))
                    }
                  })
                  
@@ -9528,54 +9524,6 @@ observeEvent(ignoreNULL = TRUE,
                }
 
              })
-
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~ Robust line filter (alternative au filtre d'intensité) #
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-## Le filtre d'intensité retire les points sous un seuil, sans tenir compte
-## de leur cohérence avec la tendance réelle (rt.1 ~ rt.2) : un point de
-## faible intensité mais bien aligné est perdu, tandis qu'un point de forte
-## intensité mais loin de la tendance (mauvais appariement) est conservé.
-## Alternative optionnelle : estimer la tendance centrale de façon robuste
-## (loess avec repondération itérative, résistant aux amas de points
-## atypiques/bruit) puis ne garder que les points proches de cette tendance
-## (résidu < seuil × MAD), quelle que soit leur intensité.
-filter_newSample_points_for_correction <- function(data_to_filter,
-                                                   use_robust,
-                                                   intensity_filter,
-                                                   robust_threshold = 3) {
-  if (!isTRUE(use_robust)) {
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-
-  if (nrow(data_to_filter) < 10) {
-    message("--- Robust line filter : pas assez de points (<10), filtre d'intensité utilisé en repli ---")
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-
-  robust_fit <- tryCatch(
-    loess(rt.1 ~ rt.2, data = data_to_filter, family = "symmetric", span = 0.75),
-    error = function(e) NULL
-  )
-  if (is.null(robust_fit)) {
-    message("--- Robust line filter : échec de l'ajustement loess, filtre d'intensité utilisé en repli ---")
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-
-  predicted <- predict(robust_fit, newdata = data.frame(rt.2 = data_to_filter$rt.2))
-  residuals_val <- data_to_filter$rt.1 - predicted
-  mad_val <- stats::mad(residuals_val, na.rm = TRUE)
-
-  if (!is.finite(mad_val) || mad_val == 0) {
-    message("--- Robust line filter : MAD nul/non calculable, filtre d'intensité utilisé en repli ---")
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-
-  threshold <- suppressWarnings(as.numeric(robust_threshold)) * mad_val
-  keep <- !is.na(residuals_val) & abs(residuals_val) <= threshold
-  data_to_filter[keep, ]
-}
 
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
