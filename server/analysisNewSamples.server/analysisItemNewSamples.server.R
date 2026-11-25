@@ -8712,14 +8712,140 @@ peaks_mono_iso_sample_selectedCutting_newSample <- reactive({
     
     table_to_save
     
-    
+
   }
   
 })
 
 
 
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save cut samples as CSV (end of Step 2) ~~~~~~~~~~~~~~~~~~~~~~#*
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Batch import cut-off (Min/Max en temps) ~~~~~~~~~~~~~~~~~~~~~~#*
+## Permet d'importer un fichier Excel (Sample, Min, Max, Unit optionnel) pour
+## appliquer en masse les bornes de découpage RT au lieu de les saisir
+## manuellement échantillon par échantillon. Réutilise normalize_run_key_newSample
+## (définie plus bas dans ce fichier, mais déjà disponible au moment de
+## l'exécution de cet observer — tout le code top-level du serveur s'exécute
+## une fois à l'initialisation de la session, avant toute interaction) pour
+## tolérer les variations de format de nom de run (séparateurs, zero-padding).
+observeEvent(input$applyBatchCutOff_newSample, ignoreNULL = TRUE, {
+  req(input$batchCutOffFile_newSample)
+
+  if (is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
+    showNotification("Aucun échantillon chargé pour le découpage.", type = "error", duration = 8)
+    return()
+  }
+
+  df <- tryCatch(
+    openxlsx::read.xlsx(input$batchCutOffFile_newSample$datapath, sheet = 1),
+    error = function(e) NULL
+  )
+  if (is.null(df)) {
+    showNotification("Impossible de lire le fichier Excel.", type = "error", duration = 8)
+    return()
+  }
+
+  loaded_samples <- rownames(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)
+  loaded_key_lookup <- stats::setNames(loaded_samples, normalize_run_key_newSample(loaded_samples))
+
+  col_names    <- colnames(df)
+  datafile_col <- col_names[grepl(pattern = "^Datafile$|^Sample$", col_names, ignore.case = TRUE)][1]
+  min_col      <- col_names[grepl(pattern = "^Min$|^RT.?min$|^CE.?time.?min$", col_names, ignore.case = TRUE)][1]
+  max_col      <- col_names[grepl(pattern = "^Max$|^RT.?max$|^CE.?time.?max$", col_names, ignore.case = TRUE)][1]
+  unit_col     <- col_names[grepl(pattern = "^Unit$", col_names, ignore.case = TRUE)][1]
+
+  missing_cols <- c("Sample/Datafile", "Min", "Max")[is.na(c(datafile_col, min_col, max_col))]
+  if (length(missing_cols) > 0) {
+    showNotification(
+      paste("Colonnes manquantes dans le fichier :", paste(missing_cols, collapse = ", ")),
+      type = "error", duration = 10
+    )
+    return()
+  }
+
+  n <- nrow(df)
+  results <- data.frame(Sample = character(0), Status = character(0), stringsAsFactors = FALSE)
+
+  withProgress(message = "Import batch des bornes de découpage...", value = 0, {
+    for (i in seq_len(n)) {
+      incProgress(1 / n, detail = sprintf("%d/%d", i, n))
+
+      sample_raw <- trimws(as.character(df[[datafile_col]][i]))
+      if (grepl("\\.d$", sample_raw, ignore.case = TRUE)) {
+        sample_raw <- sub("\\.d$", "", sample_raw, ignore.case = TRUE)
+      }
+      rt_min <- suppressWarnings(as.numeric(df[[min_col]][i]))
+      rt_max <- suppressWarnings(as.numeric(df[[max_col]][i]))
+      unit_raw <- if (!is.na(unit_col)) trimws(as.character(df[[unit_col]][i])) else NA_character_
+      unit_val <- if (!is.na(unit_raw) && tolower(unit_raw) %in% c("minute", "minutes", "min")) {
+        "Minute"
+      } else {
+        "Second"
+      }
+
+      # Un run peut n'être découpé que d'un seul côté (Min ou Max seul) — comme
+      # pour la saisie manuelle — donc on n'ignore que si les DEUX bornes manquent.
+      if (!nzchar(sample_raw) || (is.na(rt_min) && is.na(rt_max))) {
+        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (valeurs manquantes)"))
+        next
+      }
+
+      sample_sel <- unname(loaded_key_lookup[normalize_run_key_newSample(sample_raw)])
+      if (is.na(sample_sel)) {
+        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (run non chargé)"))
+        next
+      }
+
+      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[sample_sel, 1:2] <- c(rt_min, rt_max)
+      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[sample_sel, 3]   <- unit_val
+
+      results <- rbind(results, data.frame(Sample = sample_sel, Status = "OK"))
+    }
+  })
+
+  n_ok <- sum(results$Status == "OK")
+  n_other <- nrow(results) - n_ok
+
+  showNotification(
+    sprintf("Import batch terminé : %d run(s) découpé(s), %d ignoré(s).", n_ok, n_other),
+    type = if (n_other == 0) "message" else "warning",
+    duration = 10
+  )
+
+  RvarsPeakDetectionNewSample$batchCutOffResults_newSample <- results
+  show_batch_cutoff_results_modal_newSample(results)
+})
+
+## Affiche (ou réaffiche) le tableau des résultats du dernier import batch cut-off
+show_batch_cutoff_results_modal_newSample <- function(results) {
+  output$batchCutOffResultTable_newSample <- DT::renderDataTable({
+    DT::datatable(
+      results,
+      rownames = FALSE,
+      options = list(pageLength = 15, scrollX = TRUE)
+    )
+  })
+  showModal(
+    modalDialog(
+      title = "Résultats de l'import batch — cut-off",
+      size = "l",
+      easyClose = TRUE,
+      footer = modalButton("Close"),
+      DT::dataTableOutput("batchCutOffResultTable_newSample")
+    )
+  )
+}
+
+observeEvent(input$viewBatchCutOffResults_newSample, ignoreNULL = TRUE, {
+  results <- isolate(RvarsPeakDetectionNewSample$batchCutOffResults_newSample)
+  if (is.null(results) || nrow(results) == 0) {
+    showNotification("Aucun résultat d'import batch disponible pour l'instant.",
+                     type = "message", duration = 6)
+    return()
+  }
+  show_batch_cutoff_results_modal_newSample(results)
+})
+
+
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save cutting samples (end of Step 2) ~~~~~~~~~~~~~~~~~~~~~~~~~#*
 ## Port fidèle de la logique "SaveCuttingSample" côté NRM : le bouton est
 ## désactivé par défaut et n'est activé qu'après confirmation de "Finish"
