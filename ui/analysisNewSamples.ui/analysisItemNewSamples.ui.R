@@ -167,6 +167,23 @@ Load the directory containing the files to be analyzed."
                               label = "Project name (100 chars max)",
                               value = "Analysis new samples",
                               placeholder = "Project name"
+                            ),
+
+                            awesomeRadio(
+                              inputId  = "resumeMode_newSample",
+                              label    = NULL,
+                              inline   = TRUE,
+                              checkbox = TRUE,
+                              choices  = list(
+                                "New project"             = "new",
+                                "Resume existing project" = "resume"
+                              ),
+                              selected = "new"
+                            ),
+
+                            conditionalPanel(
+                              condition = "input.resumeMode_newSample == 'resume'",
+                              uiOutput("ui_existingProjects_newSample")
                             )
                           ),
                           

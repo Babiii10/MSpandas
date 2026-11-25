@@ -5554,11 +5554,45 @@ observeEvent(ignoreNULL = TRUE,
                  
                  # update the widget value
                  updateDirectoryInput(session, 'directory', value = directoryInput$directory)
-                 
-                 
-                 
+
+
+
                }
              })
+
+
+## Peuple dynamiquement la liste déroulante "Resume" : tous les sous-dossiers
+## de directoryInput$directory dont le nom commence par "<projectName>_",
+## triés du plus récent au plus ancien (même logique que côté NRM).
+output$ui_existingProjects_newSample <- renderUI({
+  req(input$resumeMode_newSample == "resume")
+  raw_dir   <- req(directoryInput$directory)
+  base_name <- trimws(input$projectName)
+  req(nzchar(base_name))
+
+  all_dirs <- list.dirs(raw_dir, recursive = FALSE, full.names = FALSE)
+  matching <- sort(
+    all_dirs[startsWith(all_dirs, paste0(base_name, "_"))],
+    decreasing = TRUE   # most recent timestamp first
+  )
+
+  if (length(matching) == 0) {
+    return(tagList(
+      tags$p(
+        style = "color:#a94442; font-style:italic;",
+        paste0('No existing project found for "', base_name, '".')
+      )
+    ))
+  }
+
+  selectInput(
+    inputId  = "selectedProject_newSample",
+    label    = "Select project to resume:",
+    choices  = matching,
+    selected = matching[1],
+    width    = "100%"
+  )
+})
 
 
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
@@ -5696,47 +5730,49 @@ observeEvent(ignoreNULL = TRUE,
                    ########################################################################
                    
                    ### Directory Project
-                   RvarsPeakDetectionNewSample$Project_Name <-
-                     paste(input$projectName,
-                           sub(
+                   if (isTRUE(input$resumeMode_newSample == "resume") &&
+                       !is.null(input$selectedProject_newSample)        &&
+                       nzchar(input$selectedProject_newSample)) {
+                     # Reprendre un projet existant : réutiliser son dossier.
+                     # Le cache .msdial_processed_cache.txt et la vérification des CSV
+                     # déjà présents garantissent que seuls les échantillons non encore
+                     # traités sont retraités.
+                     RvarsPeakDetectionNewSample$Project_Name <- input$selectedProject_newSample
+                     message(sprintf("--- Reprise du projet existant : %s ---",
+                                     input$selectedProject_newSample))
+                   } else {
+                     RvarsPeakDetectionNewSample$Project_Name <-
+                       paste(input$projectName,
                              sub(
                                sub(
-                                 Sys.time(),
-                                 pattern = "CEST",
-                                 replacement = "",
+                                 sub(
+                                   Sys.time(),
+                                   pattern = "CEST",
+                                   replacement = "",
+                                   fixed = TRUE
+                                 ),
+                                 pattern = ":",
+                                 replacement = "-",
                                  fixed = TRUE
                                ),
                                pattern = ":",
                                replacement = "-",
                                fixed = TRUE
                              ),
-                             pattern = ":",
-                             replacement = "-",
-                             fixed = TRUE
-                           ),
-                           sep = "_")
-                   
-                   
-                   if (dir.exists(
+                             sep = "_")
+                     message(sprintf("--- Nouveau projet : %s ---",
+                                     RvarsPeakDetectionNewSample$Project_Name))
+                   }
+
+
+                   ## project directory (ne PAS supprimer en mode resume : on veut
+                   ## garder l'historique CSV/.msdial déjà produit pour ce projet)
+                   if (!dir.exists(
                      file.path(
                        directoryInput$directory,
                        RvarsPeakDetectionNewSample$Project_Name
                      )
                    )) {
-                     unlink(
-                       file.path(
-                         directoryInput$directory,
-                         RvarsPeakDetectionNewSample$Project_Name
-                       ),
-                       recursive = TRUE
-                     )
-                     dir.create(
-                       file.path(
-                         directoryInput$directory,
-                         RvarsPeakDetectionNewSample$Project_Name
-                       )
-                     )
-                   } else{
                      dir.create(
                        file.path(
                          directoryInput$directory,
@@ -5744,8 +5780,10 @@ observeEvent(ignoreNULL = TRUE,
                        )
                      )
                    }
-                   
-                   ## creer un dossier contenant la liste des peaks
+
+                   ## creer un dossier contenant la liste des peaks (idem : ne jamais
+                   ## supprimer un Massif-List existant, sinon on perd les CSV déjà
+                   ## produits et on casse la reprise incrémentale)
                    if (dir.exists(
                      file.path(
                        directoryInput$directory,
@@ -5753,21 +5791,6 @@ observeEvent(ignoreNULL = TRUE,
                        "Massif-List"
                      )
                    )) {
-                     unlink(
-                       file.path(
-                         directoryInput$directory,
-                         RvarsPeakDetectionNewSample$Project_Name,
-                         "Massif-List"
-                       ),
-                       recursive = TRUE
-                     )
-                     dir.create(
-                       file.path(
-                         directoryInput$directory,
-                         RvarsPeakDetectionNewSample$Project_Name,
-                         "Massif-List"
-                       )
-                     )
                      directoryOutput <-
                        file.path(
                          directoryInput$directory,
