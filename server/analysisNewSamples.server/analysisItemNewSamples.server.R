@@ -9592,16 +9592,95 @@ observeEvent(ignoreNULL = TRUE,
                        g1$widths <- maxWidth
                        g2$widths <- maxWidth
                        grid.arrange(g1, g2, nrow = 2)
-                       
+
                      }
-                     
+
                    }
-                   
+
                  })
-                 
+
                }
-               
+
              })
+
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+##~~~~~~~~~~~~~~~~~~~~ Anchor points (fixed correction waypoints) ~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+## Permet d'épingler manuellement des points (RT échantillon ↔ RT référence)
+## par lesquels le modèle de correction (npreg) doit être tiré, en plus de
+## l'ajustement automatique. npreg (régression locale pondérée) n'a pas
+## d'option "passer exactement par ce point" ; on s'en approche en dupliquant
+## chaque ancrage plusieurs fois (poids réglable) dans les données
+## d'entraînement avant l'appel à npreg(), ce qui l'influence fortement sans
+## garantir un passage exact (lissage, pas interpolation).
+
+## Injecte les points d'ancrage (dupliqués selon `weight`) dans les données
+## d'entraînement du modèle, pour un échantillon donné. Utilisée à la fois
+## par le fit interactif ("Adjust CE-time") et par l'import batch.
+inject_kernelDensity_anchors_newSample <- function(dataDensity, sample_sel, weight = 25) {
+  anchors <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
+  if (is.null(anchors) || nrow(anchors) == 0) return(dataDensity)
+  weight <- max(1L, suppressWarnings(as.integer(weight)), na.rm = TRUE)
+  anchors_expanded <- anchors[rep(seq_len(nrow(anchors)), weight),
+                              c("rt.2", "rt.1"), drop = FALSE]
+  dplyr::bind_rows(dataDensity, anchors_expanded)
+}
+
+observeEvent(input$AnchorPlot_click_newSample, ignoreNULL = TRUE, {
+  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
+  click <- input$AnchorPlot_click_newSample
+  new_anchor <- data.frame(rt.2 = click$x, rt.1 = click$y)
+
+  existing <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
+  RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]] <-
+    rbind(existing, new_anchor)
+})
+
+observeEvent(input$clearAnchors_newSample, ignoreNULL = TRUE, {
+  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
+  RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]] <- NULL
+})
+
+output$anchorCount_newSample <- renderUI({
+  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
+  anchors <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
+  n <- if (is.null(anchors)) 0L else nrow(anchors)
+  tags$span(
+    style = "font-weight:bold;",
+    sprintf("%d point(s) d'ancrage pour cet échantillon", n)
+  )
+})
+
+output$AnchorPlot_newSample <- renderPlot({
+  req(RvarsPeakDetectionNewSample$Data_Plot.newSample)
+  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
+
+  p <- RvarsPeakDetectionNewSample$Data_Plot.newSample %>%
+    ggplot() +
+    aes(x = rt.2, y = rt.1) +
+    geom_point(aes(color = maxo.2), size = 0.8) +
+    scale_colour_continuous(palette = c("#ffce4d", "red", "#9E0B0B", "#450A0A")) +
+    xlab(paste("CE-time (", sample_sel, ")")) +
+    ylab("CE-time (reference sample)") +
+    labs(colour = "log2 Intensity") +
+    theme_ben()
+
+  anchors <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
+  if (!is.null(anchors) && nrow(anchors) > 0) {
+    p <- p + geom_point(
+      data = anchors,
+      mapping = aes(x = rt.2, y = rt.1),
+      inherit.aes = FALSE,
+      shape = 8,
+      size = 4,
+      color = "blue",
+      stroke = 1.5
+    )
+  }
+
+  p
+})
 
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
@@ -9653,7 +9732,12 @@ observeEvent(ignoreNULL = TRUE,
                    if (length(data_dens_filter.newSample()) != 0) {
                      if (!is.null(data_dens_filter.newSample())) {
                        dataDensity <- isolate(data_dens_filter.newSample())
-                       
+                       dataDensity <- inject_kernelDensity_anchors_newSample(
+                         dataDensity,
+                         input$SelectSample_KernelDensity_newSample,
+                         weight = isolate(input$anchorWeight_newSample)
+                       )
+
                        if (!is.null(dataDensity)) {
                          withProgress(message = 'Fit model...', value = 0, {
                            incProgress(1 / 3, detail = "")
@@ -10566,6 +10650,7 @@ apply_kernel_density_correction_newSample <- function(sample_sel,
   dataDensity <- df %>% dplyr::filter(density >= min_density)
   if (nrow(dataDensity) == 0)
     return(list(success = FALSE, reason = "min density trop restrictif"))
+  dataDensity <- inject_kernelDensity_anchors_newSample(dataDensity, sample_sel)
   
   model <- tryCatch(
     npreg(
