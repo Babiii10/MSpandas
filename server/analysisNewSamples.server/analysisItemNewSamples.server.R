@@ -9146,11 +9146,30 @@ observe({
       }
       RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <- merged
     }
-    
+
+    # Forcer un vrai événement de changement de sélection : un simple
+    # updatePickerInput(choices=...) qui garde la même valeur sélectionnée
+    # ne renvoie pas toujours un nouvel input$SelectSample_KernelDensity_newSample
+    # côté serveur, donc observeEvent(input$SelectSample_KernelDensity_newSample)
+    # (qui dessine DensityFilterPlot_newSample avec les données à jour) ne se
+    # redéclenche pas après un découpage — le graphique reste figé sur les
+    # données d'avant le cut tant qu'on ne change pas manuellement de run.
+    # On vide le picker puis on le re-remplit en réaffirmant la même sélection
+    # (si elle existe toujours) pour forcer ce nouvel événement.
+    current_kd_sample <- isolate(input$SelectSample_KernelDensity_newSample)
+    selected_kd_sample <- if (!is.null(current_kd_sample) && current_kd_sample %in% sample_name) {
+      current_kd_sample
+    } else {
+      sample_name[1]
+    }
     updatePickerInput(session = session,
                       inputId = "SelectSample_KernelDensity_newSample",
-                      choices = sample_name)
-    
+                      choices = character(0))
+    updatePickerInput(session = session,
+                      inputId = "SelectSample_KernelDensity_newSample",
+                      choices = sample_name,
+                      selected = selected_kd_sample)
+
     
     
   } else {
