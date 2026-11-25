@@ -11917,15 +11917,15 @@ output$showKernel_param  =  renderUI({
     tags$br(),
     tags$span(tags$b("Kernel type: "), row$Kernel_Type),
     tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model),
-    tags$span(" | ", style = "color:#aaa;"),
     tags$span(tags$b("Bandwidth (filter): "), row$Bandwidth_Filter),
     tags$span(" | ", style = "color:#aaa;"),
     tags$span(tags$b("Intensity filter: "), row$Intensity_Filter),
     tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Min density: "), row$Min_Density)
+    tags$span(tags$b("Min density: "), row$Min_Density),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model)
   )
-  
+
 })
 
 # observeEvent(input$btn_view_rt_dist_newSample, ignoreNULL = TRUE, {
