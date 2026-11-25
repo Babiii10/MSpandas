@@ -7154,85 +7154,9 @@ observeEvent(ignoreNULL = TRUE,
                  inputId = "rt_max_cut_newSample",
                  value = RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
                )
-
-
+               
+               
              })
-
-## Rendu unique et pleinement réactif du graphique de découpage (Step 2).
-## Avant ce fix, ce même output était réassigné séparément dans plusieurs
-## observeEvent (bouton Cut-off, changement de sélection d'échantillon,
-## observe() générique) : chaque réassignation figeait une version précise
-## du graphique (coupé ou pas), si bien qu'un changement des bornes de
-## découpage par une AUTRE voie (import batch, par ex.) n'invalidait pas la
-## version alors active — d'où le besoin de changer d'échantillon puis d'y
-## revenir pour forcer un nouveau rendu à jour. Cette fonction est lue
-## intégralement de façon réactive (aucun isolate()) : elle se redessine
-## automatiquement dès que l'échantillon sélectionné, les bornes de
-## découpage ou les données sous-jacentes changent, quelle qu'en soit la
-## source.
-render_cutting_plot_newSample <- function() {
-  sample_sel <- input$sample_selectedCutting_newSample
-  if (is.null(sample_sel)) return(NULL)
-  if (is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[sample_sel]])) return(NULL)
-  if (is.null(RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample)) return(NULL)
-
-  shinyjs::show("UnitTime_sampleCutting_id_newSample")
-  shinyjs::show("mousepositionSampleCutting_newSample")
-
-  rt_min <- NA_real_
-  rt_max <- NA_real_
-  if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-    rt_min <- as.numeric(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[sample_sel, ]$rt_min_cut_newSample)
-    rt_max <- as.numeric(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[sample_sel, ]$rt_max_cut_newSample)
-  }
-
-  p <- RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-    ggplot() +
-    aes(x = CE.time, y = M.H, colour = intensity) +
-    geom_point(size = 1)
-
-  if (!is.na(rt_min) && !is.na(rt_max)) {
-    p <- p +
-      geom_vline(xintercept = rt_min, color = "gray", linetype = "dashed") +
-      geom_vline(xintercept = rt_max, color = "gray", linetype = "dashed") +
-      ggplot2::annotate("rect", xmin = c(0, rt_max), xmax = c(rt_min, Inf),
-                        ymin = -Inf, ymax = Inf, alpha = 0.5, fill = "gray")
-  } else if (!is.na(rt_min) && is.na(rt_max)) {
-    p <- p +
-      geom_vline(xintercept = rt_min, color = "gray", linetype = "dashed") +
-      ggplot2::annotate("rect", xmin = 0, xmax = rt_min,
-                        ymin = -Inf, ymax = Inf, alpha = 0.5, fill = "gray")
-  } else if (is.na(rt_min) && !is.na(rt_max)) {
-    p <- p +
-      geom_vline(xintercept = rt_max, color = "gray", linetype = "dashed") +
-      ggplot2::annotate("rect", xmin = rt_max, xmax = Inf,
-                        ymin = -Inf, ymax = Inf, alpha = 0.5, fill = "gray")
-  }
-  # sinon : ni min ni max -> pas de bande, graphique brut
-
-  p +
-    scale_color_viridis_c(option = "inferno", direction = -1) +
-    ylab("Mass (M+H) (Da)") +
-    xlab(paste("CE-time (", req(input$UnitTime_sampleCutting_newSample), ")")) +
-    coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-                    ylim = rangesZoomSample_selectedCutting_newSample$y,
-                    expand = TRUE) +
-    ggtitle(paste("Sample selected :", sample_sel, "\n")) +
-    scale_x_continuous(n.breaks = 14) +
-    theme_ben() +
-    labs(colour = "log2 Intensity") +
-    theme(
-      plot.title = element_text(
-        size = rel(0.9), face = "bold", color = "#760001",
-        margin = margin(0, 0, 5, 0), hjust = 0.5
-      ),
-      plot.subtitle = element_text(hjust = 0.5)
-    )
-}
-
-output$sample_selectedCutting_Plot_newSample <- renderPlot({
-  render_cutting_plot_newSample()
-})
 
 observe({
   if (!is.null(input$sample_selectedCutting_newSample)) {
@@ -7249,11 +7173,10 @@ observe({
             c(NA, NA)
           
         }
-
-
-
-        ## Rendu désormais géré par le renderPlot global (render_cutting_plot_newSample).
-        if (FALSE) renderPlot({
+        
+        
+        
+        output$sample_selectedCutting_Plot_newSample <- renderPlot({
           if (!is.null(
             RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
           )) {
@@ -7420,16 +7343,23 @@ observe({
       }
     }
     else {
+      output$sample_selectedCutting_Plot_newSample <- renderPlot({
+        
+      })
       output$sample_selectedCutting_Plot_info_newSample <-
         renderText({
-
+          
         })
       output$sample_selectedCutting_hover_info_newSample <-
         renderUI({
-
+          
         })
       hide("UnitTime_sampleCutting_id_newSample")
     }
+  } else {
+    output$sample_selectedCutting_Plot_newSample <- renderPlot({
+      
+    })
   }
   
   
@@ -7445,8 +7375,8 @@ observeEvent(ignoreNULL = TRUE,
                  if (!is.na(input$rt_min_cut_newSample) &
                      !is.na(input$rt_max_cut_newSample)) {
                    print("cutoff_newSample")
-                   ## Rendu désormais géré par le renderPlot global (render_cutting_plot_newSample).
-                   if (FALSE) renderPlot({
+                   output$sample_selectedCutting_Plot_newSample <-
+                     renderPlot({
                        if (!is.null(
                          RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
                        )) {
@@ -7637,8 +7567,8 @@ observeEvent(ignoreNULL = TRUE,
                  } else if (!is.na(input$rt_min_cut_newSample) &
                             is.na(input$rt_max_cut_newSample)) {
                    print("cutoff_newSample")
-                   ## Rendu désormais géré par le renderPlot global (render_cutting_plot_newSample).
-                   if (FALSE) renderPlot({
+                   output$sample_selectedCutting_Plot_newSample <-
+                     renderPlot({
                        if (!is.null(
                          RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
                        )) {
@@ -7820,8 +7750,8 @@ observeEvent(ignoreNULL = TRUE,
                  } else if (is.na(input$rt_min_cut_newSample) &
                             !is.na(input$rt_max_cut_newSample)) {
                    print("cutoff")
-                   ## Rendu désormais géré par le renderPlot global (render_cutting_plot_newSample).
-                   if (FALSE) renderPlot({
+                   output$sample_selectedCutting_Plot_newSample <-
+                     renderPlot({
                        if (!is.null(
                          RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
                        )) {
@@ -8005,18 +7935,21 @@ observeEvent(ignoreNULL = TRUE,
                    if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 1:2] <-
                        c(NA, NA)
-
+                     
                    }
                  }
-
+                 
                } else {
+                 output$sample_selectedCutting_Plot_newSample <- renderPlot({
+                   
+                 })
                  output$sample_selectedCutting_Plot_info_newSample <-
                    renderText({
-
+                     
                    })
                  output$sample_selectedCutting_hover_info_newSample <-
                    renderUI({
-
+                     
                    })
                  hide("UnitTime_sampleCutting_id_newSample")
                }
@@ -8067,8 +8000,8 @@ observeEvent(ignoreNULL = TRUE,
                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
                    )) {
                      print("Selectsample")
-                     ## Rendu désormais géré par le renderPlot global (render_cutting_plot_newSample).
-                     if (FALSE) renderPlot({
+                     output$sample_selectedCutting_Plot_newSample <-
+                       renderPlot({
                          if (!is.null(
                            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
                          )) {
@@ -8274,8 +8207,8 @@ observeEvent(ignoreNULL = TRUE,
                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
                    )) {
                      print("Selectsample")
-                     ## Rendu désormais géré par le renderPlot global (render_cutting_plot_newSample).
-                     if (FALSE) renderPlot({
+                     output$sample_selectedCutting_Plot_newSample <-
+                       renderPlot({
                          if (!is.null(
                            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
                          )) {
@@ -8466,8 +8399,8 @@ observeEvent(ignoreNULL = TRUE,
                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
                    )) {
                      print("Selectsample")
-                     ## Rendu désormais géré par le renderPlot global (render_cutting_plot_newSample).
-                     if (FALSE) renderPlot({
+                     output$sample_selectedCutting_Plot_newSample <-
+                       renderPlot({
                          if (!is.null(
                            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
                          )) {
@@ -8648,16 +8581,19 @@ observeEvent(ignoreNULL = TRUE,
                      
                      
                    }
-
+                   
                  }
                } else {
+                 output$sample_selectedCutting_Plot_newSample <- renderPlot({
+                   
+                 })
                  output$sample_selectedCutting_Plot_info_newSample <-
                    renderText({
-
+                     
                    })
                  output$sample_selectedCutting_hover_info_newSample <-
                    renderUI({
-
+                     
                    })
                  hide("UnitTime_sampleCutting_id_newSample")
                }
@@ -9257,17 +9193,9 @@ observeEvent(ignoreNULL = TRUE,
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 ##~~~~~~~~~~~~ Kernel density filter when choosing samples ~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-## Déclencheur étendu : en plus du changement de sélection, ce bloc se
-## redéclenche désormais aussi quand peaks_mono_iso_newSample_list change
-## (ex: après un découpage en Step 2). Avant ce fix, un run coupé APRÈS
-## avoir été sélectionné ici restait affiché avec ses anciennes données
-## (non coupées) tant qu'on ne changeait pas manuellement d'échantillon —
-## car tout le pipeline (matchMz, filtre densité, DensityFilterPlot_newSample)
-## n'était (re)construit que sur ce seul événement de sélection.
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               c(input$SelectSample_KernelDensity_newSample,
-                 RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)
+               input$SelectSample_KernelDensity_newSample
              },
              handlerExpr = {
                if (!is.null(input$SelectSample_KernelDensity_newSample) &
