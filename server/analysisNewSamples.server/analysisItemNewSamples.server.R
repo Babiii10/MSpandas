@@ -8812,6 +8812,25 @@ observeEvent(input$applyBatchCutOff_newSample, ignoreNULL = TRUE, {
   )
 
   RvarsPeakDetectionNewSample$batchCutOffResults_newSample <- results
+
+  # Forcer le rafraîchissement du graphique pour l'échantillon actuellement
+  # affiché : output$sample_selectedCutting_Plot_newSample n'est redessiné
+  # que par observeEvent(input$sample_selectedCutting_newSample, ...), donc
+  # sans ce reset du picker (vider puis re-remplir avec la même sélection),
+  # un import batch laisserait affiché l'ancien graphique (non coupé) tant
+  # que l'utilisateur ne change pas manuellement d'échantillon.
+  current_sample <- isolate(input$sample_selectedCutting_newSample)
+  if (!is.null(current_sample) && nzchar(current_sample)) {
+    all_cut_choices <- names(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample)
+    updatePickerInput(session = session,
+                      inputId = "sample_selectedCutting_newSample",
+                      choices = character(0))
+    updatePickerInput(session = session,
+                      inputId = "sample_selectedCutting_newSample",
+                      choices = all_cut_choices,
+                      selected = current_sample)
+  }
+
   show_batch_cutoff_results_modal_newSample(results)
 })
 
