@@ -2513,15 +2513,28 @@ observeEvent(ignoreNULL = TRUE,
                    if (max(Xraw, na.rm = TRUE) > 107) Xraw <- log2(Xraw)
 
                    ref_vec <- RvarsPeakDetectionNewSample$map_ref$maxo
-                   names(ref_vec) <- RvarsPeakDetectionNewSample$map_ref$ID
-
+                   ref_ids <- as.character(RvarsPeakDetectionNewSample$map_ref$ID)
+                   row_ids <- rownames(Xraw)
                    iset_ref <- as.character(req(RvarsPeakDetectionNewSample$normalizers_ref$ID))
-                   iset_ref <- intersect(iset_ref, rownames(Xraw))
                    cutrat_val <- req(input$cutrat)
 
+                   # Indexation par POSITION (match()) plutôt que par nom : une
+                   # indexation directe par caractère (Xraw[iset_ref, i],
+                   # ref_vec[iset_ref]) plante avec "subscript out of bounds" dès
+                   # qu'un identifiant ne correspond pas exactement (format, casse,
+                   # ID absent d'une des deux tables) — match() renvoie NA au lieu
+                   # d'une erreur, qu'on filtre ensuite explicitement.
+                   pos_in_X   <- match(iset_ref, row_ids)
+                   pos_in_ref <- match(iset_ref, ref_ids)
+                   valid_pos  <- !is.na(pos_in_X) & !is.na(pos_in_ref)
+
                    nbr_norm_vec <- sapply(seq_len(ncol(Xraw)), function(i) {
-                     iset_i <- iset_ref[abs(Xraw[iset_ref, i] - ref_vec[iset_ref]) <= cutrat_val]
-                     sum(!is.na(Xraw[iset_i, i]))
+                     if (!any(valid_pos)) return(0L)
+                     x_vals <- Xraw[pos_in_X[valid_pos], i]
+                     r_vals <- ref_vec[pos_in_ref[valid_pos]]
+                     keep <- abs(x_vals - r_vals) <= cutrat_val
+                     keep[is.na(keep)] <- FALSE
+                     sum(!is.na(x_vals[keep]))
                    })
 
                    if (length(nbr_norm_vec) == nrow(pct_match_df)) {
