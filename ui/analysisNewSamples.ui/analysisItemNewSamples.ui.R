@@ -186,6 +186,8 @@ Load the directory containing the files to be analyzed."
                             ),
                             
                             uiOutput("runsDetectionSummary_newSample")
+                            # ,
+                            # verbatimTextOutput("debug_runsDetection_newSample")
                           ),
                           
                           
@@ -471,6 +473,25 @@ analysisTabPanelNewSamples_Filtering <- function() {
                     label = "View results",
                     icon = icon("table"),
                     class = "btn-default"
+                  )
+                )
+              )
+            ),
+            fluidRow(
+              column(
+                12,
+                div(
+                  class = "text-center",
+                  style = "margin-top:8px;",
+                  shinySaveButton(
+                    id = "ExportCutOffValues_newSample",
+                    label = "Export current CE-time Min/Max (Excel)",
+                    title = "Save file as...",
+                    filename = "CE-time-MinMax",
+                    filetype = list(Excel = "xlsx"),
+                    viewtype = "icon",
+                    icon = icon("file-excel"),
+                    class = "btn-success"
                   )
                 )
               )
