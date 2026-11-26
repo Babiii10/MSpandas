@@ -993,8 +993,27 @@ CorrectionTime_KernelDensity_Ui <- function() {
                 value = 0.15
               )
             )
+          ),
+
+          hr(),
+
+          awesomeCheckbox(
+            inputId = "useRobustLineFilter",
+            label = "Use robust line filter instead of Intensity filter",
+            value = FALSE
+          ),
+          conditionalPanel(
+            condition = "input.useRobustLineFilter == true",
+            numericInput(
+              inputId = "robustLineThreshold",
+              label = "Residual threshold (x MAD)",
+              min = 0.5,
+              max = 20,
+              step = 0.5,
+              value = 3
+            )
           )
-          
+
         ),
         
         ##~~~~~~~~~~~~~~~~~~ Parameters for correction model with kernel density ~~~~~~~~~~~~#
