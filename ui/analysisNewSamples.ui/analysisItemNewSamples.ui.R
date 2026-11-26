@@ -168,7 +168,6 @@ Load the directory containing the files to be analyzed."
                               value = "Analysis new samples",
                               placeholder = "Project name"
                             ),
-
                             awesomeRadio(
                               inputId  = "resumeMode_newSample",
                               label    = NULL,
@@ -180,19 +179,19 @@ Load the directory containing the files to be analyzed."
                               ),
                               selected = "new"
                             ),
-
+                            
                             conditionalPanel(
                               condition = "input.resumeMode_newSample == 'resume'",
                               uiOutput("ui_existingProjects_newSample")
                             ),
-
+                            
                             uiOutput("runsDetectionSummary_newSample")
                           ),
-
-
-
+                          
+                          
+                          
                         )),
-
+                        
                         fluidRow(column(
                           4,
                           div(
@@ -429,9 +428,8 @@ analysisTabPanelNewSamples_Filtering <- function() {
                 )
               ))
             )
-
+            
           ),
-
           div(
             class = "well well-sm",
             h4("Batch import cut-off:"),
@@ -467,7 +465,7 @@ analysisTabPanelNewSamples_Filtering <- function() {
               )
             )
           ),
-
+          
           hr(),
           fluidRow(
             div(id = "id_validCuttingRun_newSample",
@@ -501,10 +499,9 @@ analysisTabPanelNewSamples_Filtering <- function() {
                            )
                          )
                        ))),
-
             column(
               6,
-
+              
               div(
                 class = "pull-right",
                 style = "display:inline-block",
@@ -521,16 +518,16 @@ analysisTabPanelNewSamples_Filtering <- function() {
                   )
                 )
               )
-
+              
             )
           )
         ),
-
+        
         fluidRow(br()),
         fluidRow(br()),
         fluidRow(br()),
         hr(),
-
+        
         fluidRow(column(
           6,
           div(
@@ -542,7 +539,7 @@ analysisTabPanelNewSamples_Filtering <- function() {
               class = "btn-primary",
               icon = icon("arrow-left")
             )
-
+            
           )
         ),
         column(
@@ -670,7 +667,7 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
             "bandwidth_Filter_newSample",
             "Bandwidth",
             min = 1,
-            max = 500,
+            max = 200,
             value = 20
           ),
           fluidRow(
@@ -688,7 +685,7 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
                 inputId = "intensityFilter_newSample",
                 label = "Intensity filter",
                 min = 0,
-                value = 0
+                value = 0, step =  0.25
               )
               
             ),
@@ -704,12 +701,12 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
               )
             )
           ),
-
+          
           hr(),
-
+          
           awesomeCheckbox(
             inputId = "useRobustLineFilter_newSample",
-            label = "Use robust line filter (density ridge) instead of Intensity filter",
+            label = "Use robust line filter instead of Intensity filter",
             value = FALSE
           ),
           conditionalPanel(
@@ -723,9 +720,9 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
               value = 3
             )
           )
-
+          
         ),
-
+        
         ##~~~~~~~~~~~~~~~~~~ Parameters for correction model with kernel density ~~~~~~~~~~~~#
         ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
         ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -831,7 +828,7 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
                   class = "btn-primary"
                 )
               )
-            ),
+            ), 
             column(
               6,
               div(
@@ -843,7 +840,7 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
                   class = "btn-default"
                 )
               )
-            )
+          )
           )
         ),
         
@@ -928,62 +925,62 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
                 size = 0.8
               )
             ),
-
+            
             ##~~~~~~~~~~~~~~~ Anchor points (fixed waypoints) ~~~~~~~~~~~~~###
             ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
             ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-            fluidRow(br()),
-            h4("Anchor points (fixed correction waypoints):"),
-            tags$p(
-              style = "font-style:italic; color:#666;",
-              "Click on the plot below to pin a point the correction model should be pulled toward."
-            ),
-            div(
-              style = "position:relative",
-              shinycssloaders::withSpinner(
-                plotOutput(
-                  "AnchorPlot_newSample",
-                  width = "100%",
-                  height = "350px",
-                  click = "AnchorPlot_click_newSample"
-                ),
-                type = 1,
-                size = 0.8
-              )
-            ),
-            fluidRow(
-              column(
-                6,
-                uiOutput("anchorCount_newSample")
-              ),
-              column(
-                6,
-                div(
-                  class = "pull-right",
-                  style = "display:inline-block",
-                  numericInput(
-                    inputId = "anchorWeight_newSample",
-                    label = "Anchor weight",
-                    value = 25,
-                    min = 1,
-                    max = 200,
-                    step = 1,
-                    width = "120px"
-                  )
-                ),
-                div(
-                  class = "pull-right",
-                  style = "display:inline-block; margin-right:10px; margin-top:24px;",
-                  actionButton(
-                    inputId = "clearAnchors_newSample",
-                    label = "Clear anchors",
-                    icon = icon("eraser"),
-                    class = "btn-danger btn-sm"
-                  )
-                )
-              )
-            ),
-
+            # fluidRow(br()),
+            # h4("Anchor points (fixed correction waypoints):"),
+            # tags$p(
+            #   style = "font-style:italic; color:#666;",
+            #   "Click on the plot below to pin a point the correction model should be pulled toward."
+            # ),
+            # div(
+            #   style = "position:relative",
+            #   shinycssloaders::withSpinner(
+            #     plotOutput(
+            #       "AnchorPlot_newSample",
+            #       width = "100%",
+            #       height = "350px",
+            #       click = "AnchorPlot_click_newSample"
+            #     ),
+            #     type = 1,
+            #     size = 0.8
+            #   )
+            # ),
+            # fluidRow(
+            #   column(
+            #     6,
+            #     uiOutput("anchorCount_newSample")
+            #   ),
+            #   column(
+            #     6,
+            #     div(
+            #       class = "pull-right",
+            #       style = "display:inline-block",
+            #       numericInput(
+            #         inputId = "anchorWeight_newSample",
+            #         label = "Anchor weight",
+            #         value = 25,
+            #         min = 1,
+            #         max = 200,
+            #         step = 1,
+            #         width = "120px"
+            #       )
+            #     ),
+            #     div(
+            #       class = "pull-right",
+            #       style = "display:inline-block; margin-right:10px; margin-top:24px;",
+            #       actionButton(
+            #         inputId = "clearAnchors_newSample",
+            #         label = "Clear anchors",
+            #         icon = icon("eraser"),
+            #         class = "btn-danger btn-sm"
+            #       )
+            #     )
+            #   )
+            # ),
+            # 
             ##~~~~~~~~~~~~~~~ Correction time ~~~~~~~~~~~~~###
             ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
             ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
