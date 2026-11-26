@@ -197,6 +197,15 @@ Load the directory containing the files to be analyzed."
                           div(
                             class = "pull-left",
                             style = "display:inline-block",
+                            # actionButton(
+                            #   inputId = "runPeakPicking",
+                            #   label =
+                            #     "Execute",
+                            #   class =
+                            #     "btn-primary",
+                            #   icon =
+                            #     icon("rocket")
+                            # )
                             disabled(
                               actionButton(
                                 inputId = "runPeakPicking",
