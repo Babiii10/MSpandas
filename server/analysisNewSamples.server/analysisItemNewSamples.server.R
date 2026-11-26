@@ -8890,7 +8890,6 @@ observeEvent(input$applyBatchCutOff_newSample, ignoreNULL = TRUE, {
   )
   
   RvarsPeakDetectionNewSample$batchCutOffResults_newSample <- results
-
   # Forcer le rafraîchissement du graphique pour l'échantillon actuellement
   # affiché : output$sample_selectedCutting_Plot_newSample n'est redessiné
   # que par observeEvent(input$sample_selectedCutting_newSample, ...), donc
@@ -8908,7 +8907,6 @@ observeEvent(input$applyBatchCutOff_newSample, ignoreNULL = TRUE, {
                       choices = all_cut_choices,
                       selected = current_sample)
   }
-
   show_batch_cutoff_results_modal_newSample(results)
 })
 
@@ -9224,7 +9222,7 @@ observe({
       }
       RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <- merged
     }
-
+    
     # Forcer un vrai événement de changement de sélection : un simple
     # updatePickerInput(choices=...) qui garde la même valeur sélectionnée
     # ne renvoie pas toujours un nouvel input$SelectSample_KernelDensity_newSample
@@ -9240,6 +9238,7 @@ observe({
     } else {
       sample_name[1]
     }
+    
     updatePickerInput(session = session,
                       inputId = "SelectSample_KernelDensity_newSample",
                       choices = character(0))
@@ -9247,7 +9246,7 @@ observe({
                       inputId = "SelectSample_KernelDensity_newSample",
                       choices = sample_name,
                       selected = selected_kd_sample)
-
+    
     
     
   } else {
@@ -9364,14 +9363,16 @@ observeEvent(ignoreNULL = TRUE,
                  observe({
                    if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter)) {
                      RvarsPeakDetectionNewSample$Data_Plot.newSample <-
-                       filter_newSample_points_for_correction(
-                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter,
-                         use_robust = isTRUE(input$useRobustLineFilter_newSample),
-                         intensity_filter = req(input$intensityFilter_newSample),
-                         robust_threshold = input$robustLineThreshold_newSample,
-                         bandwidth_filter = req(input$bandwidth_Filter_newSample),
-                         grid_size = req(input$gridSize_newSample)
-                       )
+                       # RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter %>%
+                       # dplyr::filter(maxo.2 >= req(input$intensityFilter_newSample))
+                     filter_newSample_points_for_correction(
+                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter,
+                       use_robust = isTRUE(input$useRobustLineFilter_newSample),
+                       intensity_filter = req(input$intensityFilter_newSample),
+                       robust_threshold = input$robustLineThreshold_newSample,
+                       bandwidth_filter = req(input$bandwidth_Filter_newSample),
+                       grid_size = req(input$gridSize_newSample)
+                     )
                    }
                  })
                  
@@ -9598,17 +9599,94 @@ observeEvent(ignoreNULL = TRUE,
                        g1$widths <- maxWidth
                        g2$widths <- maxWidth
                        grid.arrange(g1, g2, nrow = 2)
-
+                       
                      }
-
+                     
                    }
-
+                   
                  })
-
+                 
                }
-
+               
              })
 
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+##~~~~~~~~~~~~~~~~~~~~ Anchor points (fixed correction waypoints) ~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+## Permet d'épingler manuellement des points (RT échantillon ↔ RT référence)
+## par lesquels le modèle de correction (npreg) doit être tiré, en plus de
+## l'ajustement automatique. npreg (régression locale pondérée) n'a pas
+## d'option "passer exactement par ce point" ; on s'en approche en dupliquant
+## chaque ancrage plusieurs fois (poids réglable) dans les données
+## d'entraînement avant l'appel à npreg(), ce qui l'influence fortement sans
+## garantir un passage exact (lissage, pas interpolation).
+
+## Injecte les points d'ancrage (dupliqués selon `weight`) dans les données
+## d'entraînement du modèle, pour un échantillon donné. Utilisée à la fois
+## par le fit interactif ("Adjust CE-time") et par l'import batch.
+inject_kernelDensity_anchors_newSample <- function(dataDensity, sample_sel, weight = 25) {
+  anchors <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
+  if (is.null(anchors) || nrow(anchors) == 0) return(dataDensity)
+  weight <- max(1L, suppressWarnings(as.integer(weight)), na.rm = TRUE)
+  anchors_expanded <- anchors[rep(seq_len(nrow(anchors)), weight),
+                              c("rt.2", "rt.1"), drop = FALSE]
+  dplyr::bind_rows(dataDensity, anchors_expanded)
+}
+
+observeEvent(input$AnchorPlot_click_newSample, ignoreNULL = TRUE, {
+  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
+  click <- input$AnchorPlot_click_newSample
+  new_anchor <- data.frame(rt.2 = click$x, rt.1 = click$y)
+  
+  existing <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
+  RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]] <-
+    rbind(existing, new_anchor)
+})
+
+observeEvent(input$clearAnchors_newSample, ignoreNULL = TRUE, {
+  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
+  RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]] <- NULL
+})
+
+output$anchorCount_newSample <- renderUI({
+  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
+  anchors <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
+  n <- if (is.null(anchors)) 0L else nrow(anchors)
+  tags$span(
+    style = "font-weight:bold;",
+    sprintf("%d point(s) d'ancrage pour cet échantillon", n)
+  )
+})
+
+output$AnchorPlot_newSample <- renderPlot({
+  req(RvarsPeakDetectionNewSample$Data_Plot.newSample)
+  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
+  
+  p <- RvarsPeakDetectionNewSample$Data_Plot.newSample %>%
+    ggplot() +
+    aes(x = rt.2, y = rt.1) +
+    geom_point(aes(color = maxo.2), size = 0.8) +
+    scale_colour_continuous(palette = c("#ffce4d", "red", "#9E0B0B", "#450A0A")) +
+    xlab(paste("CE-time (", sample_sel, ")")) +
+    ylab("CE-time (reference sample)") +
+    labs(colour = "log2 Intensity") +
+    theme_ben()
+  
+  anchors <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
+  if (!is.null(anchors) && nrow(anchors) > 0) {
+    p <- p + geom_point(
+      data = anchors,
+      mapping = aes(x = rt.2, y = rt.1),
+      inherit.aes = FALSE,
+      shape = 8,
+      size = 4,
+      color = "blue",
+      stroke = 1.5
+    )
+  }
+  
+  p
+})
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 ##~~~~~~~~~~~~~~~~~~~~ Robust line filter (alternative au filtre d'intensité) #
@@ -9638,22 +9716,22 @@ filter_newSample_points_for_correction <- function(data_to_filter,
   if (!isTRUE(use_robust)) {
     return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
   }
-
+  
   if (nrow(data_to_filter) < 10) {
     message("--- Robust ridge filter : pas assez de points (<10), filtre d'intensité utilisé en repli ---")
     return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
   }
-
+  
   dens <- tryCatch(
     MASS::kde2d(data_to_filter$rt.2, data_to_filter$rt.1,
-               h = bandwidth_filter, n = grid_size),
+                h = bandwidth_filter, n = grid_size),
     error = function(e) NULL
   )
   if (is.null(dens)) {
     message("--- Robust ridge filter : échec du calcul de densité, filtre d'intensité utilisé en repli ---")
     return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
   }
-
+  
   # Crête de densité : pour chaque tranche en x (rt.2), le y (rt.1) où la
   # densité locale est maximale. Robuste à une zone globalement plus dense
   # qu'une autre, car le "gagnant" est déterminé tranche par tranche, pas
@@ -9668,101 +9746,22 @@ filter_newSample_points_for_correction <- function(data_to_filter,
     message("--- Robust ridge filter : crête de densité non calculable, filtre d'intensité utilisé en repli ---")
     return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
   }
-
+  
   predicted <- suppressWarnings(
     stats::approx(ridge$x, ridge$y, xout = data_to_filter$rt.2, rule = 2)$y
   )
   residuals_val <- data_to_filter$rt.1 - predicted
   mad_val <- stats::mad(residuals_val, na.rm = TRUE)
-
+  
   if (!is.finite(mad_val) || mad_val == 0) {
     message("--- Robust ridge filter : MAD nul/non calculable, filtre d'intensité utilisé en repli ---")
     return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
   }
-
+  
   threshold <- suppressWarnings(as.numeric(robust_threshold)) * mad_val
   keep <- !is.na(residuals_val) & abs(residuals_val) <= threshold
   data_to_filter[keep, ]
 }
-
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~ Anchor points (fixed correction waypoints) ~~~~~~~~~~#
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-## Permet d'épingler manuellement des points (RT échantillon ↔ RT référence)
-## par lesquels le modèle de correction (npreg) doit être tiré, en plus de
-## l'ajustement automatique. npreg (régression locale pondérée) n'a pas
-## d'option "passer exactement par ce point" ; on s'en approche en dupliquant
-## chaque ancrage plusieurs fois (poids réglable) dans les données
-## d'entraînement avant l'appel à npreg(), ce qui l'influence fortement sans
-## garantir un passage exact (lissage, pas interpolation).
-
-## Injecte les points d'ancrage (dupliqués selon `weight`) dans les données
-## d'entraînement du modèle, pour un échantillon donné. Utilisée à la fois
-## par le fit interactif ("Adjust CE-time") et par l'import batch.
-inject_kernelDensity_anchors_newSample <- function(dataDensity, sample_sel, weight = 25) {
-  anchors <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
-  if (is.null(anchors) || nrow(anchors) == 0) return(dataDensity)
-  weight <- max(1L, suppressWarnings(as.integer(weight)), na.rm = TRUE)
-  anchors_expanded <- anchors[rep(seq_len(nrow(anchors)), weight),
-                              c("rt.2", "rt.1"), drop = FALSE]
-  dplyr::bind_rows(dataDensity, anchors_expanded)
-}
-
-observeEvent(input$AnchorPlot_click_newSample, ignoreNULL = TRUE, {
-  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-  click <- input$AnchorPlot_click_newSample
-  new_anchor <- data.frame(rt.2 = click$x, rt.1 = click$y)
-
-  existing <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
-  RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]] <-
-    rbind(existing, new_anchor)
-})
-
-observeEvent(input$clearAnchors_newSample, ignoreNULL = TRUE, {
-  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-  RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]] <- NULL
-})
-
-output$anchorCount_newSample <- renderUI({
-  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-  anchors <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
-  n <- if (is.null(anchors)) 0L else nrow(anchors)
-  tags$span(
-    style = "font-weight:bold;",
-    sprintf("%d point(s) d'ancrage pour cet échantillon", n)
-  )
-})
-
-output$AnchorPlot_newSample <- renderPlot({
-  req(RvarsPeakDetectionNewSample$Data_Plot.newSample)
-  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-
-  p <- RvarsPeakDetectionNewSample$Data_Plot.newSample %>%
-    ggplot() +
-    aes(x = rt.2, y = rt.1) +
-    geom_point(aes(color = maxo.2), size = 0.8) +
-    scale_colour_continuous(palette = c("#ffce4d", "red", "#9E0B0B", "#450A0A")) +
-    xlab(paste("CE-time (", sample_sel, ")")) +
-    ylab("CE-time (reference sample)") +
-    labs(colour = "log2 Intensity") +
-    theme_ben()
-
-  anchors <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
-  if (!is.null(anchors) && nrow(anchors) > 0) {
-    p <- p + geom_point(
-      data = anchors,
-      mapping = aes(x = rt.2, y = rt.1),
-      inherit.aes = FALSE,
-      shape = 8,
-      size = 4,
-      color = "blue",
-      stroke = 1.5
-    )
-  }
-
-  p
-})
 
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
@@ -9814,12 +9813,13 @@ observeEvent(ignoreNULL = TRUE,
                    if (length(data_dens_filter.newSample()) != 0) {
                      if (!is.null(data_dens_filter.newSample())) {
                        dataDensity <- isolate(data_dens_filter.newSample())
+                       
                        dataDensity <- inject_kernelDensity_anchors_newSample(
                          dataDensity,
                          input$SelectSample_KernelDensity_newSample,
                          weight = isolate(input$anchorWeight_newSample)
                        )
-
+                       
                        if (!is.null(dataDensity)) {
                          withProgress(message = 'Fit model...', value = 0, {
                            incProgress(1 / 3, detail = "")
@@ -10016,16 +10016,16 @@ observeEvent(ignoreNULL = TRUE,
                                    ) +
                                    #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
                                    # geom_abline(yintercept = 0, lwd = 1, color = "green")+
-                                   geom_line(
-                                     data = median_line_data,
-                                     aes(
-                                       x = x,
-                                       y = x,
-                                       color = "Median"
-                                     ),
-                                     lwd = 1,
-                                     size = 1.5
-                                   ) +
+                                   # geom_line(
+                                   #   data = median_line_data,
+                                   #   aes(
+                                   #     x = x,
+                                   #     y = x,
+                                   #     color = "Median"
+                                   #   ),
+                                   #   lwd = 1,
+                                   #   size = 1.5
+                                   # ) +
                                    ggtitle("Before CE-time correction") +
                                    
                                    labs(
@@ -10732,6 +10732,7 @@ apply_kernel_density_correction_newSample <- function(sample_sel,
   dataDensity <- df %>% dplyr::filter(density >= min_density)
   if (nrow(dataDensity) == 0)
     return(list(success = FALSE, reason = "min density trop restrictif"))
+  
   dataDensity <- inject_kernelDensity_anchors_newSample(dataDensity, sample_sel)
   
   model <- tryCatch(
@@ -12061,6 +12062,8 @@ output$modal_rt_params_info_newSample <- renderUI({
     tags$span(tags$b("Intensity filter: "), row$Intensity_Filter),
     tags$span(" | ", style = "color:#aaa;"),
     tags$span(tags$b("Min density: "), row$Min_Density),
+    tags$br(),
+    tags$span(tags$b("Kernel type: "), row$Kernel_Type),
     tags$span(" | ", style = "color:#aaa;"),
     tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model)
   )
@@ -12089,10 +12092,12 @@ output$showKernel_param  =  renderUI({
     tags$span(tags$b("Intensity filter: "), row$Intensity_Filter),
     tags$span(" | ", style = "color:#aaa;"),
     tags$span(tags$b("Min density: "), row$Min_Density),
+    tags$br(),
+    tags$span(tags$b("Kernel type: "), row$Kernel_Type),
     tags$span(" | ", style = "color:#aaa;"),
     tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model)
   )
-
+  
 })
 
 # observeEvent(input$btn_view_rt_dist_newSample, ignoreNULL = TRUE, {
