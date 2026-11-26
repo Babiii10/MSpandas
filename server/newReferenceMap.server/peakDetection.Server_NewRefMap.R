@@ -1315,13 +1315,71 @@ observeEvent(
                                        sub("\\.d$", ".mzML", basename(raw_d_runs), ignore.case = TRUE))
             mzml_already_done <- length(raw_d_runs) > 0 && length(expected_mzml) == length(raw_d_runs) && all(file.exists(expected_mzml))
             
+            msconvert_failed_runs <- character(0)
             if (!mzml_already_done) {
               system.time(convert_to_mzML(RvarsPeakDetection$directory_rawData,
                                           RvarsPeakDetection$directory_rawDataOutput_mzML_files_NewRefMap))
-              system.time(system2("lib/NewReferenceMap/cmd/convert_raw_data_to_mzML_centroid.bat"))
+              system.time(
+                msconvert_output <- system2(
+                  "lib/NewReferenceMap/cmd/convert_raw_data_to_mzML_centroid.bat",
+                  stdout = TRUE, stderr = TRUE
+                )
+              )
+
+              # msconvert.exe échoue silencieusement sur un .d corrompu/illisible
+              # ("[ReaderFail] don't know how to read ...") — jusqu'ici cette sortie
+              # n'était jamais capturée, donc jamais remontée à l'utilisateur. Or
+              # MSDIAL, lancé ensuite sur l'ENSEMBLE du lot, plante dès qu'il atteint
+              # ce même fichier et n'arrive jamais aux runs suivants (confirmé : un
+              # seul run corrompu bloque tout le lot, y compris sur les 3 tours de
+              # récupération). On bloque donc ici, avant même de lancer MSDIAL.
+              failed_lines <- grep("^Error processing file", msconvert_output, value = TRUE)
+              msconvert_failed_runs <- unique(basename(sub("^Error processing file ", "", failed_lines)))
+              # Exclure le dossier de sortie du projet lui-même : il est inclus par
+              # erreur dans le glob "*" passé à msconvert (créé à l'intérieur du
+              # dossier de données brutes), ce n'est pas un run.
+              msconvert_failed_runs <- msconvert_failed_runs[
+                grepl("\\.d$|\\.mzML$", msconvert_failed_runs, ignore.case = TRUE)
+              ]
             }
-            
+
             message("--- End converting raw data to .mzML ---\n")
+
+            if (length(msconvert_failed_runs) > 0) {
+              message(sprintf(
+                "--- %d run(s) illisible(s) détecté(s) lors de la conversion mzML : %s ---",
+                length(msconvert_failed_runs), paste(msconvert_failed_runs, collapse = ", ")
+              ))
+
+              shinyjs::enable(selector = '.navbar-nav a[data-value="Analysis new samples"')
+              shinyjs::enable(selector = '.navbar-nav a[data-value="New reference map"')
+              shinyjs::enable(selector = '.navbar-nav a[data-value="Database"')
+              shinyjs::enable(selector = '.navbar-nav a[data-value="Statistical analysis"')
+              shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
+
+              enable("id_PanelImportRawData")
+              enable("id_PanelDataCollection")
+              enable("id_PanelParametersNewRefMap")
+              enable("runPeakPicking_NewRefMap")
+              enable("resetAll_NewRefMap")
+              enable("PeakDetectionView")
+
+              sendSweetAlert(
+                session = session,
+                title = "Run(s) illisible(s) détecté(s) !",
+                text = HTML(paste0(
+                  "<p>", length(msconvert_failed_runs),
+                  " run(s) n'ont pas pu être lus (fichier corrompu ou format non reconnu) :</p>",
+                  "<ul>", paste0("<li>", msconvert_failed_runs, "</li>", collapse = ""), "</ul>",
+                  "<p>Un seul run illisible bloque l'ensemble du traitement MSDIAL — ",
+                  "aucun run ne doit être vide/corrompu. Corrigez ou retirez ce(s) run(s) ",
+                  "du dossier avant de relancer.</p>"
+                )),
+                type = "error",
+                html = TRUE
+              )
+              return()
+            }
             
             
             
