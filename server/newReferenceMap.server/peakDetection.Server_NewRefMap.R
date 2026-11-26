@@ -982,10 +982,11 @@ observeEvent(
                                                              pattern =  "\\\\", replacement  = "/")
       # update the widget value
       updateDirectoryInput(session, 'directory_rawData_NewRefMap', value = req(RvarsPeakDetection$directory_rawData))
-    }
-
-
+    } 
+    
+    
   })
+
 
 
 ## Vérification pré-lancement : nombre de runs détectés + dossiers de run
@@ -1003,13 +1004,14 @@ observe({
     shinyjs::disable("runPeakPicking_NewRefMap")
     return()
   }
-
+  
   items <- list.files(raw_dir, full.names = TRUE, recursive = FALSE)
   items <- items[grepl("\\.d$|\\.mzML$", basename(items), ignore.case = TRUE)]
-
+  
   empty_runs <- character(0)
   for (item in items) {
     if (dir.exists(item)) {
+      # if (length(list.files(item, recursive = TRUE, all.files = TRUE, no.. = TRUE)) == 0) {
       # Un .d "vidé" peut contenir des fichiers listés (taille du dossier non
       # nulle sur le disque) alors que CHACUN de ces fichiers fait 0 octet —
       # length(list.files(...)) == 0 ne détecte donc pas ce cas. On vérifie
@@ -1027,10 +1029,10 @@ observe({
       }
     }
   }
-
+  
   RvarsPeakDetection$preCheck_total_NewRefMap <- length(items)
   RvarsPeakDetection$preCheck_empty_NewRefMap <- empty_runs
-
+  
   if (length(items) > 0 && length(empty_runs) == 0) {
     shinyjs::enable("runPeakPicking_NewRefMap")
   } else {
@@ -1042,7 +1044,7 @@ output$prePeakCheckMessage_NewRefMap <- renderUI({
   total <- RvarsPeakDetection$preCheck_total_NewRefMap
   empty_runs <- RvarsPeakDetection$preCheck_empty_NewRefMap
   if (is.null(total)) return(NULL)
-
+  
   if (total == 0) {
     return(div(
       style = "margin-bottom:10px;",
@@ -1050,14 +1052,14 @@ output$prePeakCheckMessage_NewRefMap <- renderUI({
                 "Aucun run (.d/.mzML) détecté dans ce dossier.")
     ))
   }
-
+  
   if (length(empty_runs) > 0) {
     tagList(
       div(
         style = "margin-bottom:10px;",
         tags$span(class = "label label-danger",
                   sprintf("%d run(s) détecté(s), dont %d vide(s) :",
-                         total, length(empty_runs)))
+                          total, length(empty_runs)))
       ),
       tags$ul(style = "color:#a94442;", lapply(empty_runs, tags$li))
     )
@@ -1322,55 +1324,45 @@ observeEvent(
                                        sub("\\.d$", ".mzML", basename(raw_d_runs), ignore.case = TRUE))
             mzml_already_done <- length(raw_d_runs) > 0 && length(expected_mzml) == length(raw_d_runs) && all(file.exists(expected_mzml))
             
-            msconvert_failed_runs <- character(0)
             if (!mzml_already_done) {
               system.time(convert_to_mzML(RvarsPeakDetection$directory_rawData,
                                           RvarsPeakDetection$directory_rawDataOutput_mzML_files_NewRefMap))
-              system.time(
+              # system.time(system2("lib/NewReferenceMap/cmd/convert_raw_data_to_mzML_centroid.bat"))
+              ystem.time(
                 msconvert_output <- system2(
                   "lib/NewReferenceMap/cmd/convert_raw_data_to_mzML_centroid.bat",
                   stdout = TRUE, stderr = TRUE
                 )
               )
-
-              # msconvert.exe échoue silencieusement sur un .d corrompu/illisible
-              # ("[ReaderFail] don't know how to read ...") — jusqu'ici cette sortie
-              # n'était jamais capturée, donc jamais remontée à l'utilisateur. Or
-              # MSDIAL, lancé ensuite sur l'ENSEMBLE du lot, plante dès qu'il atteint
-              # ce même fichier et n'arrive jamais aux runs suivants (confirmé : un
-              # seul run corrompu bloque tout le lot, y compris sur les 3 tours de
-              # récupération). On bloque donc ici, avant même de lancer MSDIAL.
+              
               failed_lines <- grep("^Error processing file", msconvert_output, value = TRUE)
               msconvert_failed_runs <- unique(basename(sub("^Error processing file ", "", failed_lines)))
-              # Exclure le dossier de sortie du projet lui-même : il est inclus par
-              # erreur dans le glob "*" passé à msconvert (créé à l'intérieur du
-              # dossier de données brutes), ce n'est pas un run.
               msconvert_failed_runs <- msconvert_failed_runs[
                 grepl("\\.d$|\\.mzML$", msconvert_failed_runs, ignore.case = TRUE)
               ]
             }
-
+            
             message("--- End converting raw data to .mzML ---\n")
-
+            
             if (length(msconvert_failed_runs) > 0) {
               message(sprintf(
                 "--- %d run(s) illisible(s) détecté(s) lors de la conversion mzML : %s ---",
                 length(msconvert_failed_runs), paste(msconvert_failed_runs, collapse = ", ")
               ))
-
+              
               shinyjs::enable(selector = '.navbar-nav a[data-value="Analysis new samples"')
               shinyjs::enable(selector = '.navbar-nav a[data-value="New reference map"')
               shinyjs::enable(selector = '.navbar-nav a[data-value="Database"')
               shinyjs::enable(selector = '.navbar-nav a[data-value="Statistical analysis"')
               shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
-
+              
               enable("id_PanelImportRawData")
               enable("id_PanelDataCollection")
               enable("id_PanelParametersNewRefMap")
               enable("runPeakPicking_NewRefMap")
               enable("resetAll_NewRefMap")
               enable("PeakDetectionView")
-
+              
               sendSweetAlert(
                 session = session,
                 title = "Run(s) illisible(s) détecté(s) !",
@@ -1387,8 +1379,6 @@ observeEvent(
               )
               return()
             }
-            
-            
             
             ###~~~~~~~~~~~~~~~~~~~~ Peak detection~~~~~~~~~~~~~~~~~~~~~###
             
@@ -1576,7 +1566,7 @@ observeEvent(
                 }
               }
             }
-
+            
             # Détection des runs non traités (ex : .msdial de taille 0, run MSDIAL
             # inexploitable) : tout échantillon d'entrée qui n'a ni CSV produit ni
             # entrée dans le cache, après l'intégralité du pipeline (y compris les
@@ -1609,10 +1599,10 @@ observeEvent(
                   paste(RvarsPeakDetection$defective_runs_NewRefMap, collapse = ", ")))
               }
             }
-
+            
             message(" \n --- Preprocess complete ! ---\n")
             incProgress(1/8, detail = paste("Peaks detection and deconvolution complete !", round(8/8*100,0),"%",collapse=""))
-
+            
             #### End Processing
             sendSweetAlert(
               session = session,
@@ -1715,9 +1705,9 @@ observeEvent(
     ####~~~~~~~~~~~~~~~~~~~~~~~~~~ End process (peak detection with api MSDIAL) ~~~~~~~~~~~~~~~~~~~#
     ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
     
-
+    
   }
-
+  
 )
 
 ## Panneau des runs non traités (msdial vide/défectueux) — affiché uniquement
@@ -1749,8 +1739,6 @@ observeEvent(input$viewDefectiveRuns_NewRefMap, {
 })
 
 
-
-
 ##~~~~~~~~~~~~~~~~~~~~~~ Go to peak detection viewer~~~~~~~~~~~~~~~~~~~~###
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 observeEvent(
@@ -1763,11 +1751,11 @@ observeEvent(
     updateRadioButtons(session = session,
                        inputId = "NewRefrenceMapStep",
                        selected = "2")
-
+    
   })
 
 
-##~~~~~~~~~~~~~~~~~~~~~~ Export nombre de pics détectés par run ~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~ Export nombre de pics détectés par run ~~~~~~~~~~#
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ## Compte, pour chaque run, le nombre de pics mono-isotopiques finalement
 ## produits (une ligne du tableau combiné = un pic) — un bilan simple pour
@@ -1782,10 +1770,10 @@ observeEvent(ignoreNULL = TRUE,
                              id = "ExportPeaksPerRun_NewRefMap",
                              roots = volumes,
                              session = session)
-
+               
                path_Save_Files_origine <-
                  parseSavePath(volumes, input$ExportPeaksPerRun_NewRefMap)$datapath
-
+               
                if (length(path_Save_Files_origine) > 0) {
                  peaks_all <- RvarsPeakDetection$peaks_MSDIAL_mono_iso_NewRefMap
                  if (is.null(peaks_all) || !("sample" %in% colnames(peaks_all))) {
@@ -1793,14 +1781,14 @@ observeEvent(ignoreNULL = TRUE,
                                     type = "error", duration = 8)
                    return()
                  }
-
+                 
                  peaks_count <- as.data.frame(table(peaks_all$sample), stringsAsFactors = FALSE)
                  colnames(peaks_count) <- c("Sample", "Nombre_pics")
-
+                 
                  path_Save_Files <- strsplit(path_Save_Files_origine, split = "/")[[1]]
                  directory_Save_Files <-
                    paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
-
+                 
                  write.table(
                    peaks_count,
                    file = paste0(c(
@@ -1813,7 +1801,7 @@ observeEvent(ignoreNULL = TRUE,
                  )
                  showNotification("Nombre de pics par run exporté.", type = "message", duration = 6)
                }
-             })
+})
 
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  Reset all inputs ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
