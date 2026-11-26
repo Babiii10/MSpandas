@@ -1,6646 +1,176 @@
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ###~~~~~~~~~~~~~~~~~~~~~~ Configure some buttons ~~~~~~~~~~~~~~~~~~~~~~~~~###
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button ReturnToPeakViewer_newSample ~~~~~~~~~~~~~~~~~~~~~~~~#*
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$ReturnToPeakViewer_newSample
-#              }
-#              , {
-#                updateRadioButtons(session = session,
-#                                   inputId = "IdAnalysisStep",
-#                                   selected = "1")
-
-#                shinyjs::show(id = "buttonResetViewAnalysis")
-#                shinyjs::show(id = "RestartProjects")
-#                shinyjs::show(id = "ViewAnalysis")
-
-#              })
-
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button GoToPeakView_newSample ~~~~~~~~~~~~~~~~~~~~~~~~#*
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$GoToPeakView_newSample
-#              },
-#              handlerExpr = {
-#                updateRadioButtons(session = session,
-#                                   inputId = "IdAnalysisStep",
-#                                   selected = "3")
-
-
-#              })
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button ViewAnalysis ~~~~~~~~~~~~~~~~~~~~~~~~#*
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$ViewAnalysis
-#              }
-#              , {
-#                updateRadioButtons(session = session,
-#                                   inputId = "IdAnalysisStep",
-#                                   selected = "2")
-
-#              })
-
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button ViewAnalysis_duplicate ~~~~~~~~~~~~~~~~~~~~~~~~#*
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$ViewAnalysis_duplicate
-#              }
-#              , {
-#                updateRadioButtons(session = session,
-#                                   inputId = "IdAnalysisStep",
-#                                   selected = "2")
-
-#              })
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button ReturToFilterSample_newSample ~~~~~~~~~~~~~~~~~~~~~~~~#*
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$ReturToFilterSample_newSample
-#              }
-#              , {
-#                updateRadioButtons(session = session,
-#                                   inputId = "IdAnalysisStep",
-#                                   selected = "2")
-
-#              })
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Buton CorrectionKernelDensityNexPage_newSample ~~~~~~~~~~~~~~~~~~~~~~~~#*
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$CorrectionKernelDensityNexPage_newSample
-#              }
-#              , {
-#                updateRadioButtons(session = session,
-#                                   inputId = "IdAnalysisStep",
-#                                   selected = "4")
-
-#              })
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button returnAnalysis ~~~~~~~~~~~~~~~~~~~~~~~~#*
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$returnAnalysis
-#              }
-#              , {
-#                updateRadioButtons(session = session,
-#                                   inputId = "IdAnalysisStep",
-#                                   selected = "3")
-
-
-#              })
-
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button Finish_fitModel_newSample ~~~~~~~~~~~~~~~~~~~~~~~~#*
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$Finish_fitModel_newSample
-#              },
-#              handlerExpr = {
-#                ask_confirmation(
-#                  inputId = "Comfirm_FinishedCEtimeCorrection",
-#                  title = NULL,
-#                  text = tags$b(
-#                    #icon("info"),
-#                    paste0(
-#                      "Are you sure you’re finished correcting CE-time ?"
-#                    ),
-#                    style = "color: #FA5858;"
-#                  ),
-#                  btn_labels = c("Cancel", "OK"),
-#                  btn_colors = c("#00BFFF", "#FE2E2E"),
-#                  html = TRUE
-#                )
-
-
-#              })
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button Comfirm_FinishedCEtimeCorrection ~~~~~~~~~~~~~~~~~~~~~~~~#
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$Comfirm_FinishedCEtimeCorrection
-#              },
-#              handlerExpr = {
-#                if (input$Comfirm_FinishedCEtimeCorrection == TRUE) {
-#                  enable("GroupingButtonIDNewSample")
-
-#                }
-#              })
-
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button GoMatch ~~~~~~~~~~~~~~~~~~~~~~~~#*
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$GoMatch
-#              }
-#              , {
-#                updateNavbarPage(session = session,
-#                                 inputId = "analysisNavbar",
-#                                 selected = "Match reference map")
-
-#              })
-
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ###~~~~~~~~~~~~~~~~~~~~~~ choix du map de référance ~~~~~~~~~~~~~~~~~~~~~~~~~###
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$chosseRef
-#              },
-#              handlerExpr = {
-#                print(input$chosseRef)
-#                if (input$chosseRef == "") {
-#                  print("No reference map")
-
-#                  updateNavbarPage(session = session,
-#                                   inputId = "analysisNavbar",
-#                                   selected = "Peak detection")
-
-#                  ask_confirmation(
-#                    inputId = "no_ref_map",
-#                    type = "warning",
-#                    title = NULL,
-#                    text = tags$b(
-#                      icon("frown"),
-#                      "No reference map available.",
-#                      br(),
-#                      "Please create a new reference map!",
-
-#                      style = "color: #FA5858;"
-#                    ),
-#                    btn_labels = c("Yep"),
-#                    btn_colors = c("#FE642E"),
-#                    html = TRUE
-#                  )
-
-#                  disable("runPeakPicking")
-#                  shinyjs::disable(selector = '.navbar-nav a[data-value="Match reference map"')
-
-#                } else if (file.exists(file.path(ref_map_directory, input$chosseRef, "run_ref.mzML")) &
-#                           file.exists(file.path(ref_map_directory, input$chosseRef, "map_ref.csv")) &
-#                           file.exists(file.path(ref_map_directory, input$chosseRef, "paramMsdial.txt")) &
-#                           file.exists(file.path(ref_map_directory, input$chosseRef, "defaultParam.txt")) &
-#                           file.exists(file.path(
-#                             ref_map_directory,
-#                             input$chosseRef,
-#                             "peaksList_run_ref.csv"
-#                           )) &
-#                           file.exists(file.path(ref_map_directory, input$chosseRef, "rt_ref.csv")) &
-#                           file.exists(file.path(ref_map_directory, input$chosseRef, "normalizers_ref.csv")) &
-#                           file.exists(file.path(ref_map_directory, input$chosseRef, "Parameters_Used.txt"))) {
-#                  print("Tout est OK !")
-
-#                  source_python('lib/AnalysisNewSample/Python_files/modify_ParamMsdial.py')
-
-#                  RvarsPeakDetectionNewSample$run_ref_path <-
-#                    file.path(ref_map_directory, input$chosseRef, "run_ref.mzML")
-#                  RvarsPeakDetectionNewSample$map_ref_path <-
-#                    file.path(ref_map_directory, input$chosseRef, "map_ref.csv")
-#                  RvarsPeakDetectionNewSample$paramMsdial_ref_path <-
-#                    file.path(ref_map_directory, input$chosseRef, "paramMsdial.txt")
-#                  RvarsPeakDetectionNewSample$defaultParam_ref_path <-
-#                    file.path(ref_map_directory, input$chosseRef, "defaultParam.txt")
-#                  RvarsPeakDetectionNewSample$peaksList_run_ref_path <-
-#                    file.path(ref_map_directory,
-#                              input$chosseRef,
-#                              "peaksList_run_ref.csv")
-#                  RvarsPeakDetectionNewSample$rt_min_max_run_ref_path <-
-#                    file.path(ref_map_directory, input$chosseRef, "rt_ref.csv")
-#                  RvarsPeakDetectionNewSample$normalizers_ref_path <-
-#                    file.path(ref_map_directory,
-#                              input$chosseRef,
-#                              "normalizers_ref.csv")
-
-#                  RvarsPeakDetectionNewSample$export_param_path <-
-#                    file.path(ref_map_directory,
-#                              input$chosseRef,
-#                              "Parameters_Used.txt")
-#                  RvarsPeakDetectionNewSample$output_export_param_path <-
-#                    file.path(ref_map_directory, input$chosseRef, "outputParam.txt")
-
-#                  RvarsPeakDetectionNewSample$defaultParam <-
-#                    readDefaultParam(req(RvarsPeakDetectionNewSample$defaultParam_ref_path))
-
-#                  RvarsPeakDetectionNewSample$map_ref <-
-#                    read.csv(RvarsPeakDetectionNewSample$map_ref_path, sep = ",")
-
-#                  colnames(RvarsPeakDetectionNewSample$map_ref)[2:3] <-
-#                    c("M+H", "CE-time")
-
-#                  RvarsPeakDetectionNewSample$normalizers_ref <-
-#                    read.csv(RvarsPeakDetectionNewSample$normalizers_ref_path, sep = ",")
-
-
-#                  enable("runPeakPicking")
-#                  shinyjs::enable(selector = '.navbar-nav a[data-value="Match reference map"')
-
-#                } else {
-#                  print("Pas bon !")
-
-#                  message("Incomplete reference map...!")
-#                  disable("runPeakPicking")
-#                  shinyjs::disable(selector = '.navbar-nav a[data-value="Match reference map"')
-
-#                  RvarsPeakDetectionNewSample$run_ref_path <-
-#                    character()
-#                  RvarsPeakDetectionNewSample$map_ref_path <-
-#                    character()
-#                  RvarsPeakDetectionNewSample$paramMsdial_ref_path <-
-#                    character()
-#                  RvarsPeakDetectionNewSample$defaultParam_ref_path <-
-#                    character()
-#                  RvarsPeakDetectionNewSample$peaksList_run_ref_path <-
-#                    character()
-#                  RvarsPeakDetectionNewSample$rt_min_max_run_ref_path <-
-#                    character()
-#                  RvarsPeakDetectionNewSample$normalizers_ref_path <-
-#                    character()
-#                  RvarsPeakDetectionNewSample$export_param_path <-
-#                    NULL
-#                  RvarsPeakDetectionNewSample$output_export_param_path <-
-#                    NULL
-
-
-#                  RvarsPeakDetectionNewSample$defaultParam = NULL
-
-#                  RvarsPeakDetectionNewSample$map_ref <-
-#                    data.frame(
-#                      ID = character(),
-#                      mz = numeric(0),
-#                      rt = numeric(0),
-#                      maxo = numeric(0)
-#                    )
-#                  RvarsPeakDetectionNewSample$normalizers_ref <-
-#                    data.frame()
-
-
-
-
-#                  ask_confirmation(
-#                    inputId = "error_ref_map",
-#                    type = "warning",
-#                    title = NULL,
-#                    text = tags$b(
-#                      icon("frown"),
-#                      "Incomplete reference map.",
-#                      br(),
-#                      "Please recreate the map again !",
-#                      style = "color: #FA5858;"
-#                    ),
-#                    btn_labels = c("Yep"),
-#                    btn_colors = c("#FE642E"),
-#                    html = TRUE
-#                  )
-#                }
-
-#              })
-
-
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Input Files ~~~~~~~~~~~~~~~~~~~~~~~~~###
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# directoryInput <- reactiveValues(directory = getwd())
-
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$directory
-#              },
-#              handlerExpr = {
-#                if (input$directory > 0) {
-#                  # condition prevents handler execution on initial app launch
-
-#                  # launch the directory selection dialog with initial path read from the widget
-#                  directoryInput$directory = choose.dir(default = readDirectoryInput(session, 'directory'))
-#                  directoryInput$directory = str_replace_all(directoryInput$directory,
-#                                                             pattern =  "\\\\",
-#                                                             replacement  = "/")
-
-#                  # update the widget value
-#                  updateDirectoryInput(session, 'directory', value = directoryInput$directory)
-
-
-
-#                }
-#              })
-
-
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~ Default for some inputs ~~~~~~~~~~~~~~~~~~~~~~~###
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# observe({
-#   if (length(input$IdDataType) != 0) {
-#     if (input$IdDataType == "defaults") {
-#       shinyjs::reset("dataType")
-#       updateSelectInput(session = session,
-#                         inputId = "MS1_type",
-#                         selected = "Profile")
-#       updateSelectInput(session = session,
-#                         inputId = "MS2_type",
-#                         selected = "Profile")
-#     }
-
-#   }
-
-#   if (length(input$ViewSizePoints) != 0) {
-#     if (input$ViewSizePoints == "defaults") {
-#       shinyjs::reset("sizePoints")
-#     }
-
-#   }
-
-
-# })
-
-
-
-
-
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ###~~~~~~~~~~~~~~~~~~ Run peak picking MSDIAl and Deconvolution ~~~~~~~~~~~~~~~###
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$runPeakPicking
-#              }
-#              , {
-#                ### Disable some buttons when prepossessing start
-#                shinyjs::disable(selector = '.navbar-nav a[data-value="Match reference map"')
-#                shinyjs::disable(selector = '.navbar-nav a[data-value="New reference map"')
-#                shinyjs::disable(selector = '.navbar-nav a[data-value="Database"')
-#                shinyjs::disable(selector = '.navbar-nav a[data-value="Statistical analysis"')
-#                shinyjs::disable(selector = '.navbar-nav a[data-value="Help"')
-
-
-
-#                disable("runPeakPicking")
-#                disable("processParameters")
-#                disable("directory")
-#                disable("match")
-#                #disable("viewResult")
-#                disable("features_list")
-#                disable("normIntensity")
-#                disable("runNormalizing")
-#                disable("returnAnalysisViewer")
-#                disable("finishAnalyze")
-#                disable("returnMatchRef")
-#                disable("SaveAnalysisResults")
-
-#                disable(id = "chosseRef")
-#                disable(id = "projectName")
-#                disable(id = "IdDataType")
-#                disable(id = "dataType")
-#                disable(id = "MS1_type")
-#                disable(id = "MS2_type")
-#                hide(id = "ViewAnalysis")
-#                hide(id = "RestartProjects")
-
-
-
-#                # Show progress stuff
-#                shinyjs::show("progressWrapper")
-#                shinyjs::show("analysisProgress")
-#                shinyjs::show("idpanel_analysisProgress")
-#                #shinyjs::html("analysisProgress","Preprocess running !")
-
-#                if (is.na(directoryInput$directory) ||
-#                    (directoryInput$directory == "") ||
-#                    (directoryInput$directory == getwd()) ||
-#                    (req(directoryInput$directory) == "Choose working directory") ||
-#                    is.null(directoryInput$directory)) {
-#                  message("No file .msdial...!")
-
-#                  hide("progressWrapper")
-#                  hide("analysisProgress")
-#                  hide("idpanel_analysisProgress")
-#                  enable("runPeakPicking")
-#                  enable("updateProject")
-#                  enable("confirmProject")
-#                  enable("processParameters")
-#                  enable("directory")
-
-#                  enable(id = "chosseRef")
-#                  enable(id = "projectName")
-#                  enable(id = "dataType")
-#                  enable(id = "IdDataType")
-#                  enable(id = "MS1_type")
-#                  enable(id = "MS2_type")
-
-#                  shinyjs::html("analysisProgress", html = NULL)
-
-#                  sendSweetAlert(
-#                    session = session,
-#                    title = "Warning !",
-#                    text = "There is no input MS file to be imported !",
-#                    type = "warning"
-#                  )
-
-
-#                } else {
-#                  withProgress(message = 'Processing...', value = 0, {
-#                    source("lib/AnalysisNewSample/R_files/ProcessingAnalysisNewsample.lib.R",
-#                           local = TRUE)
-#                    source_python("lib/AnalysisNewSample/Python_files/msconverter_command_line.py")
-
-#                    #incProgress(1/10, detail = paste("Grouping isotopic massifs into features...", round(6/8*100,0),"%",collapse=""))
-#                    incProgress(1 / 8, detail = paste("Start preprocessing...", collapse =
-#                                                        ""))
-#                    ########################################################################
-#                    updateShinyProgressBar(
-#                      shinyProgressData = list(
-#                        session = session,
-#                        progressId = "preprocessProgressBar",
-#                        progressTotal = 8,
-#                        textId = "analysis_pre"
-#                      ),
-#                      pbValue = 1,
-#                      headerMsg = "Start preprocessing....",
-#                      footerMsg = "Start preprocessing data..."
-#                    )
-#                    ########################################################################
-
-#                    ### Directory Project
-#                    RvarsPeakDetectionNewSample$Project_Name <-
-#                      paste(input$projectName,
-#                            sub(
-#                              sub(
-#                                sub(
-#                                  Sys.time(),
-#                                  pattern = "CEST",
-#                                  replacement = "",
-#                                  fixed = TRUE
-#                                ),
-#                                pattern = ":",
-#                                replacement = "-",
-#                                fixed = TRUE
-#                              ),
-#                              pattern = ":",
-#                              replacement = "-",
-#                              fixed = TRUE
-#                            ),
-#                            sep = "_")
-
-
-#                    if (dir.exists(
-#                      file.path(
-#                        directoryInput$directory,
-#                        RvarsPeakDetectionNewSample$Project_Name
-#                      )
-#                    )) {
-#                      unlink(
-#                        file.path(
-#                          directoryInput$directory,
-#                          RvarsPeakDetectionNewSample$Project_Name
-#                        ),
-#                        recursive = TRUE
-#                      )
-#                      dir.create(
-#                        file.path(
-#                          directoryInput$directory,
-#                          RvarsPeakDetectionNewSample$Project_Name
-#                        )
-#                      )
-#                    } else{
-#                      dir.create(
-#                        file.path(
-#                          directoryInput$directory,
-#                          RvarsPeakDetectionNewSample$Project_Name
-#                        )
-#                      )
-#                    }
-
-#                    ## creer un dossier contenant la liste des peaks
-#                    if (dir.exists(
-#                      file.path(
-#                        directoryInput$directory,
-#                        RvarsPeakDetectionNewSample$Project_Name,
-#                        "Massif-List"
-#                      )
-#                    )) {
-#                      unlink(
-#                        file.path(
-#                          directoryInput$directory,
-#                          RvarsPeakDetectionNewSample$Project_Name,
-#                          "Massif-List"
-#                        ),
-#                        recursive = TRUE
-#                      )
-#                      dir.create(
-#                        file.path(
-#                          directoryInput$directory,
-#                          RvarsPeakDetectionNewSample$Project_Name,
-#                          "Massif-List"
-#                        )
-#                      )
-#                      directoryOutput <-
-#                        file.path(
-#                          directoryInput$directory,
-#                          RvarsPeakDetectionNewSample$Project_Name,
-#                          "Massif-List"
-#                        )
-#                    } else{
-#                      dir.create(
-#                        file.path(
-#                          directoryInput$directory,
-#                          RvarsPeakDetectionNewSample$Project_Name,
-#                          "Massif-List"
-#                        )
-#                      )
-#                      directoryOutput <-
-#                        file.path(
-#                          directoryInput$directory,
-#                          RvarsPeakDetectionNewSample$Project_Name,
-#                          "Massif-List"
-#                        )
-#                    }
-
-
-#                    ### Don't need the mzML files
-#                    # ## creer un dossier contenant les fichiers mzML
-#                    # if(dir.exists(file.path(directoryInput$directory, RvarsPeakDetectionNewSample$Project_Name,"mzML files"))) {
-#                    #   unlink(file.path(directoryInput$directory, RvarsPeakDetectionNewSample$Project_Name,"mzML files"), recursive = TRUE)
-#                    #   dir.create(file.path(directoryInput$directory, RvarsPeakDetectionNewSample$Project_Name,"mzML files"))
-#                    #   RvarsPeakDetectionNewSample$directoryOutput_mzML_files<-file.path(directoryInput$directory, RvarsPeakDetectionNewSample$Project_Name,"mzML files")
-#                    # } else{
-#                    #   dir.create(file.path(directoryInput$directory, RvarsPeakDetectionNewSample$Project_Name, "mzML files"))
-#                    #   RvarsPeakDetectionNewSample$directoryOutput_mzML_files<-file.path(directoryInput$directory, RvarsPeakDetectionNewSample$Project_Name, "mzML files")
-#                    # }
-#                    ## Conversion des raw data en .mzML pour l'alignement des runs
-#                    # message(" \n --- Convert raw data to .mzML ---\n")
-#                    #
-#                    # incProgress(1/10, detail = paste("Converting raw data to .mzML...",collapse=""))
-#                    # ########################################################################
-#                    # updateShinyProgressBar(
-#                    #   shinyProgressData=list(
-#                    #     session=session,
-#                    #     progressId="preprocessProgressBar",
-#                    #     progressTotal=10,
-#                    #     textId="analysis_pre"
-#                    #   ),
-#                    #   pbValue=2,
-#                    #   headerMsg="Converting raw data...",
-#                    #   footerMsg="Converting raw data to .mzML..."
-#                    # )
-#                    # ########################################################################
-#                    #
-#                    #
-#                    # system.time(convert_to_mzML(directoryInput$directory,RvarsPeakDetectionNewSample$directoryOutput_mzML_files))
-#                    # system.time(system2("lib/AnalysisNewSample/cmd/convert_raw_data_to_mzML_centroid.bat"))
-#                    #
-#                    #
-#                    #
-#                    # message("--- End converting raw data to .mzML ---\n")
-#                    #
-#                    # incProgress(1/10, detail = paste("End converting raw data to .mzML...",collapse=""))
-#                    # ########################################################################
-#                    # updateShinyProgressBar(
-#                    #   shinyProgressData=list(
-#                    #     session=session,
-#                    #     progressId="preprocessProgressBar",
-#                    #     progressTotal=10,
-#                    #     textId="analysis_pre"
-#                    #   ),
-#                    #   pbValue=3,
-#                    #   headerMsg="Converting raw data...",
-#                    #   footerMsg="End coverting..."
-#                    # )
-#                    # ########################################################################
-#                    #
-
-#                    source_python('lib/AnalysisNewSample/Python_files/export.parameters.py')
-
-#                    exportMsdialParam(
-#                      export_param = req(RvarsPeakDetectionNewSample$export_param_path),
-#                      output_export_param =  req(RvarsPeakDetectionNewSample$output_export_param_path),
-#                      MS1_type = req(input$MS1_type),
-#                      MS2_type = req(input$MS2_type),
-#                      ion = req(RvarsPeakDetectionNewSample$defaultParam$ion),
-#                      rt_begin = req(
-#                        as.character(RvarsPeakDetectionNewSample$defaultParam$rt_begin)
-#                      ),
-#                      rt_end = req(
-#                        as.character(RvarsPeakDetectionNewSample$defaultParam$rt_end)
-#                      ),
-#                      mz_range_begin = req(
-#                        as.character(
-#                          RvarsPeakDetectionNewSample$defaultParam$mz_range_begin
-#                        )
-#                      ),
-#                      mz_range_end = req(
-#                        as.character(
-#                          RvarsPeakDetectionNewSample$defaultParam$mz_range_end
-#                        )
-#                      ),
-#                      mz_tolerance_centroid_MS1 = req(
-#                        as.character(
-#                          RvarsPeakDetectionNewSample$defaultParam$mz_tolerance_centroid_MS1
-#                        )
-#                      ),
-#                      mz_tolerance_centroid_MS2 = req(
-#                        as.character(
-#                          RvarsPeakDetectionNewSample$defaultParam$mz_tolerance_centroid_MS2
-#                        )
-#                      ),
-#                      maxCharge = req(
-#                        as.character(RvarsPeakDetectionNewSample$defaultParam$maxCharge)
-#                      ),
-#                      min_Peakwidth = req(
-#                        as.character(
-#                          RvarsPeakDetectionNewSample$defaultParam$min_Peakwidth
-#                        )
-#                      ),
-#                      min_PeakHeight = req(
-#                        as.character(
-#                          RvarsPeakDetectionNewSample$defaultParam$min_PeakHeight
-#                        )
-#                      ),
-#                      mass_slice_width = req(
-#                        as.character(
-#                          RvarsPeakDetectionNewSample$defaultParam$mass_slice_width
-#                        )
-#                      ),
-#                      min_PeaksMassif = req(
-#                        as.character(
-#                          RvarsPeakDetectionNewSample$defaultParam$min_PeaksMassif
-#                        )
-#                      ),
-#                      Adduct_list = req(
-#                        as.list(RvarsPeakDetectionNewSample$defaultParam$Adduct_list)
-#                      ),
-#                      bw = req(
-#                        as.character(RvarsPeakDetectionNewSample$defaultParam$bw)
-#                      ),
-#                      rt_tolerance = req(
-#                        as.character(RvarsPeakDetectionNewSample$defaultParam$bw)
-#                      ),
-#                      mass_tolerance = req(
-#                        as.character(
-#                          RvarsPeakDetectionNewSample$defaultParam$mass_tolerance
-#                        )
-#                      ),
-#                      min_iset = req(as.character(input$min_iset)),
-#                      cutrat = req(as.character(input$cutrat)),
-#                      Ref = req(input$chosseRef)
-#                    )
-
-
-
-#                    message("--- Start peak picking ---\n")
-#                    incProgress(1 / 8, detail = paste("Start peak picking...", collapse =
-#                                                        ""))
-
-#                    ########################################################################
-#                    updateShinyProgressBar(
-#                      shinyProgressData = list(
-#                        session = session,
-#                        progressId = "preprocessProgressBar",
-#                        progressTotal = 8,
-#                        textId = "analysis_pre"
-#                      ),
-#                      pbValue = 2,
-#                      headerMsg = "Calling peak picking...",
-#                      footerMsg = "Start peak picking..."
-#                    )
-#                    ########################################################################
-
-#                    #### Peak picking
-#                    system.time(
-#                      findPeaks_MSDIAL(
-#                        input_files = req(directoryInput$directory),
-#                        output_files = directoryOutput,
-#                        #output_export_param = file.path(directoryInput$directory, RvarsPeakDetectionNewSample$Project_Name),
-#                        output_export_param = file.path("data/References", req(input$chosseRef)),
-#                        rt_begin = req(
-#                          as.character(RvarsPeakDetectionNewSample$defaultParam$rt_begin)
-#                        ),
-#                        rt_end = req(
-#                          as.character(RvarsPeakDetectionNewSample$defaultParam$rt_end)
-#                        ),
-#                        mz_range_begin = req(
-#                          as.character(
-#                            RvarsPeakDetectionNewSample$defaultParam$mz_range_begin
-#                          )
-#                        ),
-#                        mz_range_end = req(
-#                          as.character(
-#                            RvarsPeakDetectionNewSample$defaultParam$mz_range_end
-#                          )
-#                        ),
-#                        MS1_type = req(input$MS1_type),
-#                        MS2_type = req(input$MS2_type),
-#                        Adduct_list = req(
-#                          as.list(RvarsPeakDetectionNewSample$defaultParam$Adduct_list)
-#                        ),
-#                        maxCharge = req(
-#                          as.character(RvarsPeakDetectionNewSample$defaultParam$maxCharge)
-#                        ),
-#                        min_Peakwidth = req(
-#                          as.character(
-#                            RvarsPeakDetectionNewSample$defaultParam$min_Peakwidth
-#                          )
-#                        ),
-#                        min_PeakHeight = req(
-#                          RvarsPeakDetectionNewSample$defaultParam$min_PeakHeight
-#                        ),
-#                        mass_slice_width = req(
-#                          as.character(
-#                            RvarsPeakDetectionNewSample$defaultParam$mass_slice_width
-#                          )
-#                        ),
-#                        shinyProgressData = list(
-#                          session = session,
-#                          progressId = "preprocessProgressBar",
-#                          progressTotal = 8,
-#                          textId = "analysis_pre"
-#                        )
-#                      )
-#                    )
-
-
-
-
-#                    ###### Suppression des fichiers inutiles après peak picking
-
-#                    message("--- Deleting unnecessary files ---\n")
-
-#                    incProgress(1 / 8,
-#                                detail = paste("Deleting unnecessary files...", collapse = ""))
-#                    ########################################################################
-#                    updateShinyProgressBar(
-#                      shinyProgressData = list(
-#                        session = session,
-#                        progressId = "preprocessProgressBar",
-#                        progressTotal = 8,
-#                        textId = "analysis_pre"
-#                      ),
-#                      pbValue = 5,
-#                      headerMsg = " Deleting unnecessary files...",
-#                      footerMsg = ""
-#                    )
-#                    ########################################################################
-
-
-#                    source_python('lib/AnalysisNewSample/Python_files/modify_ParamMsdial.py')
-
-#                    removeFiles(path_to_files = directoryInput$directory,
-#                                ext = '.dcl')
-#                    removeFiles(path_to_files = directoryInput$directory,
-#                                ext = '.pai2')
-#                    removeFiles(path_to_files = directoryInput$directory,
-#                                ext = '.aef')
-
-
-
-#                    #### Grouping isotopic massifs into peptides
-
-#                    # Vecteur contenant les chemins d'acces vers les fichiers .msdial
-#                    path_file_msdial_newSample <-
-#                      file.path(directoryOutput, dir(directoryOutput))
-
-#                    if (length(path_file_msdial_newSample) >= 1) {
-#                      if (length(path_file_msdial_newSample) > 1) {
-#                        file.remove(list.files(
-#                          directoryOutput,
-#                          pattern = "AlignResult-",
-#                          full.names = TRUE
-#                        ))
-#                        path_file_msdial_newSample <-
-#                          list.files(directoryOutput, full.names = TRUE)
-#                      }
-
-#                      cat("lemme whow path_file_msdial_newSample : \n")
-#                      print(path_file_msdial_newSample)
-#                      cat(" lemme show directoryOutput : \n")
-#                      print(directoryOutput)
-
-#                      RvarsPeakDetectionNewSample$peaks_MSDIAL_mono_iso_newSample <-
-#                        deconv_peaks_MSDIAL(
-#                          path_to_peakList = req(path_file_msdial_newSample),
-#                          output_directory = directoryOutput,
-#                          file_adduct = "data/Adduit.csv",
-#                          mass_slice_width = as.numeric(
-#                            req(
-#                              RvarsPeakDetectionNewSample$defaultParam$mass_slice_width
-#                            )
-#                          ),
-#                          min_PeaksMassif = as.numeric(
-#                            req(
-#                              RvarsPeakDetectionNewSample$defaultParam$min_PeaksMassif
-#                            )
-#                          ),
-#                          shinyProgressData =
-#                            list(
-#                              session = session,
-#                              progressId =
-#                                "preprocessProgressBar",
-#                              progressTotal =
-#                                8,
-#                              textId =
-#                                "analysis_pre"
-#                            )
-#                        )
-#                      removeFiles(path_to_files = directoryOutput,
-#                                  ext = '.msdial')
-
-
-#                      RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample <-
-#                        split(
-#                          RvarsPeakDetectionNewSample$peaks_MSDIAL_mono_iso_newSample,
-#                          f =
-#                            RvarsPeakDetectionNewSample$peaks_MSDIAL_mono_iso_newSample$sample
-#                        )
-
-
-
-
-
-#                      message(" \n --- Preprocess complete ! ---\n")
-#                      ########################################################################
-#                      updateShinyProgressBar(
-#                        shinyProgressData = list(
-#                          session = session,
-#                          progressId = "preprocessProgressBar",
-#                          progressTotal = 8,
-#                          textId = "analysis_pre"
-#                        ),
-#                        pbValue = 8,
-#                        headerMsg = " Preprocess complete !",
-#                        footerMsg = ""
-#                      )
-#                      ########################################################################
-
-
-
-
-#                      # Pipeline completed hopefully
-#                      #shinyjs::html("analysisProgress","Preprocess complete !")
-
-#                      #### End Processing
-#                      sendSweetAlert(
-#                        session = session,
-#                        title = "Preprocess complete !",
-#                        text = HTML(
-#                          paste(
-#                            '<h3> Parameters used : </h3>
-
-#                 <span style="font-weight:bold;">Reference map : ',
-#                            req(input$chosseRef),
-#                            '</span>
-
-#                 <h4>Mass accuracy(centroid parameter) : </h4>
-#                 <ol style = "list-style-type: none;">
-#                 <li>MS1 tolerance (Da) : ',
-#                            req(
-#                              as.character(
-#                                RvarsPeakDetectionNewSample$defaultParam$mz_tolerance_centroid_MS1
-#                              )
-#                            ),
-#                            '</li>
-#                 <li>MS2 tolerance (Da) : ',
-#                            req(
-#                              as.character(
-#                                RvarsPeakDetectionNewSample$defaultParam$mz_tolerance_centroid_MS2
-#                              )
-#                            ),
-#                            '</li>
-#                 </ol>
-
-#                 <h4>Peak detection parameters : </h4>
-#                 <ol style = "list-style-type: none;">
-#                 <li>Mass slice width (Da) : ',
-#                            req(
-#                              as.character(
-#                                RvarsPeakDetectionNewSample$defaultParam$mass_slice_width
-#                              )
-#                            ),
-#                            ' </li>
-#                 <li>Minimum peak height (amplitude) : ',
-#                            req(
-#                              as.character(
-#                                RvarsPeakDetectionNewSample$defaultParam$min_PeakHeight
-#                              )
-#                            ),
-#                            ' </li>
-#                 <li>Minimum peak widt (scan) : ',
-#                            req(
-#                              as.character(
-#                                RvarsPeakDetectionNewSample$defaultParam$min_Peakwidth
-#                              )
-#                            ),
-#                            ' </li>
-#                 <li>Maximum charged number : ',
-#                            req(
-#                              as.character(RvarsPeakDetectionNewSample$defaultParam$maxCharge)
-#                            ),
-#                            '</li>
-#                 </ol>
-
-#                 <h4> Grouping of chromatographic peaks within samples : </h4>
-#                 <ol style = "list-style-type: none;">
-#                 <li>Bandwidth (CE-time tolerance) (second) : ',
-#                            req(
-#                              as.character(RvarsPeakDetectionNewSample$defaultParam$bw)
-#                            ),
-#                            ' </li>
-#                 </ol>
-#                 <br/>
-#                 <h3>Click OK to continue !</h3>'
-#                          )
-#                        ),
-#                        type = "success",
-#                        width = "70%",
-#                        closeOnClickOutside = FALSE,
-#                        html = TRUE
-#                      )
-
-
-
-
-#                      #showTab("analysisNavbar","Samples normalization", select = TRUE, session = session)
-
-#                      # updateNavbarPage(
-#                      #   session = session,
-#                      #   inputId = "analysisNavbar",
-#                      #   selected = "Match reference map"
-#                      # )
-
-#                      updateRadioButtons(session = session,
-#                                         inputId = "IdAnalysisStep",
-#                                         selected = "2")
-
-#                      shinyjs::show("normIntensity")
-#                      shinyjs::enable(selector = '.navbar-nav a[data-value="Samples normalization"')
-
-
-#                    } else {
-#                      message("No file .msdial...!")
-#                      hide("progressWrapper")
-#                      hide("analysisProgress")
-#                      hide("idpanel_analysisProgress")
-#                      enable("runPeakPicking")
-#                      enable("updateProject")
-#                      enable("confirmProject")
-#                      enable("processParameters")
-#                      enable("directory")
-
-#                      enable(id = "chosseRef")
-#                      enable(id = "projectName")
-#                      enable(id = "dataType")
-#                      enable(id = "IdDataType")
-#                      enable(id = "MS1_type")
-#                      enable(id = "MS2_type")
-
-
-#                      shinyjs::html("analysisProgress", html = NULL)
-
-#                      sendSweetAlert(
-#                        session = session,
-#                        title = "Warning !",
-#                        text = "There is no input MS file to be imported !",
-#                        type = "alert"
-#                      )
-#                    }
-
-#                  })
-
-#                }
-
-
-
-#                enable("match")
-#                enable("normIntensity")
-#                enable("runNormalizing")
-#                enable("returnAnalysisViewer")
-#                enable("returnMatchRef")
-#                enable("SaveAnalysisResults")
-#                enable("finishAnalyze")
-#                enable("features_list")
-#                shinyjs::enable(selector = '.navbar-nav a[data-value="Match reference map"')
-#                shinyjs::enable(selector = '.navbar-nav a[data-value="New reference map"')
-#                shinyjs::enable(selector = '.navbar-nav a[data-value="Database"')
-#                shinyjs::enable(selector = '.navbar-nav a[data-value="Statistical analysis"')
-#                shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
-
-#                shinyjs::show("id_PlotCutt_newSample")
-
-
-
-#              })
-
-
-# ########################################################################
-# # Reset the timebar for later
-# updateShinyProgressBar(
-#   shinyProgressData = list(
-#     session = session,
-#     progressId = "preprocessProgressBar",
-#     progressTotal = 8,
-#     textId = "analysis_pre"
-#   ),
-#   pbValue = 1,
-#   headerMsg = "",
-#   footerMsg = ""
-# )
-# ########################################################################
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-
-
-
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ###~~~~~~~~~~~~~~~~~~~~~~~~ Upload massif list files  ~~~~~~~~~~~~~~~~~~~~~~~~~###
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$massif_list_newSample
-#              }
-#              , {
-#                files <- input$massif_list_newSample
-#                ext <- tools::file_ext(files$datapath)
-
-
-#                if (length(ext) > 1) {
-#                  if (all.equal(ext, rep("csv", length(ext))) != TRUE) {
-#                    message("Please upload a csv file...!")
-
-#                    sendSweetAlert(
-#                      session = session,
-#                      title = "Warning !",
-#                      text = "Please upload a csv file !",
-#                      type = "warning"
-#                    )
-#                  } else {
-#                    a <- lapply(input$massif_list_newSample$datapath, read.csv)
-#                    tryCatch({
-#                      a <- do.call("rbind", a)
-#                    },
-#                    error = function(e) {
-#                      message("Please upload a csv file...!")
-
-#                      sendSweetAlert(
-#                        session = session,
-#                        title = "Warning !",
-#                        text = "Required columns : 'M+H', 'M+H.min','M+H.max', 'CE-time','CE-time.min','CE-time.max',
-#                        'integrated-intensity', 'intensity','sn', 'sample', 'iso.mass','iso.mass.link','mz_PeaksIsotopics_Group',
-#                            'rt_PeaksIsotopics_Group','Height_PeaksIsotopics_Group','Adduct' not found in files.",
-#                        type = "warning"
-#                      )
-#                    })
-
-
-#                    if (!is.element("M.H", colnames(a)) ||
-#                        !is.element("M.H.min", colnames(a)) ||
-#                        !is.element("M.H.max", colnames(a)) ||
-#                        !is.element("CE.time", colnames(a)) ||
-#                        !is.element("CE.time.min", colnames(a)) ||
-#                        !is.element("CE.time.max", colnames(a)) ||
-#                        !is.element("integrated.intensity", colnames(a)) ||
-#                        !is.element("intensity", colnames(a)) ||
-#                        !is.element("sn", colnames(a)) ||
-#                        !is.element("sample", colnames(a)) ||
-#                        !is.element("iso.mass", colnames(a)) ||
-#                        !is.element("iso.mass.link", colnames(a)) ||
-#                        !is.element("mz_PeaksIsotopics_Group", colnames(a)) ||
-#                        !is.element("rt_PeaksIsotopics_Group", colnames(a)) ||
-#                        !is.element("Height_PeaksIsotopics_Group", colnames(a)) ||
-#                        !is.element("Adduct", colnames(a)) ||
-#                        ncol(a) < 16) {
-#                      message("Please upload a csv file...!")
-
-#                      sendSweetAlert(
-#                        session = session,
-#                        title = "Warning !",
-#                        text = "Required columns : 'M+H', 'M+H.min','M+H.max', 'CE-time','CE-time.min','CE-time.max',
-#                        'integrated-intensity', 'intensity','sn', 'sample', 'iso.mass','iso.mass.link','mz_PeaksIsotopics_Group',
-#                            'rt_PeaksIsotopics_Group','Height_PeaksIsotopics_Group','Adduct' not found in files.",
-#                        type = "warning"
-#                      )
-#                    } else {
-
-
-#                      ColnameData <-
-#                        c(
-#                          'M.H',
-#                          'M.H.min',
-#                          'M.H.max',
-#                          'CE.time',
-#                          'CE.time.min',
-#                          'CE.time.max',
-#                          'integrated-intensity',
-#                          'intensity',
-#                          'sn',
-#                          'sample',
-#                          'iso.mass',
-#                          'iso.mass.link',
-#                          'mz_PeaksIsotopics_Group',
-#                          'rt_PeaksIsotopics_Group',
-#                          'Height_PeaksIsotopics_Group',
-#                          'Adduct'
-#                        )
-
-#                      ColnamesToUse <-
-#                        c(
-#                          "mz",
-#                          "mzmin",
-#                          "mzmax",
-#                          "rt",
-#                          "rtmin",
-#                          "rtmax",
-#                          "into",
-#                          "maxo",
-#                          "sn",
-#                          "sample",
-#                          'iso.mass',
-#                          'iso.mass.link',
-#                          'mz_PeaksIsotopics_Group',
-#                          'rt_PeaksIsotopics_Group',
-#                          'Height_PeaksIsotopics_Group',
-#                          'Adduct'
-#                        )
-
-#                      colnames(a) <- ColnamesToUse
-
-#                      a <- a
-#                      a <- split(a, f = a$sample)
-#                      RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample <-
-#                        a
-
-
-#                      updateRadioButtons(session = session,
-#                                         inputId = "IdAnalysisStep",
-#                                         selected = "2")
-#                      enable("ViewAnalysis_duplicate")
-#                      shinyjs::show("id_PlotCutt_newSample")
-
-#                      shinyjs::show("normIntensity")
-#                      shinyjs::enable(selector = '.navbar-nav a[data-value="Samples normalization"')
-
-#                      enable("match")
-#                      enable("normIntensity")
-#                      enable("runNormalizing")
-#                      enable("returnAnalysisViewer")
-#                      enable("returnMatchRef")
-#                      enable("SaveAnalysisResults")
-#                      enable("finishAnalyze")
-#                      enable("features_list")
-#                      shinyjs::enable(selector = '.navbar-nav a[data-value="Match reference map"')
-#                      shinyjs::enable(selector = '.navbar-nav a[data-value="New reference map"')
-#                      shinyjs::enable(selector = '.navbar-nav a[data-value="Database"')
-#                      shinyjs::enable(selector = '.navbar-nav a[data-value="Statistical analysis"')
-#                      shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
-
-
-#                    }
-
-#                  }
-#                } else {
-#                  if (ext != "csv") {
-#                    message("Please upload a csv file...!")
-
-#                    sendSweetAlert(
-#                      session = session,
-#                      title = "Warning !",
-#                      text = "Please upload a csv file !",
-#                      type = "warning"
-#                    )
-#                  } else {
-#                    a <- lapply(input$massif_list_newSample$datapath, read.csv)
-#                    tryCatch({
-#                      a <- do.call("rbind", a)
-#                    },
-#                    error = function(e) {
-#                      message("Please upload a csv file...!")
-
-#                      sendSweetAlert(
-#                        session = session,
-#                        title = "Warning !",
-#                        text = "Required columns : 'M+H', 'M+H.min','M+H.max', 'CE-time','CE-time.min','CE-time.max',
-#                        'integrated-intensity', 'intensity','sn', 'sample', 'iso.mass','iso.mass.link','mz_PeaksIsotopics_Group',
-#                            'rt_PeaksIsotopics_Group','Height_PeaksIsotopics_Group','Adduct' not found in files.",
-#                        type = "warning"
-#                      )
-#                    })
-
-
-
-#                    if (!is.element("M.H", colnames(a)) ||
-#                        !is.element("M.H.min", colnames(a)) ||
-#                        !is.element("M.H.max", colnames(a)) ||
-#                        !is.element("CE.time", colnames(a)) ||
-#                        !is.element("CE.time.min", colnames(a)) ||
-#                        !is.element("CE.time.max", colnames(a)) ||
-#                        !is.element("integrated.intensity", colnames(a)) ||
-#                        !is.element("intensity", colnames(a)) ||
-#                        !is.element("sn", colnames(a)) ||
-#                        !is.element("sample", colnames(a)) ||
-#                        !is.element("iso.mass", colnames(a)) ||
-#                        !is.element("iso.mass.link", colnames(a)) ||
-#                        !is.element("mz_PeaksIsotopics_Group", colnames(a)) ||
-#                        !is.element("rt_PeaksIsotopics_Group", colnames(a)) ||
-#                        !is.element("Height_PeaksIsotopics_Group", colnames(a)) ||
-#                        !is.element("Adduct", colnames(a)) ||
-#                        ncol(a) < 16) {
-#                      message("Please upload a csv file...!")
-#                      message("\n Probleme inconnu")
-
-#                      sendSweetAlert(
-#                        session = session,
-#                        title = "Warning !",
-#                        text = "Required columns : 'M+H', 'M+H.min','M+H.max', 'CE-time','CE-time.min','CE-time.max',
-#                        'integrated-intensity', 'intensity','sn', 'sample', 'iso.mass','iso.mass.link','mz_PeaksIsotopics_Group',
-#                            'rt_PeaksIsotopics_Group','Height_PeaksIsotopics_Group','Adduct' not found in files.",
-#                        type = "warning"
-#                      )
-#                    } else {
-
-#                      ColnameData <-
-#                        c(
-#                          'M.H',
-#                          'M.H.min',
-#                          'M.H.max',
-#                          'CE.time',
-#                          'CE.time.min',
-#                          'CE.time.max',
-#                          'integrated-intensity',
-#                          'intensity',
-#                          'sn',
-#                          'sample',
-#                          'iso.mass',
-#                          'iso.mass.link',
-#                          'mz_PeaksIsotopics_Group',
-#                          'rt_PeaksIsotopics_Group',
-#                          'Height_PeaksIsotopics_Group',
-#                          'Adduct'
-#                        )
-
-#                      ColnamesToUse <-
-#                        c(
-#                          "mz",
-#                          "mzmin",
-#                          "mzmax",
-#                          "rt",
-#                          "rtmin",
-#                          "rtmax",
-#                          "into",
-#                          "maxo",
-#                          "sn",
-#                          "sample",
-#                          'iso.mass',
-#                          'iso.mass.link',
-#                          'mz_PeaksIsotopics_Group',
-#                          'rt_PeaksIsotopics_Group',
-#                          'Height_PeaksIsotopics_Group',
-#                          'Adduct'
-#                        )
-
-#                      colnames(a) <- ColnamesToUse
-
-
-#                      a <- a
-#                      a <- split(a, f = a$sample)
-#                      RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample <-
-#                        a
-
-#                      updateRadioButtons(session = session,
-#                                         inputId = "IdAnalysisStep",
-#                                         selected = "2")
-
-#                      enable("ViewAnalysis_duplicate")
-#                      shinyjs::show("id_PlotCutt_newSample")
-
-#                      shinyjs::show("normIntensity")
-#                      shinyjs::enable(selector = '.navbar-nav a[data-value="Samples normalization"')
-
-#                      enable("match")
-#                      enable("normIntensity")
-#                      enable("runNormalizing")
-#                      enable("returnAnalysisViewer")
-#                      enable("returnMatchRef")
-#                      enable("SaveAnalysisResults")
-#                      enable("finishAnalyze")
-#                      enable("features_list")
-#                      shinyjs::enable(selector = '.navbar-nav a[data-value="Match reference map"')
-#                      shinyjs::enable(selector = '.navbar-nav a[data-value="New reference map"')
-#                      shinyjs::enable(selector = '.navbar-nav a[data-value="Database"')
-#                      shinyjs::enable(selector = '.navbar-nav a[data-value="Statistical analysis"')
-#                      shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
-
-
-#                    }
-#                  }
-#                }
-
-
-#              })
-
-
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~ Samples filtering ~~~~~~~~~~~~~~~~~~~~~~~~~~###
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-
-# observe({
-#   if (!is.null(names(
-#     RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-#   ))) {
-#     RvarsPeakDetectionNewSample$samplesCuttingTable_newSample <-
-#       data.frame(
-#         row.names = names(
-#           RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-#         ),
-#         rt_min_cut_newSample = rep(
-#           NA,
-#           length(
-#             RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-#           )
-#         ),
-#         rt_max_cut_newSample = rep(
-#           NA,
-#           length(
-#             RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-#           )
-#         ),
-#         Unit = rep(
-#           "Second",
-#           length(
-#             RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-#           )
-#         )
-#       )
-
-
-#     output$SelectSampleCut <- renderUI({
-#       pickerInput(
-#         inputId = "sample_selectedCutting_newSample",
-#         label = "Select a sample:",
-#         choices = names(
-#           RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-#         ),
-#         options = pickerOptions(
-#           size = 10,
-#           showTick = TRUE,
-#           style = "btn-primary"
-#         ),
-#         width = "fit"
-#       )
-#     })
-
-
-#   } else{
-#     output$SelectSampleCut <- renderUI({
-#       pickerInput(
-#         inputId = "sample_selectedCutting_newSample",
-#         label = "Select a sample:",
-#         choices = NULL,
-#         options = pickerOptions(
-#           size = 10,
-#           showTick = TRUE,
-#           style = "btn-primary"
-#         ),
-#         width = "fit"
-#       )
-#     })
-
-#     RvarsPeakDetectionNewSample$samplesCuttingTable_newSample <-
-#       NULL
-#   }
-
-
-# })
-
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ sample cutting viewer ~~~~~~~~~~~~~~~~~~~~~~~~#
-# observe({
-#   if (length(input$sample_selectedCutting_newSample) != 0) {
-#     sample_cutting_rv <-
-#       req(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[req(input$sample_selectedCutting_newSample)][[1]])
-#     colnames(sample_cutting_rv)[c(1, 4, 8)] <-
-#       c("M.H", "CE.time", "intensity")
-#     sample_cutting_rv$intensity <- log2(sample_cutting_rv$intensity)
-#     RvarsPeakDetectionNewSample$sample_cutting_newSample <-
-#       sample_cutting_rv
-
-
-#   }
-
-# })
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Sample cutting to used ~~~~~~~~~~~~~~~~~~~~~~~~#
-# ## Convert time sample select
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$sample_selectedCutting_newSample
-#              },
-#              handlerExpr = {
-#                RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample <-
-#                  req(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[req(input$sample_selectedCutting_newSample)][[1]])
-#                colnames(RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample)[c(1, 4, 8)] <-
-#                  c("M.H", "CE.time", "intensity")
-#                RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$intensity <-
-#                  log2(
-#                    RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$intensity
-#                  )
-
-
-
-#                #Because les data viennent initialement en second
-#                RvarsPeakDetectionNewSample$Second_Cutting_newSample <-
-#                  TRUE
-#                if (input$UnitTime_sampleCutting_newSample == "Minute") {
-#                  #RvarsPeakDetectionNewSample$peaks_mono_iso_NewRefMap_toPlot_ConvertTime<-peaks_mono_iso_NewRefMap_toPlot()
-#                  print(
-#                    paste(
-#                      "Convert to min",
-#                      input$UnitTime_sampleCutting_newSample == "Minute" &
-#                        RvarsPeakDetectionNewSample$Second_Cutting_newSample == TRUE
-#                    )
-#                  )
-#                  if (input$UnitTime_sampleCutting_newSample == "Minute" &
-#                      RvarsPeakDetectionNewSample$Second_Cutting_newSample == TRUE) {
-#                    if (!is.null(RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample)) {
-#                      RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$CE.time <-
-#                        req(
-#                          RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$CE.time
-#                        ) / 60
-#                      RvarsPeakDetectionNewSample$Second_Cutting_newSample <-
-#                        FALSE
-#                    }
-#                  }
-#                }
-
-
-#                if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-#                  RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 3] <-
-#                    input$UnitTime_sampleCutting_newSample
-
-#                }
-#              })
-
-
-
-
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$UnitTime_sampleCutting_newSample
-#              },
-#              handlerExpr = {
-#                print(
-#                  paste(
-#                    "Convert to min",
-#                    input$UnitTime_sampleCutting_newSample == "Minute" &
-#                      RvarsPeakDetectionNewSample$Second_Cutting_newSample == TRUE
-#                  )
-#                )
-#                if (isolate(input$UnitTime_sampleCutting_newSample) == "Minute" &
-#                    RvarsPeakDetectionNewSample$Second_Cutting_newSample == TRUE) {
-#                  if (!is.null(RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample)) {
-#                    RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$CE.time <-
-#                      req(
-#                        RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$CE.time
-#                      ) / 60
-#                    RvarsPeakDetectionNewSample$Second_Cutting_newSample <-
-#                      FALSE
-#                  }
-#                }
-
-#                print(
-#                  paste(
-#                    "Covert to Second",
-#                    input$UnitTime_sampleCutting_newSample == "Second" &
-#                      RvarsPeakDetectionNewSample$Second_Cutting_newSample == FALSE
-#                  )
-#                )
-#                if (isolate(input$UnitTime_sampleCutting_newSample) == "Second" &
-#                    RvarsPeakDetectionNewSample$Second_Cutting_newSample == FALSE) {
-#                  if (!is.null(RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample)) {
-#                    RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$CE.time <-
-#                      req(
-#                        RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$CE.time
-#                      ) * 60
-#                    RvarsPeakDetectionNewSample$Second_Cutting_newSample <-
-#                      TRUE
-#                  }
-#                }
-
-#                if (input$UnitTime_sampleCutting_newSample == "Second" &
-#                    RvarsPeakDetectionNewSample$Second_Cutting_newSample == TRUE) {
-#                  RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample <-
-#                    req(RvarsPeakDetectionNewSample$sample_cutting_newSample)
-#                }
-
-#                if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-#                  RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 3] <-
-#                    input$UnitTime_sampleCutting_newSample
-
-#                }
-
-
-#              })
-
-
-# rangesZoomSample_selectedCutting_newSample <-
-#   reactiveValues(x = NULL, y = NULL)
-
-# # When a double-click happens, check if there's a brush on the plot.
-# # If so, zoom to the brush bounds; if not, reset the zoom.
-# observeEvent({
-#   input$sample_selectedCutting_dblclick_newSample
-# }, {
-#   brush <- input$sample_selectedCutting_brush_newSample
-#   if (!is.null(brush)) {
-#     rangesZoomSample_selectedCutting_newSample$x <-
-#       c(brush$xmin, brush$xmax)
-#     rangesZoomSample_selectedCutting_newSample$y <-
-#       c(brush$ymin, brush$ymax)
-
-#   } else {
-#     ## reset coord_cartesian
-#     rangesZoomSample_selectedCutting_newSample$x <- NULL
-#     rangesZoomSample_selectedCutting_newSample$y <- NULL
-#   }
-# })
-
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$sample_selectedCutting_newSample
-#              },
-#              handlerExpr = {
-#                updateNumericInput(
-#                  session = session,
-#                  inputId = "rt_min_cut_newSample",
-#                  value = RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-#                )
-
-#                updateNumericInput(
-#                  session = session,
-#                  inputId = "rt_max_cut_newSample",
-#                  value = RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-#                )
-
-
-#              })
-
-# observe({
-#   if (!is.null(input$sample_selectedCutting_newSample)) {
-#     if (!is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[req(input$sample_selectedCutting_newSample)][[1]])) {
-#       if (is.na(
-#         RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-#       ) &
-#       is.na(
-#         RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-#       )) {
-#         print("Sample selected not cutted")
-#         if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 1:2] <-
-#             c(NA, NA)
-
-#         }
-
-
-
-#         output$sample_selectedCutting_Plot_newSample <- renderPlot({
-#           if (!is.null(
-#             RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#           )) {
-#             shinyjs::show("UnitTime_sampleCutting_id_newSample")
-#             shinyjs::show("mousepositionSampleCutting_newSample")
-
-#             RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-#               ggplot() +
-#               aes(x = CE.time,
-#                   y = M.H,
-#                   colour = intensity) +
-#               #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-#               geom_point(size = 1) +
-#               # geom_vline(xintercept = 3229, lwd = 1.5, color = "blue", linetype = "dashed")+
-#               # geom_vline(xintercept = 750, lwd = 1.5, color = "blue", linetype = "dashed")+
-#               scale_color_viridis_c(option = "inferno", direction = -1) +
-#               ylab("Mass (M+H) (Da)") +
-#               xlab(paste(
-#                 "CE-time (",
-#                 req(input$UnitTime_sampleCutting_newSample),
-#                 ")"
-#               )) +
-#               coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-#                               ylim = rangesZoomSample_selectedCutting_newSample$y,
-#                               expand = TRUE) +
-#               ggtitle(paste(
-#                 "Sample selected :",
-#                 req(input$sample_selectedCutting_newSample),
-#                 "\n"
-#               )) +
-
-#               scale_x_continuous(n.breaks = 14) +
-#               #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-
-
-#               #facet_grid(vars(sample), vars())+
-#               #option_graphe.3
-#               theme_ben() +
-#               labs(colour = "log2 Intensity") +
-#               theme(
-#                 plot.title = element_text(
-#                   size = rel(0.9),
-#                   face = "bold",
-#                   color = "#760001",
-#                   margin = margin(0, 0, 5, 0),
-#                   hjust = 0.5
-#                 ),
-#                 plot.subtitle = element_text(hjust = 0.5)
-#               )
-
-#           }
-
-
-
-
-#         })
-
-#         ## Mouse position
-#         # output$sample_selectedCutting_Plot_info <- renderText({
-#         #   paste0("Mouse position : ",
-#         #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-#         #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-#         # })
-
-#         output$sample_selectedCutting_Plot_info_newSample <-
-#           renderText({
-#             paste0(
-#               "Mouse position : ",
-#               xy_str(
-#                 input$sample_selectedCutting_hover_newSample,
-#                 "CE-time",
-#                 "M+H"
-#               ),
-#               "Click: ",
-#               xy_str(
-#                 input$sample_selectedCutting_click_newSample,
-#                 "CE-time",
-#                 "M+H"
-#               )
-#             )
-#             # paste0("Mouse position : ",
-#             #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-#             #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-#           })
-
-#         ## Bulle info
-
-#         #### info-bulle
-#         output$sample_selectedCutting_hover_info_newSample <-
-#           renderUI({
-#             hover <- req(input$sample_selectedCutting_hover_newSample)
-
-#             if (!is.null(
-#               RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#             )) {
-#               point <-
-#                 nearPoints(
-#                   req(
-#                     RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                   ),
-#                   hover,
-#                   threshold = 5,
-#                   maxpoints = 1,
-#                   addDist = TRUE
-#                 )
-#               if (nrow(point) == 0)
-#                 return(NULL)
-
-#               # calculate point position INSIDE the image as percent of total dimensions
-#               # from left (horizontal) and from top (vertical)
-#               left_pct <-
-#                 (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-#               top_pct <-
-#                 (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-
-#               # calculate distance from left and bottom side of the picture in pixels
-#               left_px <-
-#                 hover$range$left + left_pct * (hover$range$right - hover$range$left)
-#               top_px <-
-#                 hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-
-#               # create style property fot tooltip
-#               # background color is set so tooltip is a bit transparent
-#               # z-index is set so we are sure are tooltip will be on top
-#               style <-
-#                 paste0(
-#                   "position:absolute; z-index:100; background-color: #760001; color: white;",
-#                   "left:",
-#                   left_px + 2,
-#                   "px; top:",
-#                   top_px + 2,
-#                   "px;"
-#                 )
-
-#               # actual tooltip created as wellPanel
-#               div(class = "well well-sm",
-#                   style = style,
-#                   p(HTML(
-#                     paste0(
-#                       "<span class='bullText'> CE-time: </span>",
-#                       round(point$CE.time, 2),
-#                       "<br/>",
-#                       "<span class='bullText'> M+H: </span>",
-#                       round(point$M.H, 4),
-#                       "<br/>",
-#                       "<span class='bullText'> log2 Intensity: </span>",
-#                       round(point$intensity, 2),
-#                       "<br/>",
-#                       "<span class='bullText'> Intensity: </span>",
-#                       round(2 ^ (point$intensity), 0),
-#                       "<br/>"
-#                     )
-#                   )))
-#             }
-
-
-
-
-
-#           })
-
-
-
-#       }
-#     }
-#     else {
-#       output$sample_selectedCutting_Plot_newSample <- renderPlot({
-
-#       })
-#       output$sample_selectedCutting_Plot_info_newSample <-
-#         renderText({
-
-#         })
-#       output$sample_selectedCutting_hover_info_newSample <-
-#         renderUI({
-
-#         })
-#       hide("UnitTime_sampleCutting_id_newSample")
-#     }
-#   } else {
-#     output$sample_selectedCutting_Plot_newSample <- renderPlot({
-
-#     })
-#   }
-
-
-# })
-
-
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$cutOff_newSample
-#              },
-#              handlerExpr = {
-#                if (!is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[req(input$sample_selectedCutting_newSample)][[1]])) {
-#                  if (!is.na(input$rt_min_cut_newSample) &
-#                      !is.na(input$rt_max_cut_newSample)) {
-#                    print("cutoff_newSample")
-#                    output$sample_selectedCutting_Plot_newSample <-
-#                      renderPlot({
-#                        if (!is.null(
-#                          RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                        )) {
-#                          shinyjs::show("UnitTime_sampleCutting_id_newSample")
-#                          shinyjs::show("mousepositionSampleCutting_newSample")
-
-#                          RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-#                            ggplot() +
-#                            aes(x = CE.time,
-#                                y = M.H,
-#                                colour = intensity) +
-#                            #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-#                            geom_point(size = 1) +
-#                            geom_vline(
-#                              xintercept = isolate(input$rt_min_cut_newSample),
-#                              color = "gray",
-#                              linetype = "dashed"
-#                            ) +
-#                            geom_vline(
-#                              xintercept = isolate(input$rt_max_cut_newSample),
-#                              color = "gray",
-#                              linetype = "dashed"
-#                            ) +
-#                            ggplot2::annotate(
-#                              "rect",
-#                              xmin = c(0, isolate(input$rt_max_cut_newSample)),
-#                              xmax = c(isolate(input$rt_min_cut_newSample), Inf),
-#                              ymin = -Inf ,
-#                              ymax = Inf,
-#                              alpha = 0.5,
-#                              fill = "gray"
-#                            ) +
-#                            scale_color_viridis_c(option = "inferno", direction = -1) +
-#                            ylab("Mass (M+H) (Da)") +
-#                            xlab(paste(
-#                              "CE-time (",
-#                              req(input$UnitTime_sampleCutting_newSample),
-#                              ")"
-#                            )) +
-#                            coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-#                                            ylim = rangesZoomSample_selectedCutting_newSample$y,
-#                                            expand = TRUE) +
-#                            ggtitle(paste(
-#                              "Sample selected :",
-#                              req(input$sample_selectedCutting_newSample),
-#                              "\n"
-#                            )) +
-
-#                            scale_x_continuous(n.breaks = 14) +
-#                            #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-
-
-#                            #facet_grid(vars(sample), vars())+
-#                            #option_graphe.3
-#                            theme_ben() +
-#                            labs(colour = "log2 Intensity") +
-#                            theme(
-#                              plot.title = element_text(
-#                                size = rel(0.9),
-#                                face = "bold",
-#                                color = "#760001",
-#                                margin = margin(0, 0, 5, 0),
-#                                hjust = 0.5
-#                              ),
-#                              plot.subtitle = element_text(hjust = 0.5)
-#                            )
-
-#                        }
-
-
-
-#                      })
-
-#                    ## Mouse position
-#                    # output$sample_selectedCutting_Plot_info <- renderText({
-#                    #   paste0("Mouse position : ",
-#                    #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-#                    #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-#                    # })
-
-#                    output$sample_selectedCutting_Plot_info_newSample <-
-#                      renderText({
-#                        paste0(
-#                          "Mouse position: ",
-#                          xy_str(
-#                            input$sample_selectedCutting_hover_newSample,
-#                            "CE-time",
-#                            "M+H"
-#                          ),
-#                          "Click: ",
-#                          xy_str(
-#                            input$sample_selectedCutting_click_newSample,
-#                            "CE-time",
-#                            "M+H"
-#                          )
-#                        )
-#                        # paste0("Mouse position : ",
-#                        #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-#                        #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-#                      })
-
-#                    ## Bulle info
-
-#                    #### info-bulle
-#                    output$sample_selectedCutting_hover_info_newSample <-
-#                      renderUI({
-#                        hover <- req(input$sample_selectedCutting_hover_newSample)
-
-#                        if (!is.null(
-#                          RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                        )) {
-#                          point <-
-#                            nearPoints(
-#                              req(
-#                                RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                              ),
-#                              hover,
-#                              threshold = 5,
-#                              maxpoints = 1,
-#                              addDist = TRUE
-#                            )
-#                          if (nrow(point) == 0)
-#                            return(NULL)
-
-#                          # calculate point position INSIDE the image as percent of total dimensions
-#                          # from left (horizontal) and from top (vertical)
-#                          left_pct <-
-#                            (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-#                          top_pct <-
-#                            (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-
-#                          # calculate distance from left and bottom side of the picture in pixels
-#                          left_px <-
-#                            hover$range$left + left_pct * (hover$range$right - hover$range$left)
-#                          top_px <-
-#                            hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-
-#                          # create style property fot tooltip
-#                          # background color is set so tooltip is a bit transparent
-#                          # z-index is set so we are sure are tooltip will be on top
-#                          style <-
-#                            paste0(
-#                              "position:absolute; z-index:100; background-color: #760001; color: white;",
-#                              "left:",
-#                              left_px + 2,
-#                              "px; top:",
-#                              top_px + 2,
-#                              "px;"
-#                            )
-
-#                          # actual tooltip created as wellPanel
-#                          div(class = "well well-sm",
-#                              style = style,
-#                              p(HTML(
-#                                paste0(
-#                                  "<span class='bullText'> CE-time: </span>",
-#                                  round(point$CE.time, 2),
-#                                  "<br/>",
-#                                  "<span class='bullText'> M+H: </span>",
-#                                  round(point$M.H, 4),
-#                                  "<br/>",
-#                                  "<span class='bullText'> log2 Intensity: </span>",
-#                                  round(point$intensity, 2),
-#                                  "<br/>",
-#                                  "<span class='bullText'> Intensity: </span>",
-#                                  round(2 ^ (point$intensity), 0),
-#                                  "<br/>"
-#                                )
-#                              )))
-#                        }
-
-
-
-
-
-#                      })
-
-#                    if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-#                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 1:2] <-
-#                        c(
-#                          isolate(input$rt_min_cut_newSample),
-#                          isolate(input$rt_max_cut_newSample)
-#                        )
-#                    }
-
-
-
-#                  } else if (!is.na(input$rt_min_cut_newSample) &
-#                             is.na(input$rt_max_cut_newSample)) {
-#                    print("cutoff_newSample")
-#                    output$sample_selectedCutting_Plot_newSample <-
-#                      renderPlot({
-#                        if (!is.null(
-#                          RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                        )) {
-#                          shinyjs::show("UnitTime_sampleCutting_id_newSample")
-#                          shinyjs::show("mousepositionSampleCutting_newSample")
-
-#                          RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-#                            ggplot() +
-#                            aes(x = CE.time,
-#                                y = M.H,
-#                                colour = intensity) +
-#                            #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-#                            geom_point(size = 1) +
-#                            geom_vline(
-#                              xintercept = isolate(input$rt_min_cut_newSample),
-#                              color = "gray",
-#                              linetype = "dashed"
-#                            ) +
-#                            ggplot2::annotate(
-#                              "rect",
-#                              xmin = 0,
-#                              xmax = isolate(input$rt_min_cut_newSample),
-#                              ymin = -Inf ,
-#                              ymax = Inf,
-#                              alpha = 0.5,
-#                              fill = "gray"
-#                            ) +
-#                            scale_color_viridis_c(option = "inferno", direction = -1) +
-#                            ylab("Mass (M+H) (Da)") +
-#                            xlab(paste(
-#                              "CE-time (",
-#                              req(input$UnitTime_sampleCutting_newSample),
-#                              ")"
-#                            )) +
-#                            coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-#                                            ylim = rangesZoomSample_selectedCutting_newSample$y,
-#                                            expand = TRUE) +
-#                            ggtitle(paste(
-#                              "Sample selected :",
-#                              req(input$sample_selectedCutting_newSample),
-#                              "\n"
-#                            )) +
-
-#                            scale_x_continuous(n.breaks = 14) +
-#                            #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-
-
-#                            #facet_grid(vars(sample), vars())+
-#                            #option_graphe.3
-#                            theme_ben() +
-#                            labs(colour = "log2 Intensity") +
-#                            theme(
-#                              plot.title = element_text(
-#                                size = rel(0.9),
-#                                face = "bold",
-#                                color = "#760001",
-#                                margin = margin(0, 0, 5, 0),
-#                                hjust = 0.5
-#                              ),
-#                              plot.subtitle = element_text(hjust = 0.5)
-#                            )
-
-#                        }
-
-
-
-#                      })
-
-#                    ## Mouse position
-#                    # output$sample_selectedCutting_Plot_info <- renderText({
-#                    #   paste0("Mouse position : ",
-#                    #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-#                    #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-#                    # })
-
-#                    output$sample_selectedCutting_Plot_info_newSample <-
-#                      renderText({
-#                        paste0(
-#                          "Mouse position: ",
-#                          xy_str(
-#                            input$sample_selectedCutting_hover_newSample,
-#                            "CE-time",
-#                            "M+H"
-#                          ),
-#                          "Click: ",
-#                          xy_str(
-#                            input$sample_selectedCutting_click_newSample,
-#                            "CE-time",
-#                            "M+H"
-#                          )
-#                        )
-#                        # paste0("Mouse position : ",
-#                        #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-#                        #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-#                      })
-
-#                    ## Bulle info
-
-#                    #### info-bulle
-#                    output$sample_selectedCutting_hover_info_newSample <-
-#                      renderUI({
-#                        hover <- req(input$sample_selectedCutting_hover_newSample)
-
-#                        if (!is.null(
-#                          RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                        )) {
-#                          point <-
-#                            nearPoints(
-#                              req(
-#                                RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                              ),
-#                              hover,
-#                              threshold = 5,
-#                              maxpoints = 1,
-#                              addDist = TRUE
-#                            )
-#                          if (nrow(point) == 0)
-#                            return(NULL)
-
-#                          # calculate point position INSIDE the image as percent of total dimensions
-#                          # from left (horizontal) and from top (vertical)
-#                          left_pct <-
-#                            (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-#                          top_pct <-
-#                            (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-
-#                          # calculate distance from left and bottom side of the picture in pixels
-#                          left_px <-
-#                            hover$range$left + left_pct * (hover$range$right - hover$range$left)
-#                          top_px <-
-#                            hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-
-#                          # create style property fot tooltip
-#                          # background color is set so tooltip is a bit transparent
-#                          # z-index is set so we are sure are tooltip will be on top
-#                          style <-
-#                            paste0(
-#                              "position:absolute; z-index:100; background-color: #760001; color: white;",
-#                              "left:",
-#                              left_px + 2,
-#                              "px; top:",
-#                              top_px + 2,
-#                              "px;"
-#                            )
-
-#                          # actual tooltip created as wellPanel
-#                          div(class = "well well-sm",
-#                              style = style,
-#                              p(HTML(
-#                                paste0(
-#                                  "<span class='bullText'> CE-time: </span>",
-#                                  round(point$CE.time, 2),
-#                                  "<br/>",
-#                                  "<span class='bullText'> M+H: </span>",
-#                                  round(point$M.H, 4),
-#                                  "<br/>",
-#                                  "<span class='bullText'> log2 Intensity: </span>",
-#                                  round(point$intensity, 2),
-#                                  "<br/>",
-#                                  "<span class='bullText'> Intensity: </span>",
-#                                  round(2 ^ (point$intensity), 0),
-#                                  "<br/>"
-#                                )
-#                              )))
-#                        }
-
-
-
-
-
-#                      })
-
-#                    if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-#                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 1:2] <-
-#                        c(isolate(input$rt_min_cut_newSample), NA)
-#                    }
-
-
-#                  } else if (is.na(input$rt_min_cut_newSample) &
-#                             !is.na(input$rt_max_cut_newSample)) {
-#                    print("cutoff")
-#                    output$sample_selectedCutting_Plot_newSample <-
-#                      renderPlot({
-#                        if (!is.null(
-#                          RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                        )) {
-#                          shinyjs::show("UnitTime_sampleCutting_id_newSample")
-#                          shinyjs::show("mousepositionSampleCutting_newSample")
-
-#                          RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-#                            ggplot() +
-#                            aes(x = CE.time,
-#                                y = M.H,
-#                                colour = intensity) +
-#                            #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-#                            geom_point(size = 1) +
-#                            geom_vline(
-#                              xintercept = isolate(input$rt_max_cut_newSample),
-#                              color = "gray",
-#                              linetype = "dashed"
-#                            ) +
-#                            ggplot2::annotate(
-#                              "rect",
-#                              xmin = isolate(input$rt_max_cut_newSample),
-#                              xmax = Inf,
-#                              ymin = -Inf ,
-#                              ymax = Inf,
-#                              alpha = 0.5,
-#                              fill = "gray"
-#                            ) +
-#                            scale_color_viridis_c(option = "inferno", direction = -1) +
-#                            ylab("Mass (M+H) (Da)") +
-#                            xlab(paste(
-#                              "CE-time (",
-#                              req(input$UnitTime_sampleCutting_newSample),
-#                              ")"
-#                            )) +
-#                            coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-#                                            ylim = rangesZoomSample_selectedCutting_newSample$y,
-#                                            expand = TRUE) +
-#                            ggtitle(paste(
-#                              "Sample selected :",
-#                              req(input$sample_selectedCutting_newSample),
-#                              "\n"
-#                            )) +
-
-#                            scale_x_continuous(n.breaks = 14) +
-#                            #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-
-
-#                            #facet_grid(vars(sample), vars())+
-#                            #option_graphe.3
-#                            theme_ben() +
-#                            labs(colour = "log2 Intensity") +
-#                            theme(
-#                              plot.title = element_text(
-#                                size = rel(0.9),
-#                                face = "bold",
-#                                color = "#760001",
-#                                margin = margin(0, 0, 5, 0),
-#                                hjust = 0.5
-#                              ),
-#                              plot.subtitle = element_text(hjust = 0.5)
-#                            )
-
-#                        }
-
-
-
-#                      })
-
-#                    ## Mouse position
-#                    # output$sample_selectedCutting_Plot_info <- renderText({
-#                    #   paste0("Mouse position : ",
-#                    #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-#                    #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-#                    # })
-
-#                    output$sample_selectedCutting_Plot_info_newSample <-
-#                      renderText({
-#                        paste0(
-#                          "Mouse position: ",
-#                          xy_str(
-#                            input$sample_selectedCutting_hover_newSample,
-#                            "CE-time",
-#                            "M+H"
-#                          ),
-#                          "Click: ",
-#                          xy_str(
-#                            input$sample_selectedCutting_click_newSample,
-#                            "CE-time",
-#                            "M+H"
-#                          )
-#                        )
-#                        # paste0("Mouse position : ",
-#                        #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-#                        #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-#                      })
-
-#                    ## Bulle info
-
-#                    #### info-bulle
-#                    output$sample_selectedCutting_hover_info_newSample <-
-#                      renderUI({
-#                        hover <- req(input$sample_selectedCutting_hover_newSample)
-
-#                        if (!is.null(
-#                          RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                        )) {
-#                          point <-
-#                            nearPoints(
-#                              req(
-#                                RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                              ),
-#                              hover,
-#                              threshold = 5,
-#                              maxpoints = 1,
-#                              addDist = TRUE
-#                            )
-#                          if (nrow(point) == 0)
-#                            return(NULL)
-
-#                          # calculate point position INSIDE the image as percent of total dimensions
-#                          # from left (horizontal) and from top (vertical)
-#                          left_pct <-
-#                            (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-#                          top_pct <-
-#                            (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-
-#                          # calculate distance from left and bottom side of the picture in pixels
-#                          left_px <-
-#                            hover$range$left + left_pct * (hover$range$right - hover$range$left)
-#                          top_px <-
-#                            hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-
-#                          # create style property fot tooltip
-#                          # background color is set so tooltip is a bit transparent
-#                          # z-index is set so we are sure are tooltip will be on top
-#                          style <-
-#                            paste0(
-#                              "position:absolute; z-index:100; background-color: #760001; color: white;",
-#                              "left:",
-#                              left_px + 2,
-#                              "px; top:",
-#                              top_px + 2,
-#                              "px;"
-#                            )
-
-#                          # actual tooltip created as wellPanel
-#                          div(class = "well well-sm",
-#                              style = style,
-#                              p(HTML(
-#                                paste0(
-#                                  "<span class='bullText'> CE-time: </span>",
-#                                  round(point$CE.time, 2),
-#                                  "<br/>",
-#                                  "<span class='bullText'> M+H: </span>",
-#                                  round(point$M.H, 4),
-#                                  "<br/>",
-#                                  "<span class='bullText'> log2 Intensity: </span>",
-#                                  round(point$intensity, 2),
-#                                  "<br/>",
-#                                  "<span class='bullText'> Intensity: </span>",
-#                                  round(2 ^ (point$intensity), 0),
-#                                  "<br/>"
-#                                )
-#                              )))
-#                        }
-
-
-
-
-
-#                      })
-
-#                    if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-#                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 1:2] <-
-#                        c(NA, isolate(input$rt_max_cut_newSample))
-#                    }
-
-
-#                  } else  if (is.na(input$rt_min_cut_newSample) &
-#                              is.na(input$rt_max_cut_newSample)) {
-#                    if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-#                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 1:2] <-
-#                        c(NA, NA)
-
-#                    }
-#                  }
-
-#                } else {
-#                  output$sample_selectedCutting_Plot_newSample <- renderPlot({
-
-#                  })
-#                  output$sample_selectedCutting_Plot_info_newSample <-
-#                    renderText({
-
-#                    })
-#                  output$sample_selectedCutting_hover_info_newSample <-
-#                    renderUI({
-
-#                    })
-#                  hide("UnitTime_sampleCutting_id_newSample")
-#                }
-
-
-
-
-#              })
-
-
-
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$sample_selectedCutting_newSample
-#              },
-#              handlerExpr = {
-#                updateNumericInput(
-#                  session = session,
-#                  inputId = "rt_min_cut_newSample",
-#                  value = as.numeric(
-#                    RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-#                  )
-#                )
-
-#                updateNumericInput(
-#                  session = session,
-#                  inputId = "rt_max_cut_newSample",
-#                  value = as.numeric(
-#                    RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-#                  )
-#                )
-
-
-#              })
-
-
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$sample_selectedCutting_newSample
-#              },
-#              handlerExpr = {
-#                if (!is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[req(input$sample_selectedCutting_newSample)][[1]])) {
-#                  if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-#                    if (!is.na(
-#                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-#                    ) &
-#                    !is.na(
-#                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-#                    )) {
-#                      print("Selectsample")
-#                      output$sample_selectedCutting_Plot_newSample <-
-#                        renderPlot({
-#                          if (!is.null(
-#                            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                          )) {
-#                            shinyjs::show("UnitTime_sampleCutting_id_newSample")
-#                            shinyjs::show("mousepositionSampleCutting_newSample")
-
-#                            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-#                              ggplot() +
-#                              aes(x = CE.time,
-#                                  y = M.H,
-#                                  colour = intensity) +
-#                              #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-#                              geom_point(size = 1) +
-#                              geom_vline(
-#                                xintercept = as.numeric(
-#                                  RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-#                                ),
-#                                color = "gray",
-#                                linetype = "dashed"
-#                              ) +
-#                              geom_vline(
-#                                xintercept = as.numeric(
-#                                  RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-#                                ),
-#                                color = "gray",
-#                                linetype = "dashed"
-#                              ) +
-#                              ggplot2::annotate(
-#                                "rect",
-#                                xmin = c(
-#                                  0,
-#                                  as.numeric(
-#                                    RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-#                                  )
-#                                ),
-#                                xmax = c(
-#                                  as.numeric(
-#                                    RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-#                                  ),
-#                                  Inf
-#                                ),
-#                                ymin = -Inf ,
-#                                ymax = Inf,
-#                                alpha = 0.5,
-#                                fill = "gray"
-#                              ) +
-#                              scale_color_viridis_c(option = "inferno", direction = -1) +
-#                              ylab("Mass (M+H) (Da)") +
-#                              xlab(paste(
-#                                "CE-time (",
-#                                req(input$UnitTime_sampleCutting_newSample),
-#                                ")"
-#                              )) +
-#                              coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-#                                              ylim = rangesZoomSample_selectedCutting_newSample$y,
-#                                              expand = TRUE) +
-#                              ggtitle(paste(
-#                                "Sample selected :",
-#                                req(input$sample_selectedCutting_newSample),
-#                                "\n"
-#                              )) +
-
-#                              scale_x_continuous(n.breaks = 14) +
-#                              #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-
-
-#                              #facet_grid(vars(sample), vars())+
-#                              #option_graphe.3
-#                              theme_ben() +
-#                              labs(colour = "log2 Intensity") +
-#                              theme(
-#                                plot.title = element_text(
-#                                  size = rel(0.9),
-#                                  face = "bold",
-#                                  color = "#760001",
-#                                  margin = margin(0, 0, 5, 0),
-#                                  hjust = 0.5
-#                                ),
-#                                plot.subtitle = element_text(hjust = 0.5)
-#                              )
-
-#                          }
-
-
-
-#                        })
-
-#                      ## Mouse position
-#                      # output$sample_selectedCutting_Plot_info <- renderText({
-#                      #   paste0("Mouse position : ",
-#                      #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-#                      #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-#                      # })
-
-#                      output$sample_selectedCutting_Plot_info_newSample <-
-#                        renderText({
-#                          paste0(
-#                            "Mouse position: ",
-#                            xy_str(
-#                              input$sample_selectedCutting_hover_newSample,
-#                              "CE-time",
-#                              "M+H"
-#                            ),
-#                            "Click: ",
-#                            xy_str(
-#                              input$sample_selectedCutting_click_newSample,
-#                              "CE-time",
-#                              "M+H"
-#                            )
-#                          )
-#                          # paste0("Mouse position : ",
-#                          #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-#                          #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-#                        })
-#                      ## Bulle info
-
-#                      #### info-bulle
-#                      output$sample_selectedCutting_hover_info_newSample <-
-#                        renderUI({
-#                          hover <- req(input$sample_selectedCutting_hover_newSample)
-
-#                          if (!is.null(
-#                            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                          )) {
-#                            point <-
-#                              nearPoints(
-#                                req(
-#                                  RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                                ),
-#                                hover,
-#                                threshold = 5,
-#                                maxpoints = 1,
-#                                addDist = TRUE
-#                              )
-#                            if (nrow(point) == 0)
-#                              return(NULL)
-
-#                            # calculate point position INSIDE the image as percent of total dimensions
-#                            # from left (horizontal) and from top (vertical)
-#                            left_pct <-
-#                              (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-#                            top_pct <-
-#                              (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-
-#                            # calculate distance from left and bottom side of the picture in pixels
-#                            left_px <-
-#                              hover$range$left + left_pct * (hover$range$right - hover$range$left)
-#                            top_px <-
-#                              hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-
-#                            # create style property fot tooltip
-#                            # background color is set so tooltip is a bit transparent
-#                            # z-index is set so we are sure are tooltip will be on top
-#                            style <-
-#                              paste0(
-#                                "position:absolute; z-index:100; background-color: #760001; color: white;",
-#                                "left:",
-#                                left_px + 2,
-#                                "px; top:",
-#                                top_px + 2,
-#                                "px;"
-#                              )
-
-#                            # actual tooltip created as wellPanel
-#                            div(class = "well well-sm",
-#                                style = style,
-#                                p(HTML(
-#                                  paste0(
-#                                    "<span class='bullText'> CE-time: </span>",
-#                                    round(point$CE.time, 2),
-#                                    "<br/>",
-#                                    "<span class='bullText'> M+H: </span>",
-#                                    round(point$M.H, 4),
-#                                    "<br/>",
-#                                    "<span class='bullText'> log2 Intensity: </span>",
-#                                    round(point$intensity, 2),
-#                                    "<br/>",
-#                                    "<span class='bullText'> Intensity: </span>",
-#                                    round(2 ^ (point$intensity), 0),
-#                                    "<br/>"
-#                                  )
-#                                )))
-#                          }
-
-
-
-
-
-#                        })
-
-#                      # if(!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable)) {
-#                      #
-#                      #   RvarsPeakDetectionNewSample$samplesCuttingTable[input$sample_selectedCutting,]<-
-#                      #     c(isolate(input$rt_min_cut),isolate(input$rt_max_cut), isolate(input$UnitTime_sampleCutting))
-#                      # }
-
-
-
-#                    } else if (!is.na(
-#                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-#                    ) &
-#                    is.na(
-#                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-#                    )) {
-#                      print("Selectsample")
-#                      output$sample_selectedCutting_Plot_newSample <-
-#                        renderPlot({
-#                          if (!is.null(
-#                            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                          )) {
-#                            shinyjs::show("UnitTime_sampleCutting_id_newSample")
-#                            shinyjs::show("mousepositionSampleCutting_newSample")
-
-#                            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-#                              ggplot() +
-#                              aes(x = CE.time,
-#                                  y = M.H,
-#                                  colour = intensity) +
-#                              #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-#                              geom_point(size = 1) +
-#                              geom_vline(
-#                                xintercept = as.numeric(
-#                                  RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-#                                ),
-#                                color = "gray",
-#                                linetype = "dashed"
-#                              ) +
-#                              ggplot2::annotate(
-#                                "rect",
-#                                xmin = 0,
-#                                xmax = as.numeric(
-#                                  RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-#                                ),
-#                                ymin = -Inf ,
-#                                ymax = Inf,
-#                                alpha = 0.5,
-#                                fill = "gray"
-#                              ) +
-#                              scale_color_viridis_c(option = "inferno", direction = -1) +
-#                              ylab("Mass (M+H) (Da)") +
-#                              xlab(paste(
-#                                "CE-time (",
-#                                req(input$UnitTime_sampleCutting_newSample),
-#                                ")"
-#                              )) +
-#                              coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-#                                              ylim = rangesZoomSample_selectedCutting_newSample$y,
-#                                              expand = TRUE) +
-#                              ggtitle(paste(
-#                                "Sample selected :",
-#                                req(input$sample_selectedCutting_newSample),
-#                                "\n"
-#                              )) +
-
-#                              scale_x_continuous(n.breaks = 14) +
-#                              #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-
-
-#                              #facet_grid(vars(sample), vars())+
-#                              #option_graphe.3
-#                              theme_ben() +
-#                              labs(colour = "log2 Intensity") +
-#                              theme(
-#                                plot.title = element_text(
-#                                  size = rel(0.9),
-#                                  face = "bold",
-#                                  color = "#760001",
-#                                  margin = margin(0, 0, 5, 0),
-#                                  hjust = 0.5
-#                                ),
-#                                plot.subtitle = element_text(hjust = 0.5)
-#                              )
-
-#                          }
-
-
-
-#                        })
-
-#                      ## Mouse position
-#                      # output$sample_selectedCutting_Plot_info <- renderText({
-#                      #   paste0("Mouse position : ",
-#                      #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-#                      #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-#                      # })
-
-#                      output$sample_selectedCutting_Plot_info_newSample <-
-#                        renderText({
-#                          paste0(
-#                            "Mouse position: ",
-#                            xy_str(
-#                              input$sample_selectedCutting_hover_newSample,
-#                              "CE-time",
-#                              "M+H"
-#                            ),
-#                            "Click: ",
-#                            xy_str(
-#                              input$sample_selectedCutting_click_newSample,
-#                              "CE-time",
-#                              "M+H"
-#                            )
-#                          )
-#                          # paste0("Mouse position : ",
-#                          #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-#                          #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-#                        })
-#                      ## Bulle info
-
-#                      #### info-bulle
-#                      output$sample_selectedCutting_hover_info_newSample <-
-#                        renderUI({
-#                          hover <- req(input$sample_selectedCutting_hover_newSample)
-
-#                          if (!is.null(
-#                            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                          )) {
-#                            point <-
-#                              nearPoints(
-#                                req(
-#                                  RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                                ),
-#                                hover,
-#                                threshold = 5,
-#                                maxpoints = 1,
-#                                addDist = TRUE
-#                              )
-#                            if (nrow(point) == 0)
-#                              return(NULL)
-
-#                            # calculate point position INSIDE the image as percent of total dimensions
-#                            # from left (horizontal) and from top (vertical)
-#                            left_pct <-
-#                              (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-#                            top_pct <-
-#                              (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-
-#                            # calculate distance from left and bottom side of the picture in pixels
-#                            left_px <-
-#                              hover$range$left + left_pct * (hover$range$right - hover$range$left)
-#                            top_px <-
-#                              hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-
-#                            # create style property fot tooltip
-#                            # background color is set so tooltip is a bit transparent
-#                            # z-index is set so we are sure are tooltip will be on top
-#                            style <-
-#                              paste0(
-#                                "position:absolute; z-index:100; background-color: #760001; color: white;",
-#                                "left:",
-#                                left_px + 2,
-#                                "px; top:",
-#                                top_px + 2,
-#                                "px;"
-#                              )
-
-#                            # actual tooltip created as wellPanel
-#                            div(class = "well well-sm",
-#                                style = style,
-#                                p(HTML(
-#                                  paste0(
-#                                    "<span class='bullText'> CE-time: </span>",
-#                                    round(point$CE.time, 2),
-#                                    "<br/>",
-#                                    "<span class='bullText'> M+H: </span>",
-#                                    round(point$M.H, 4),
-#                                    "<br/>",
-#                                    "<span class='bullText'> log2 Intensity: </span>",
-#                                    round(point$intensity, 2),
-#                                    "<br/>",
-#                                    "<span class='bullText'> Intensity: </span>",
-#                                    round(2 ^ (point$intensity), 0),
-#                                    "<br/>"
-#                                  )
-#                                )))
-#                          }
-
-
-
-
-
-#                        })
-
-#                      # if(!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable)) {
-#                      #
-#                      #   RvarsPeakDetectionNewSample$samplesCuttingTable[input$sample_selectedCutting,]<-
-#                      #     c(isolate(input$rt_min_cut),isolate(input$rt_max_cut), isolate(input$UnitTime_sampleCutting))
-#                      # }
-
-
-
-#                    } else if (is.na(
-#                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-#                    ) &
-#                    !is.na(
-#                      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-#                    )) {
-#                      print("Selectsample")
-#                      output$sample_selectedCutting_Plot_newSample <-
-#                        renderPlot({
-#                          if (!is.null(
-#                            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                          )) {
-#                            shinyjs::show("UnitTime_sampleCutting_id_newSample")
-#                            shinyjs::show("mousepositionSampleCutting_newSample")
-
-#                            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-#                              ggplot() +
-#                              aes(x = CE.time,
-#                                  y = M.H,
-#                                  colour = intensity) +
-#                              #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-#                              geom_point(size = 1) +
-#                              geom_vline(
-#                                xintercept = as.numeric(
-#                                  RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-#                                ),
-#                                color = "gray",
-#                                linetype = "dashed"
-#                              ) +
-#                              ggplot2::annotate(
-#                                "rect",
-#                                xmin = as.numeric(
-#                                  RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-#                                ),
-#                                xmax = Inf,
-#                                ymin = -Inf ,
-#                                ymax = Inf,
-#                                alpha = 0.5,
-#                                fill = "gray"
-#                              ) +
-#                              scale_color_viridis_c(option = "inferno", direction = -1) +
-#                              ylab("Mass (M+H) (Da)") +
-#                              xlab(paste(
-#                                "CE-time (",
-#                                req(input$UnitTime_sampleCutting_newSample),
-#                                ")"
-#                              )) +
-#                              coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-#                                              ylim = rangesZoomSample_selectedCutting_newSample$y,
-#                                              expand = TRUE) +
-#                              ggtitle(paste(
-#                                "Sample selected :",
-#                                req(input$sample_selectedCutting_newSample),
-#                                "\n"
-#                              )) +
-
-#                              scale_x_continuous(n.breaks = 14) +
-#                              #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-
-
-#                              #facet_grid(vars(sample), vars())+
-#                              #option_graphe.3
-#                              theme_ben() +
-#                              labs(colour = "log2 Intensity") +
-#                              theme(
-#                                plot.title = element_text(
-#                                  size = rel(0.9),
-#                                  face = "bold",
-#                                  color = "#760001",
-#                                  margin = margin(0, 0, 5, 0),
-#                                  hjust = 0.5
-#                                ),
-#                                plot.subtitle = element_text(hjust = 0.5)
-#                              )
-
-#                          }
-
-
-
-#                        })
-
-#                      ## Mouse position
-#                      # output$sample_selectedCutting_Plot_info <- renderText({
-#                      #   paste0("Mouse position : ",
-#                      #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-#                      #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-#                      # })
-
-#                      output$sample_selectedCutting_Plot_info_newSample <-
-#                        renderText({
-#                          paste0(
-#                            "Mouse position: ",
-#                            xy_str(
-#                              input$sample_selectedCutting_hover_newSample,
-#                              "CE-time",
-#                              "M+H"
-#                            ),
-#                            "Click: ",
-#                            xy_str(
-#                              input$sample_selectedCutting_click_newSample,
-#                              "CE-time",
-#                              "M+H"
-#                            )
-#                          )
-#                          # paste0("Mouse position : ",
-#                          #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-#                          #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-#                        })
-#                      ## Bulle info
-
-#                      #### info-bulle
-#                      output$sample_selectedCutting_hover_info_newSample <-
-#                        renderUI({
-#                          hover <- req(input$sample_selectedCutting_hover_newSample)
-
-#                          if (!is.null(
-#                            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                          )) {
-#                            point <-
-#                              suppressWarnings(
-#                                nearPoints(
-#                                  req(
-#                                    RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-#                                  )
-#                                ),
-#                                hover,
-#                                threshold = 5,
-#                                maxpoints = 1,
-#                                addDist = TRUE
-#                              )
-#                            if (nrow(point) == 0)
-#                              return(NULL)
-
-#                            # calculate point position INSIDE the image as percent of total dimensions
-#                            # from left (horizontal) and from top (vertical)
-#                            left_pct <-
-#                              (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-#                            top_pct <-
-#                              (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-
-#                            # calculate distance from left and bottom side of the picture in pixels
-#                            left_px <-
-#                              hover$range$left + left_pct * (hover$range$right - hover$range$left)
-#                            top_px <-
-#                              hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-
-#                            # create style property fot tooltip
-#                            # background color is set so tooltip is a bit transparent
-#                            # z-index is set so we are sure are tooltip will be on top
-#                            style <-
-#                              paste0(
-#                                "position:absolute; z-index:100; background-color: #760001; color: white;",
-#                                "left:",
-#                                left_px + 2,
-#                                "px; top:",
-#                                top_px + 2,
-#                                "px;"
-#                              )
-
-#                            # actual tooltip created as wellPanel
-#                            div(class = "well well-sm",
-#                                style = style,
-#                                p(HTML(
-#                                  paste0(
-#                                    "<span class='bullText'> CE-time: </span>",
-#                                    round(point$CE.time, 2),
-#                                    "<br/>",
-#                                    "<span class='bullText'> M+H: </span>",
-#                                    round(point$M.H, 4),
-#                                    "<br/>",
-#                                    "<span class='bullText'> log2 Intensity: </span>",
-#                                    round(point$intensity, 2),
-#                                    "<br/>",
-#                                    "<span class='bullText'> Intensity: </span>",
-#                                    round(2 ^ (point$intensity), 0),
-#                                    "<br/>"
-#                                  )
-#                                )))
-#                          }
-
-
-
-
-
-#                        })
-
-
-
-#                    }
-
-#                  }
-#                } else {
-#                  output$sample_selectedCutting_Plot_newSample <- renderPlot({
-
-#                  })
-#                  output$sample_selectedCutting_Plot_info_newSample <-
-#                    renderText({
-
-#                    })
-#                  output$sample_selectedCutting_hover_info_newSample <-
-#                    renderUI({
-
-#                    })
-#                  hide("UnitTime_sampleCutting_id_newSample")
-#                }
-
-
-#              })
-
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save samples cutting ~~~~~~~~~~~~~~~~~~~~~~~~#*
-# peaks_mono_iso_sample_selectedCutting_newSample <- reactive({
-#   if (!is.null(names(
-#     RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-#   ))) {
-#     table_to_save <-
-#       RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-
-#     for (i in rownames(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-#       if (RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, "Unit"] ==
-#           "Second") {
-#         if (!is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-#         ) &
-#         !is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-#         )) {
-#           table_to_save[[i]] <-
-#             RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]] %>%
-#             dplyr::filter(
-#               RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample <
-#                 rt,
-#               rt < RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-#             )
-#         } else if (!is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-#         ) &
-#         is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-#         )) {
-#           table_to_save[[i]] <-
-#             RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]] %>%
-#             dplyr::filter(
-#               RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample <
-#                 rt
-#             )
-#         } else if (is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-#         ) &
-#         !is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-#         )) {
-#           table_to_save[[i]] <-
-#             RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]] %>%
-#             dplyr::filter(
-#               rt < RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-#             )
-#         } else if (is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-#         ) &
-#         is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-#         )) {
-#           table_to_save[[i]] <-
-#             RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]]
-#         }
-#       } else if (RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, "Unit"] ==
-#                  "Minute") {
-#         if (!is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-#         ) &
-#         !is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-#         )) {
-#           table_to_save[[i]] <-
-#             RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]] %>%
-#             dplyr::filter(
-#               RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample <
-#                 rt / 60,
-#               rt / 60 < RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-#             )
-#         } else if (!is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-#         ) &
-#         is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-#         )) {
-#           table_to_save[[i]] <-
-#             RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]] %>%
-#             dplyr::filter(
-#               RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample <
-#                 rt / 60
-#             )
-#         } else if (is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-#         ) &
-#         !is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-#         )) {
-#           table_to_save[[i]] <-
-#             RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]] %>%
-#             dplyr::filter(
-#               rt / 60 < RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-#             )
-#         } else if (is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-#         ) &
-#         is.na(
-#           RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-#         )) {
-#           table_to_save[[i]] <-
-#             RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]]
-#         }
-#       }
-
-
-#     }
-
-#     table_to_save
-
-
-#   }
-
-# })
-
-
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button server for cutting new samples ~~~~~~~~~~~~~~~~~~~~~~~~#*
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$validCuttingRun_newSample
-#              },
-#              handlerExpr = {
-#                ask_confirmation(
-#                  inputId = "validCuttingRun_confirmation_newSample",
-#                  title = NULL,
-#                  text = tags$b(
-#                    #icon("info"),
-#                    paste0(
-#                      "Are you sure you’re done cutting all your samples?",
-#                      "\n",
-#                      "Once you click OK, you may resume all if you want to go back."
-#                    ),
-#                    style = "color: #FA5858;"
-#                  ),
-#                  btn_labels = c("Cancel", "OK"),
-#                  btn_colors = c("#00BFFF", "#FE2E2E"),
-#                  html = TRUE
-#                )
-
-
-#              })
-
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$ResetCuttingRun_newSample
-#              },
-#              handlerExpr = {
-#                ask_confirmation(
-#                  inputId = "ResetCuttingRun_confirmation_newSample",
-#                  title = NULL,
-#                  text = tags$b(#icon("info"),
-#                    "Do you really want to resume the cutting of all samples ?",
-#                    style = "color: #FA5858;"),
-#                  btn_labels = c("Cancel", "OK"),
-#                  btn_colors = c("#00BFFF", "#FE2E2E"),
-#                  html = TRUE
-#                )
-
-
-#              })
-
-
-
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$validCuttingRun_confirmation_newSample
-#              },
-#              handlerExpr = {
-#                if (input$validCuttingRun_confirmation_newSample == TRUE) {
-#                  disable("RetentionTimeFiltering_id_newSample")
-#                  shinyjs::show("id_ResetCuttingRun_newSample")
-#                  enable("SaveCuttingSample_newSample")
-#                  hide("id_validCuttingRun_newSample")
-#                  enable("GoToPeakView_newSample")
-#                  enable("id_SelectRefrenceSamplePanel_newSample")
-
-#                }
-#              })
-
-
-
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$ResetCuttingRun_confirmation_newSample
-#              },
-#              handlerExpr = {
-#                if (input$ResetCuttingRun_confirmation_newSample == TRUE) {
-#                  enable("RetentionTimeFiltering_id_newSample")
-#                  hide("id_ResetCuttingRun_newSample")
-#                  shinyjs::show("id_validCuttingRun_newSample")
-#                  disable("SaveCuttingSample_newSample")
-#                  shinyjs::reset("rt_min_cut_newSample")
-#                  shinyjs::reset("rt_max_cut_newSample")
-#                  disable("GoToPeakView_newSample")
-#                  disable("id_SelectRefrenceSamplePanel_newSample")
-
-
-#                  if (!is.null(names(
-#                    RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-#                  ))) {
-#                    RvarsPeakDetectionNewSample$samplesCuttingTable_newSample <-
-#                      data.frame(
-#                        row.names = names(
-#                          RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-#                        ),
-#                        rt_min_cut_newSample = rep(
-#                          NA,
-#                          length(
-#                            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-#                          )
-#                        ),
-#                        rt_max_cut_newSample = rep(
-#                          NA,
-#                          length(
-#                            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-#                          )
-#                        ),
-#                        Unit = rep(
-#                          "Second",
-#                          length(
-#                            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-#                          )
-#                        )
-#                      )
-#                  }
-
-#                  updateAwesomeRadio(session = session,
-#                                     inputId = "UnitTime_sampleCutting_newSample",
-#                                     selected = "Second")
-#                  RvarsPeakDetectionNewSample$Second <- TRUE
-#                }
-#              })
-
-
-
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ##~~~~~~~~~~~~~~~~~ Correction time to the reference map  ~~~~~~~~~~~~~~~~~~~~##
-# ##~~~~~~~~~~~~~~~~~ Correction time with kernel Density ~~~~~~~~~~~~~~~~~~~~~~##
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-
-# ##~~~~~~~~~~~~ update input 'SelectSample_KernelDensity_newSample' ~~~~~~~~~#
-
-# observe({
-#   if (!is.null(peaks_mono_iso_sample_selectedCutting_newSample())) {
-#     sample_name <-
-#       names(peaks_mono_iso_sample_selectedCutting_newSample())
-
-#     RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list <-
-#       peaks_mono_iso_sample_selectedCutting_newSample()
-
-#     peaks <-
-#       RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list
-#     RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <-
-#       peaks
-
-#     updatePickerInput(session = session,
-#                       inputId = "SelectSample_KernelDensity_newSample",
-#                       choices = sample_name)
-
-
-
-#   } else {
-#     RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list <-
-#       peaks_mono_iso_sample_selectedCutting_newSample()
-
-#     peaks <-
-#       RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list
-#     RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <-
-#       peaks
-
-#     updatePickerInput(
-#       session = session,
-#       inputId = "SelectSample_KernelDensity_newSample",
-#       choices = character(0),
-#       selected = character(0)
-#     )
-
-
-#   }
-# })
-
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ##~~~~ Forced reactive Kernel density filter when choosing samples when cutting sample~~#
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                c(input$cutOff_newSample)
-#              },
-#              handlerExpr = {
-#                if (!is.null(peaks_mono_iso_sample_selectedCutting_newSample())) {
-#                  sample_name <-
-#                    names(peaks_mono_iso_sample_selectedCutting_newSample())
-
-#                  RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list <-
-#                    peaks_mono_iso_sample_selectedCutting_newSample()
-
-#                  updatePickerInput(
-#                    session = session,
-#                    inputId = "SelectSample_KernelDensity_newSample",
-#                    choices = character(0),
-#                    selected = character(0)
-#                  )
-
-#                  updatePickerInput(session = session,
-#                                    inputId = "SelectSample_KernelDensity_newSample",
-#                                    choices = sample_name)
-#                }
-
-#              })
-
-# ## View data
-# # observe({
-# #   if(!is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)){
-# #     View(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)
-# #   }
-# # })
-
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ##~~~~~~~~~~~~ Kernel density filter when choosing samples ~~~~~~~~~#
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$SelectSample_KernelDensity_newSample
-#              },
-#              handlerExpr = {
-#                if (!is.null(input$SelectSample_KernelDensity_newSample) &
-#                    !is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list) &
-#                    !is.null(RvarsPeakDetectionNewSample$map_ref)) {
-#                  ##Matched samples
-
-#                  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R",
-#                         local = TRUE)
-
-#                  ref <- RvarsPeakDetectionNewSample$map_ref[2:4]
-#                  colnames(ref) <- c("mz", "rt", "maxo")
-
-#                  ref$maxo <- 2 ^ (ref$maxo)
-
-#                  table.newSample <-
-#                    RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[input$SelectSample_KernelDensity_newSample]]
-#                  table.newSample <-
-#                    table.newSample[, c("mz", "rt", "maxo", "sample")]
-
-#                  resMatch.newSample <- matchMz(
-#                    x = ref,
-#                    table = table.newSample,
-#                    ppm_tolereance = 1000,
-#                    mzcol = "mz",
-#                    rtcol = "rt" ,
-#                    session = session
-#                  )
-
-
-
-#                  RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter <-
-#                    resMatch.newSample$MatchTable[!is.na(resMatch.newSample$MatchTable$rt.2),
-#                                                  c("mz.1",
-#                                                    "rt.1",
-#                                                    "maxo.1",
-#                                                    "mz.2",
-#                                                    "rt.2",
-#                                                    "rt.2",
-#                                                    "maxo.2",
-#                                                    "sample.2")]
-
-#                  ##Log2 intensity sample to align
-#                  RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$maxo.2 <-
-#                    log2(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$maxo.2)
-
-
-
-#                  ## Filter intensity
-#                  observe({
-#                    if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter)) {
-#                      RvarsPeakDetectionNewSample$Data_Plot.newSample <-
-#                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter %>%
-#                        dplyr::filter(maxo.2 >= req(input$intensityFilter_newSample))
-#                    }
-#                  })
-
-#                  ## Median line
-#                  if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample)) {
-#                    median_line.newSample <-
-#                      seq(min(
-#                        range(RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2)[1],
-#                        range(RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1)[1]
-#                      ),
-#                      max(
-#                        range(RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2)[2],
-#                        range(RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1)[2]
-#                      ), by = 50)
-
-#                    median_line_data.newSample <-
-#                      data.frame(x =  median_line.newSample,
-#                                 y  =  median_line.newSample)
-#                  }
-
-
-#                  ####~~~~~~~~~~~~~~~~ Correction with Kernel Density ~~~~~~~~~~~~~~~~~~~~###
-
-#                  #~~~~~~~~~~~~~~~~~~~~ Density filter ~~~~~~~~~~~~~~~~~~#
-#                  data_dens_filter.newSample <-
-#                    reactive(if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample) &
-#                                 nrow(RvarsPeakDetectionNewSample$Data_Plot.newSample) !=
-#                                 0) {
-#                      dens <-
-#                        kde2d(
-#                          RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2,
-#                          RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1,
-#                          h = input$bandwidth_Filter_newSample,
-#                          n = input$gridSize_newSample
-#                        )
-#                      nx <-
-#                        nrow(RvarsPeakDetectionNewSample$Data_Plot.newSample)
-#                      df <- expand.grid(x = dens$x, y = dens$y)
-#                      df$density <- (as.vector(dens$z))
-#                      df$density <- df$density / max(df$density)
-#                      #df$group <- data$group[1]
-#                      df$ndensity <-
-#                        df$density / max(df$density, na.rm = TRUE)
-#                      df$count <- nx * df$density
-#                      df$n <- nx
-#                      df$level <- 1
-#                      df$piece <- 1
-#                      df_filter <- df %>%
-#                        dplyr::filter(density >= req(input$minDensity_newSample))
-
-#                      colnames(df_filter)[1:2] <- c("rt.2", "rt.1")
-
-#                      df_filter
-#                    })
-
-
-#                  #~~~~~~~~~~~~~~~~~~~~~~~~ Plot filter density ~~~~~~~~~~~~~~~~~~~~~~~#
-#                  output$DensityFilterPlot_newSample <- renderPlot({
-#                    if (length(data_dens_filter.newSample()) != 0) {
-#                      if (!is.null(data_dens_filter.newSample()) &
-#                          nrow(data_dens_filter.newSample()) != 0 &
-#                          nrow(RvarsPeakDetectionNewSample$Data_Plot.newSample) !=
-#                          0) {
-#                        p1 <- RvarsPeakDetectionNewSample$Data_Plot.newSample %>%
-#                          ggplot() +
-#                          aes(x = rt.2, y = rt.1) + 
-#                          geom_point(aes(color = maxo.2), size = 0.8) +
-#                          scale_color_viridis_c(option = "H", direction = -1) +
-#                          geom_density_2d(
-#                            h = input$bandwidth_Filter_newSample,
-#                            n = input$gridSize_newSample
-#                          ) +
-#                          #scale_color_viridis_c(option = "inferno", direction = -1) +
-#                          scale_x_continuous(n.breaks = 14) +
-#                          scale_y_continuous(n.breaks = 14) +
-
-#                          coord_cartesian(xlim = c(min(
-#                            range(
-#                              RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
-#                            )[1],
-#                            range(
-#                              RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
-#                            )[1]
-#                          ),
-#                          max(
-#                            range(
-#                              RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
-#                            )[2],
-#                            range(
-#                              RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
-#                            )[2]
-#                          )),
-
-#                          ylim = c(min(
-#                            range(
-#                              RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
-#                            )[1],
-#                            range(
-#                              RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
-#                            )[1]
-#                          ),
-#                          max(
-#                            range(
-#                              RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
-#                            )[2],
-#                            range(
-#                              RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
-#                            )[2]
-#                          ))) +
-
-
-#                          xlab(
-#                            paste(
-#                              "CE-time (",
-#                              RvarsPeakDetectionNewSample$Data_Plot.newSample$sample.2,
-#                              ")"
-#                            )
-#                          ) +
-#                          ylab("CE-time (reference sample)") +
-#                          #labs(colour ="log2 Intensity")+
-#                          theme_ben() +
-#                          labs(colour = "log2 Intensity") 
-
-#                        p2 <-
-#                          ggplot(data_dens_filter.newSample(), aes(x = rt.2, y = rt.1)) +
-#                          geom_point(aes(color = density), size = 0.5) +
-
-#                          scale_x_continuous(n.breaks = 14) +
-#                          scale_y_continuous(n.breaks = 14) +
-
-#                          coord_cartesian(xlim = c(min(
-#                            range(data_dens_filter.newSample()$rt.2)[1],
-#                            range(data_dens_filter.newSample()$rt.1)[1]
-#                          ),
-#                          max(
-#                            range(data_dens_filter.newSample()$rt.2)[2],
-#                            range(data_dens_filter.newSample()$rt.1)[2]
-#                          )),
-
-#                          ylim = c(min(
-#                            range(data_dens_filter.newSample()$rt.2)[1],
-#                            range(data_dens_filter.newSample()$rt.1)[1]
-#                          ),
-#                          max(
-#                            range(data_dens_filter.newSample()$rt.2)[2],
-#                            range(data_dens_filter.newSample()$rt.1)[2]
-#                          ))) +
-
-#                          xlab(
-#                            paste(
-#                              "CE-time (",
-#                              RvarsPeakDetectionNewSample$Data_Plot.newSample$sample.2,
-#                              ")"
-#                            )
-#                          ) +
-#                          ylab("CE-time (Reference map)") +
-
-#                          theme_ben() +
-#                          theme(
-#                            legend.title = element_text(
-#                              size = rel(0.95),
-#                              face = "bold.italic",
-#                              hjust = 0.5
-#                            ),
-#                            legend.text = element_text(size = rel(0.85), face = "bold.italic")
-#                          )
-
-#                        grid.arrange(p1, p2, nrow = 2)
-
-#                      }
-
-#                    }
-
-#                  })
-
-#                }
-
-#              })
-
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ##~~~~~~~~~~~~~~~~~~~~ Fit model kernel density estimation ~~~~~~~~~~~~~~~~~#
-# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                c(input$fitModel_newSample,
-#                  input$SelectSample_KernelDensity_newSample)
-
-#              },
-#              handlerExpr = {
-
-#                if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample)) {
-
-#                  if(nrow(RvarsPeakDetectionNewSample$Data_Plot.newSample)!=0){
-#                    #~~~~~~~~~~~~~~~~~~~~ Density filter ~~~~~~~~~~~~~~~~~~#
-#                    data_dens_filter.newSample <-
-#                      reactive(if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample)) {
-#                        dens <-
-#                          kde2d(
-#                            RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2,
-#                            RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1,
-#                            h = input$bandwidth_Filter_newSample,
-#                            n = input$gridSize_newSample
-#                          )
-#                        nx <-
-#                          nrow(RvarsPeakDetectionNewSample$Data_Plot.newSample)
-#                        df <- expand.grid(x = dens$x, y = dens$y)
-#                        df$density <- (as.vector(dens$z))
-#                        df$density <- df$density / max(df$density)
-#                        #df$group <- data$group[1]
-#                        df$ndensity <-
-#                          df$density / max(df$density, na.rm = TRUE)
-#                        df$count <- nx * df$density
-#                        df$n <- nx
-#                        df$level <- 1
-#                        df$piece <- 1
-#                        df_filter <- df %>%
-#                          dplyr::filter(density >= req(input$minDensity_newSample))
-
-#                        colnames(df_filter)[1:2] <- c("rt.2", "rt.1")
-
-#                        df_filter
-#                      })
-
-#                    ##~~~~~~~~~~~~~~~~~~~~~~~~~~~ Fit model ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#                    if (length(data_dens_filter.newSample()) != 0) {
-#                      if (!is.null(data_dens_filter.newSample())) {
-#                        dataDensity <- isolate(data_dens_filter.newSample())
-
-#                        if (!is.null(dataDensity)) {
-#                          withProgress(message = 'Fit model...', value = 0, {
-#                            incProgress(1 / 3, detail = "")
-
-#                            #~~~~~~~~~~~~~~~~~ Kernel density estimation ~~~~~~~~~~~~~~~~~~~~~~~#
-#                            RvarsPeakDetectionNewSample$modelKernelDensity <-
-#                              npreg(
-#                                rt.1 ~ rt.2,
-#                                bws = req(input$"bandwidth_Model_newSample"),
-#                                bwtype = c("fixed", "generalized_nn", "adaptive_nn")[1],
-#                                regtype = "ll",
-#                                ckertype = input$KernelType_newSample,
-#                                #bwmethod = "cv.aic",
-#                                gradients = TRUE,
-#                                data = dataDensity
-#                              )
-
-#                            #~~~~~~~~~~~~~~~~~ Calculate prediction rt for sample selected ~~~~~~~~~~~~~~~~~~~~~~~#
-#                            if (!is.null(RvarsPeakDetectionNewSample$modelKernelDensity)) {
-#                              incProgress(1 / 3, detail = "")
-
-#                              ### correction rt new sample Kernel Density
-#                              RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[input$SelectSample_KernelDensity_newSample]]$rt <-
-#                                predict(
-#                                  RvarsPeakDetectionNewSample$modelKernelDensity,
-#                                  newdata = data.frame(rt.2 = RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[input$SelectSample_KernelDensity_newSample]]$rt)
-#                                )
-
-#                              ### Delete negative correction rt
-
-#                              # RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[input$SelectSample_KernelDensity_newSample]]$rt<-
-#                              #   RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[input$SelectSample_KernelDensity_newSample]]$rt %>% dplyr::filter(rt>0)
-#                              #
-
-
-#                              ## ~~~~~~~~~~~~~~~~~~ Plot correction rt with kernel Density ~~~~~~~~~~~~~#
-
-#                              ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Before~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#                              output$PlotCorrectionKernelDensity_Before_newSample <-
-#                                renderPlot({
-#                                  predict_data_model.np <-
-#                                    data.frame(
-#                                      rt.1 = predict(
-#                                        RvarsPeakDetectionNewSample$modelKernelDensity,
-#                                        newdata = data.frame(rt.2 = seq(
-#                                          min(
-#                                            range(
-#                                              RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-#                                            )[1],
-#                                            range(
-#                                              RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-#                                            )[1]
-#                                          ),
-#                                          max(
-#                                            range(
-#                                              RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-#                                            )[2],
-#                                            range(
-#                                              RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-#                                            )[2]
-#                                          )
-#                                        ), by = 50)
-#                                      ),
-#                                      rt.2 = seq(min(
-#                                        range(
-#                                          RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-#                                        )[1],
-#                                        range(
-#                                          RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-#                                        )[1]
-#                                      ),
-#                                      max(
-#                                        range(
-#                                          RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-#                                        )[2],
-#                                        range(
-#                                          RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-#                                        )[2]
-#                                      )),
-#                                      by = 50
-#                                    )
-
-#                                  median_line <-
-#                                    seq(min(
-#                                      range(
-#                                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-#                                      )[1],
-#                                      range(
-#                                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-#                                      )[1]
-#                                    ),
-#                                    max(
-#                                      range(
-#                                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-#                                      )[2],
-#                                      range(
-#                                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-#                                      )[2]
-#                                    ),
-#                                    by = 50)
-
-#                                  median_line_data <-
-#                                    data.frame(x =  median_line, y  =  median_line)
-
-#                                  ggplot(
-#                                    RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter,
-#                                    aes(x = rt.2, y = rt.1)
-#                                  ) +
-#                                    geom_point(size = 0.5) +
-
-#                                    coord_cartesian(xlim = c(min(
-#                                      range(
-#                                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-#                                      )[1],
-#                                      range(
-#                                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-#                                      )[1]
-#                                    ),
-#                                    max(
-#                                      range(
-#                                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-#                                      )[2],
-#                                      range(
-#                                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-#                                      )[2]
-#                                    )),
-#                                    ylim = c(min(
-#                                      range(
-#                                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-#                                      )[1],
-#                                      range(
-#                                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-#                                      )[1]
-#                                    ),
-#                                    max(
-#                                      range(
-#                                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-#                                      )[2],
-#                                      range(
-#                                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-#                                      )[2]
-#                                    ))) +
-
-#                                    scale_x_continuous(n.breaks = 14) +
-#                                    scale_y_continuous(n.breaks = 14) +
-
-#                                    # xlab("CE-time (sample to align)")+
-#                                    # ylab("CE-time (reference sample)")+
-
-#                                    geom_line(
-#                                      data = predict_data_model.np,
-#                                      aes(
-#                                        x = rt.2,
-#                                        y = rt.1,
-#                                        color = "Model"
-#                                      ),
-#                                      lwd = 1,
-#                                      size = 1.5
-#                                    ) +
-#                                    #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
-#                                    # geom_abline(yintercept = 0, lwd = 1, color = "green")+
-#                                    geom_line(
-#                                      data = median_line_data,
-#                                      aes(
-#                                        x = x,
-#                                        y = x,
-#                                        color = "Median"
-#                                      ),
-#                                      lwd = 1,
-#                                      size = 1.5
-#                                    ) +
-#                                    ggtitle("Before CE-time correction") +
-
-#                                    labs(
-#                                      x = paste(
-#                                        "CE-time (",
-#                                        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$sample.2,
-#                                        ")"
-#                                      ),
-#                                      y = "CE-time (Reference map)",
-#                                      color = "Legend"
-#                                    ) +
-
-#                                    scale_color_manual(values = c(
-#                                      "Model" = "red",
-#                                      "Median" = "green"
-#                                    )) +
-
-
-#                                    theme_ben() +
-#                                    theme(
-#                                      plot.title = element_text(
-#                                        size = rel(1),
-#                                        face = "bold",
-#                                        color = "#760001",
-#                                        margin = margin(0, 0, 5, 0),
-#                                        hjust = 0.5
-#                                      ),
-#                                      plot.subtitle = element_text(hjust = 0.5),
-#                                      plot.background = element_rect(fill = "aliceblue"),
-#                                      legend.title = element_text(
-#                                        size = rel(0.95),
-#                                        face = "bold.italic",
-#                                        hjust = 0.5
-#                                      ),
-#                                      legend.text = element_text(size = rel(0.85), face = "bold.italic")
-#                                    )
-
-#                                })
-
-#                              #### info-bulle
-#                              output$PlotCorrectionKernelDensity_Before_hover_info_newSample <-
-#                                renderUI({
-#                                  hover <-
-#                                    req(input$PlotCorrectionKernelDensity_Before_hover_newSample)
-
-#                                  if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter)) {
-#                                    point <-
-#                                      nearPoints(
-#                                        req(
-#                                          RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter
-#                                        ),
-#                                        hover,
-#                                        threshold = 5,
-#                                        maxpoints = 1,
-#                                        addDist = TRUE
-#                                      )
-#                                    if (nrow(point) == 0)
-#                                      return(NULL)
-
-#                                    # calculate point position INSIDE the image as percent of total dimensions
-#                                    # from left (horizontal) and from top (vertical)
-#                                    left_pct <-
-#                                      (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-#                                    top_pct <-
-#                                      (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-
-#                                    # calculate distance from left and bottom side of the picture in pixels
-#                                    left_px <-
-#                                      hover$range$left + left_pct * (hover$range$right - hover$range$left)
-#                                    top_px <-
-#                                      hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-
-#                                    # create style property fot tooltip
-#                                    # background color is set so tooltip is a bit transparent
-#                                    # z-index is set so we are sure are tooltip will be on top
-#                                    style <-
-#                                      paste0(
-#                                        "position:absolute; z-index:100; background-color: #760001; color: white;",
-#                                        "left:",
-#                                        left_px + 2,
-#                                        "px; top:",
-#                                        top_px + 2,
-#                                        "px;"
-#                                      )
-
-#                                    # actual tooltip created as wellPanel
-#                                    div(class = "well well-sm",
-#                                        style = style,
-#                                        p(HTML(
-#                                          paste0(
-#                                            "<span class='bullText'> M+H (ref): </span>",
-#                                            round(point$mz.1, 4),
-#                                            "<br/>",
-#                                            "<span class='bullText'> CE-time (ref): </span>",
-#                                            round(point$rt.1, 2),
-#                                            "<br/>",
-#                                            "<span class='bullText'> Intensity (ref): </span>",
-#                                            round(point$maxo.1, 0),
-#                                            "<br/>",
-#                                            "<br>",
-#                                            "<span class='bullText'> M+H (sample): </span>",
-#                                            round(point$mz.2, 4),
-#                                            "<br/>",
-#                                            "<span class='bullText'> CE-time (sample): </span>",
-#                                            round(point$rt.2, 2),
-#                                            "<br/>",
-#                                            "<span class='bullText'> Intensity (sample): </span>",
-#                                            round(2 ^ (point$maxo.2), 0),
-#                                            "<br/>"
-#                                          )
-#                                        )))
-#                                  }
-
-#                                })
-
-#                              incProgress(1 / 3, detail = "")
-#                              ####~~~~~~~~~~~~~~~~~~~~ Plot After ~~~~~~~~~~~~~~~~~~~~~~~~#
-#                              ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#                              output$PlotCorrectionKernelDensity_After_newSample <-
-#                                renderPlot({
-#                                  if (!is.null(input$SelectSample_KernelDensity_newSample) &
-#                                      !is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list) &
-#                                      !is.null(RvarsPeakDetectionNewSample$map_ref) &
-#                                      !is.null(
-#                                        RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection
-#                                      )) {
-#                                    source(
-#                                      "lib/NewReferenceMap/R_files/CE_time_Correction.lib.R",
-#                                      local = TRUE
-#                                    )
-
-#                                    ref <-
-#                                      RvarsPeakDetectionNewSample$map_ref[2:4]
-#                                    colnames(ref) <-
-#                                      c("mz", "rt", "maxo")
-
-#                                    ref$maxo <- 2 ^ (ref$maxo)
-
-#                                    table.after <-
-#                                      RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[input$SelectSample_KernelDensity_newSample]]
-
-#                                    table.after <-
-#                                      table.after[, c("mz", "rt", "maxo", "sample")]
-
-
-#                                    resMatch.after <- matchMz(
-#                                      x = ref,
-#                                      table = table.after,
-#                                      ppm_tolereance = 1000,
-#                                      mzcol = "mz",
-#                                      rtcol = "rt" ,
-#                                      session = session
-#                                    )
-
-#                                    Data_Plot.after <-
-#                                      resMatch.after$MatchTable[!is.na(resMatch.after$MatchTable$rt.2),
-#                                                                c(
-#                                                                  "mz.1",
-#                                                                  "rt.1",
-#                                                                  "maxo.1",
-#                                                                  "mz.2",
-#                                                                  "rt.2",
-#                                                                  "rt.2",
-#                                                                  "maxo.2",
-#                                                                  "sample.2"
-#                                                                )]
-
-#                                    RvarsPeakDetectionNewSample$Data_Plot.after_KernelDensity <-
-#                                      Data_Plot.after
-
-#                                    median_line.after <-
-#                                      seq(min(
-#                                        range(Data_Plot.after$rt.2)[1],
-#                                        range(Data_Plot.after$rt.1)[1]
-#                                      ),
-#                                      max(
-#                                        range(Data_Plot.after$rt.2)[2],
-#                                        range(Data_Plot.after$rt.1)[2]
-#                                      ),
-#                                      by = 50)
-
-#                                    median_line_data.after <-
-#                                      data.frame(x =  median_line.after,
-#                                                 y  =  median_line.after)
-
-
-#                                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot after Correction ~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#                                    Plot.after <-
-#                                      ggplot(Data_Plot.after, aes(x = rt.2, y = rt.1)) +
-#                                      geom_point(size = 0.5) +
-
-#                                      coord_cartesian(xlim = c(
-#                                        min(
-#                                          range(Data_Plot.after$rt.2)[1],
-#                                          range(Data_Plot.after$rt.1)[1]
-#                                        ),
-#                                        max(
-#                                          range(Data_Plot.after$rt.2)[2],
-#                                          range(Data_Plot.after$rt.1)[2]
-#                                        )
-#                                      ),
-#                                      ylim = c(
-#                                        min(
-#                                          range(Data_Plot.after$rt.2)[1],
-#                                          range(Data_Plot.after$rt.1)[1]
-#                                        ),
-#                                        max(
-#                                          range(Data_Plot.after$rt.2)[2],
-#                                          range(Data_Plot.after$rt.1)[2]
-#                                        )
-#                                      )) +
-
-
-
-#                                      scale_x_continuous(n.breaks = 14) +
-#                                      scale_y_continuous(n.breaks = 14) +
-
-#                                      # xlab("CE-time (sample to align)")+
-#                                      # ylab("CE-time (reference sample)")+
-
-#                                      # geom_line(data = predict_data_model.np, aes(x = rt2, y = rt1, color = "Model"), lwd = 1, size = 1.5) +
-#                                      # #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
-#                                      # # geom_abline(yintercept = 0, lwd = 1, color = "green")+
-
-#                                      geom_line(
-#                                        data = median_line_data.after,
-#                                        aes(
-#                                          x = x,
-#                                          y = x,
-#                                          color = "Median"
-#                                        ),
-#                                        lwd = 1,
-#                                        size = 1.5
-#                                      ) +
-
-#                                      labs(
-#                                        x = paste("CE-time (", Data_Plot.after$sample.2, ")"),
-#                                        y = "CE-time (Reference map)",
-#                                        color = "Legend"
-#                                      ) +
-#                                      ggtitle("Correction with Kernel Density") +
-
-#                                      scale_color_manual(values = c("Median" = "green")) +
-
-
-#                                      theme_ben() +
-#                                      theme(
-#                                        plot.title = element_text(
-#                                          size = rel(1),
-#                                          face = "bold",
-#                                          color = "#760001",
-#                                          margin = margin(0, 0, 5, 0),
-#                                          hjust = 0.5
-#                                        ),
-#                                        plot.subtitle = element_text(hjust = 0.5),
-#                                        plot.background = element_rect(fill = "aliceblue"),
-#                                        legend.title = element_text(
-#                                          size = rel(0.95),
-#                                          face = "bold.italic",
-#                                          hjust = 0.5
-#                                        ),
-#                                        legend.text = element_text(size = rel(0.85), face = "bold.italic")
-#                                      )
-
-#                                    Plot.after
-#                                  }
-
-#                                })
-
-#                              #### info-bulle
-#                              output$PlotCorrectionKernelDensity_After_hover_info_newSample <-
-#                                renderUI({
-#                                  hover <-
-#                                    req(input$PlotCorrectionKernelDensity_After_hover_newSample)
-
-#                                  if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.after_KernelDensity)) {
-#                                    point <-
-#                                      nearPoints(
-#                                        req(
-#                                          RvarsPeakDetectionNewSample$Data_Plot.after_KernelDensity
-#                                        ),
-#                                        hover,
-#                                        threshold = 5,
-#                                        maxpoints = 1,
-#                                        addDist = TRUE
-#                                      )
-#                                    if (nrow(point) == 0)
-#                                      return(NULL)
-
-#                                    # calculate point position INSIDE the image as percent of total dimensions
-#                                    # from left (horizontal) and from top (vertical)
-#                                    left_pct <-
-#                                      (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-#                                    top_pct <-
-#                                      (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-
-#                                    # calculate distance from left and bottom side of the picture in pixels
-#                                    left_px <-
-#                                      hover$range$left + left_pct * (hover$range$right - hover$range$left)
-#                                    top_px <-
-#                                      hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-
-#                                    # create style property fot tooltip
-#                                    # background color is set so tooltip is a bit transparent
-#                                    # z-index is set so we are sure are tooltip will be on top
-#                                    style <-
-#                                      paste0(
-#                                        "position:absolute; z-index:100; background-color: #760001; color: white;",
-#                                        "left:",
-#                                        left_px + 2,
-#                                        "px; top:",
-#                                        top_px + 2,
-#                                        "px;"
-#                                      )
-
-#                                    # actual tooltip created as wellPanel
-#                                    div(class = "well well-sm",
-#                                        style = style,
-#                                        p(HTML(
-#                                          paste0(
-#                                            "<span class='bullText'> M+H (ref): </span>",
-#                                            round(point$mz.1, 4),
-#                                            "<br/>",
-#                                            "<span class='bullText'> CE-time (ref): </span>",
-#                                            round(point$rt.1, 2),
-#                                            "<br/>",
-#                                            "<span class='bullText'> Intensity (ref): </span>",
-#                                            round(point$maxo.1, 0),
-#                                            "<br/>",
-#                                            "<br>",
-#                                            "<span class='bullText'> M+H (sample): </span>",
-#                                            round(point$mz.2, 4),
-#                                            "<br/>",
-#                                            "<span class='bullText'> CE-time (sample): </span>",
-#                                            round(point$rt.2, 2),
-#                                            "<br/>",
-#                                            "<span class='bullText'> Intensity (sample): </span>",
-#                                            round(point$maxo.2, 0),
-#                                            "<br/>"
-#                                          )
-#                                        )))
-#                                  }
-
-#                                })
-
-#                              #~~~~~~~~~ Plot mz (or M+H)~rt reference and mz(M+H)~rt sample (CE-time correction with xcms)~~~~~~~~~~~~~#
-#                              #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
-#                              output$CorrectimeKernelDensityViewer_2_newSample <-
-#                                renderPlot({
-#                                  if (!is.null(input$SelectSample_KernelDensity_newSample) &
-#                                      !is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list) &
-#                                      !is.null(RvarsPeakDetectionNewSample$map_ref) &
-#                                      !is.null(
-#                                        RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection
-#                                      )) {
-#                                    ref <- RvarsPeakDetectionNewSample$map_ref
-
-#                                    ref <-
-#                                      RvarsPeakDetectionNewSample$map_ref[2:4]
-
-#                                    ref$sample <- "Reference map"
-#                                    colnames(ref) <-
-#                                      c('mz', 'rt', 'maxo', 'sample')
-
-#                                    ref$maxo <- 2 ^ (ref$maxo)
-
-#                                    reqColstoPlot <-
-#                                      c('M+H', 'CE-time', 'intensity', 'sample')
-#                                    reqColsUsed <-
-#                                      c('mz', 'rt', 'maxo', 'sample')
-
-
-#                                    ##~~~~~~~~~~~~~~~~~~~~ After correction xcms ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#                                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#                                    table.after <-
-#                                      RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[input$SelectSample_KernelDensity_newSample]]
-#                                    table.after <-
-#                                      table.after[, c("mz", "rt", "maxo", "sample")]
-
-#                                    Data_after <- rbind(table.after,
-#                                                        ref)
-#                                    rownames(Data_after) <-
-#                                      1:nrow(Data_after)
-#                                    colnames(Data_after)[which(colnames(Data_after) %in% reqColsUsed)] <-
-#                                      reqColstoPlot
-#                                    Data_after$intensity <-
-#                                      log2(Data_after$intensity)
-
-
-#                                    Data_after$sample <-
-#                                      factor(Data_after$sample,
-#                                             levels = c(
-#                                               unique(Data_after$sample)[unique(Data_after$sample) !=
-#                                                                           "Reference map"],
-#                                               "Reference map"
-#                                             ))
-
-#                                    Plot.After <- Data_after %>%
-#                                      ggplot() +
-#                                      aes(x = `CE-time`,
-#                                          y = `M+H`,
-#                                          colour = intensity) +
-#                                      #geom_point(shape = "circle", size = input$sizePoints) +
-#                                      geom_point(size = 0.5) +
-#                                      scale_color_viridis_c(option = "inferno", direction = -1) +
-#                                      theme_gray() +
-#                                      #facet_grid(vars(sample), vars())  +
-#                                      facet_wrap( ~ sample, dir = "v") +
-#                                      ylab("Mass (M+H) (Da)") +
-#                                      #xlab(paste("CE-time (",input$UnitTime_NewRefMap,")")) +
-#                                      xlab(paste("CE-time")) +
-
-#                                      ggtitle("Before CE-time correction") +
-
-#                                      scale_x_continuous(n.breaks = 14) +
-#                                      scale_y_continuous(n.breaks = 5) +
-
-#                                      theme_ben() +
-#                                      labs(colour = "log2 Intensity") +
-#                                      theme(
-#                                        plot.title = element_text(
-#                                          size = rel(1),
-#                                          face = "bold",
-#                                          color = "#760001",
-#                                          margin = margin(0, 0, 5, 0),
-#                                          hjust = 0.5
-#                                        ),
-#                                        plot.subtitle = element_text(hjust = 0.5),
-#                                        panel.border = element_rect(
-#                                          fill = "transparent",
-#                                          # Needed to add the border
-#                                          color = "blue",
-#                                          linewidth = 0.5,
-#                                          linetype = "dashed"
-#                                        ),
-
-#                                        # Les étiquettes dans le cas d'un facetting
-#                                        strip.background = element_rect(
-#                                          fill = "grey",
-#                                          color = "grey"
-#                                        ),
-#                                        strip.text = element_text(
-#                                          size = rel(1),
-#                                          face = "bold.italic",
-#                                          color = "black",
-#                                          margin = margin(5, 0, 5, 0)
-#                                        ),
-#                                        plot.background = element_rect(fill = "aliceblue")
-#                                      )
-
-#                                    ##~~~~~~~~~~~~~~~~~~~~ After correction With Kernel Density ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#                                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-#                                    table.After_KernelDensity <-
-#                                      RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[input$SelectSample_KernelDensity_newSample]]
-#                                    table.After_KernelDensity <-
-#                                      table.After_KernelDensity[, c("mz", "rt", "maxo", "sample")]
-
-#                                    Data_After_KernelDensity <-
-#                                      rbind(table.After_KernelDensity,
-#                                            ref)
-
-#                                    rownames(Data_After_KernelDensity) <-
-#                                      1:nrow(Data_After_KernelDensity)
-
-
-#                                    colnames(Data_After_KernelDensity)[which(colnames(Data_After_KernelDensity) %in% reqColsUsed)] <-
-#                                      reqColstoPlot
-#                                    Data_After_KernelDensity$intensity <-
-#                                      log2(Data_After_KernelDensity$intensity)
-
-
-#                                    Data_After_KernelDensity$sample <-
-#                                      factor(
-#                                        Data_After_KernelDensity$sample,
-#                                        levels = c(
-#                                          unique(Data_After_KernelDensity$sample)[unique(Data_After_KernelDensity$sample) !=
-#                                                                                    "Reference map"],
-#                                          "Reference map"
-#                                        )
-#                                      )
-
-
-
-#                                    Plot.After_KernelDensity <-
-#                                      Data_After_KernelDensity %>%
-#                                      ggplot() +
-#                                      aes(x = `CE-time`,
-#                                          y = `M+H`,
-#                                          colour = intensity) +
-#                                      #geom_point(shape = "circle", size = input$sizePoints) +
-#                                      geom_point(size = 0.5) +
-#                                      scale_color_viridis_c(option = "inferno", direction = -1) +
-#                                      theme_gray() +
-#                                      #facet_grid(vars(sample), vars())  +
-#                                      facet_wrap( ~ sample, dir = "v") +
-#                                      #coord_cartesian(xlim = rangesZoomOffsetSamplePlot$x, ylim = rangesZoomOffsetSamplePlot$y, expand = TRUE)+
-#                                      ylab("Mass (M+H) (Da)") +
-#                                      #xlab(paste("CE-time (",input$UnitTime_NewRefMap,")")) +
-#                                      xlab(paste("CE-time")) +
-
-#                                      ggtitle("Correction with Kernel density") +
-
-#                                      scale_x_continuous(n.breaks = 14) +
-#                                      scale_y_continuous(n.breaks = 5) +
-
-#                                      theme_ben() +
-#                                      labs(colour = "log2 Intensity") +
-#                                      theme(
-#                                        plot.title = element_text(
-#                                          size = rel(1),
-#                                          face = "bold",
-#                                          color = "#760001",
-#                                          margin = margin(0, 0, 5, 0),
-#                                          hjust = 0.5
-#                                        ),
-#                                        plot.subtitle = element_text(hjust = 0.5),
-#                                        panel.border = element_rect(
-#                                          fill = "transparent",
-#                                          # Needed to add the border
-#                                          color = "blue",
-#                                          linewidth = 0.5,
-#                                          linetype = "dashed"
-#                                        ),
-
-#                                        # Les étiquettes dans le cas d'un facetting
-#                                        strip.background = element_rect(
-#                                          fill = "grey",
-#                                          color = "grey"
-#                                        ),
-#                                        strip.text = element_text(
-#                                          size = rel(1),
-#                                          face = "bold.italic",
-#                                          color = "black",
-#                                          margin = margin(5, 0, 5, 0)
-#                                        ),
-#                                        plot.background = element_rect(fill = "aliceblue")
-#                                      )
-
-
-
-
-
-#                                    grid.arrange(Plot.After,
-#                                                 Plot.After_KernelDensity,
-#                                                 nrow = 2)
-
-#                                  }
-
-#                                })
-
-
-
-#                            }
-
-
-#                          })
-
-#                        }
-#                      }
-
-#                    }
-#                  }
-
-#                }
-
-
-
-#              })
-
-# ##
-# observe({
-#   if (is.null(RvarsPeakDetectionNewSample$modelKernelDensity)) {
-#     output$PlotCorrectionKernelDensity_Before_newSample <-
-#       renderPlot({
-
-#       })
-#     output$PlotCorrectionKernelDensity_After_newSample <-
-#       renderPlot({
-
-#       })
-#     output$CorrectimeKernelDensityViewer_2_newSample <- renderPlot({
-
-#     })
-#   }
-
-#   if (is.null(input$SelectSample_KernelDensity_newSample) ||
-#       is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list) ||
-#       is.null(RvarsPeakDetectionNewSample$map_ref)) {
-#     output$DensityFilterPlot_newSample <- renderPlot({
-
-#     })
-#   }
-# })
-
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ###~~~~~~~~~~~~~~~~~~~~ Grouping massifs into features  ~~~~~~~~~~~~~~~~~~~~~###
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ~~~~~~~~~~~~~~~~~~~~~~##
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$GroupingButtonIDNewSample
-#              }
-#              ,
-#              handlerExpr = {
-#                if (!is.null(RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection)) {
-#                  ## Load some functions:
-#                  source("lib/NewReferenceMap/R_files/GenerateMapRef.lib.R",
-#                         local = TRUE)
-
-#                  withProgress(message = 'Grouping massif to features...', value = 0, {
-#                    ####~~~~~~~~~~~~~~~~~~~~~~ Grouping massif in samples  ~~~~~~~~~~~~~~~~~~~~#
-#                    ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
-#                    incProgress(1 / 4, detail = "starting")
-
-#                    ## Change names of columns
-
-#                    Massif_List_ToGroup <-
-#                      RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection
-
-#                    for (i in 1:length(Massif_List_ToGroup)) {
-#                      colSelect <-
-#                        c(
-#                          "M+H",
-#                          "M+H.min",
-#                          "M+H.max",
-#                          "rt",
-#                          "rtmin",
-#                          "rtmax",
-#                          "Area",
-#                          "Height",
-#                          "SN",
-#                          "sample",
-#                          "iso.mass",
-#                          "iso.mass.link",
-#                          "mz_PeaksIsotopics_Group",
-#                          "rt_PeaksIsotopics_Group",
-#                          "Height_PeaksIsotopics_Group",
-#                          "Adduct"
-#                        )
-
-#                      colnames(Massif_List_ToGroup[[i]])[c(1:10)] <-
-#                        colSelect[c(1:10)]
-#                    }
-
-
-
-
-#                    workers <- ceiling((detectCores()) - 1)
-#                    param <-
-#                      SnowParam(workers = workers, type = "SOCK")
-
-
-#                    incProgress(1 / 4, detail = "first grouping")
-#                    res1 <- bplapply(
-#                      Massif_List_ToGroup,
-#                      Grouping.Massif_NewRefMap,
-#                      mz.tolerance = 0.15,
-#                      rt.tolerance = 30,
-#                      BPPARAM = param
-#                    )
-
-#                    incProgress(1 / 4, detail = "second grouping")
-#                    res2 <- bplapply(
-#                      res1,
-#                      Grouping.Massif_NewRefMap_Second,
-#                      mz.tolerance = 0.09,
-#                      rt.tolerance = 180,
-#                      BPPARAM = param
-#                    )
-
-
-#                    ## Change colnames
-
-#                    for (i in 1:length(res2)) {
-#                      colSelect <-
-#                        c(
-#                          "M+H",
-#                          "M+H.min",
-#                          "M+H.max",
-#                          "rt",
-#                          "rtmin",
-#                          "rtmax",
-#                          "Area",
-#                          "Height",
-#                          "SN",
-#                          "sample",
-#                          "iso.mass",
-#                          "iso.mass.link",
-#                          "mz_PeaksIsotopics_Group",
-#                          "rt_PeaksIsotopics_Group",
-#                          "Height_PeaksIsotopics_Group",
-#                          "Adduct"
-#                        )
-
-#                      reqColsNames <-
-#                        c(
-#                          'M+H',
-#                          'M+H.min',
-#                          'M+H.max',
-#                          'CE-time',
-#                          'CE-time.min',
-#                          'CE-time.max',
-#                          'integrated-intensity',
-#                          'intensity',
-#                          'sn',
-#                          'sample'
-#                        )
-
-#                      colnames(res2[[i]])[c(1:10)] <- reqColsNames
-
-#                      res2[[i]] <- res2[[i]][, -ncol(res2[[i]])]
-#                    }
-
-
-#                    RvarsPeakDetectionNewSample$FeaturesList_newSample <-
-#                      res2
-#                    incProgress(1 / 4, detail = "finish")
-
-
-#                  })
-
-
-#                  #"~~~~~~~ Enable Generate reference map button ~~~~~~~~#
-
-#                  enable("CorrectionKernelDensityNexPage_newSample")
-
-#                  updateRadioButtons(session = session,
-#                                     inputId = "IdAnalysisStep",
-#                                     selected = "4")
-
-
-#                  sendSweetAlert(
-#                    session = session,
-#                    title = "Preprocess complete !",
-#                    text = HTML(paste(
-#                      "Grouping massif into feature well done !<br>"
-#                    )),
-#                    type = "success",
-#                    closeOnClickOutside = FALSE,
-#                    html = TRUE
-#                  )
-
-#                }
-
-
-#              })
-
-
-
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# ###~~~~~~~~~~~~~~~ Get features list and plot of table features ~~~~~~~~~~~~~~###
-# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ~~~~~~~~~~~~~~~~~~~~~~##
-# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-
-
-# ###~~~~ Get features list~~~~~~~~#
-# ms_features_newSample <- reactive({
-#   if ((length(RvarsPeakDetectionNewSample$FeaturesList_newSample) > 0)) {
-#     ms_featuresTable <-
-#       do.call(rbind,
-#               RvarsPeakDetectionNewSample$FeaturesList_newSample)
-
-#     rownames(ms_featuresTable) <- 1:nrow(ms_featuresTable)
-
-#     ms_featuresTable$intensity <- log2(ms_featuresTable$intensity)
-#     ms_featuresTable
-#   }
-# })
-
-
-
-# ##~~~~ Update select input (select samples to viewer or to use)~~~~~~#
-# observe({
-#   if (!is.null(ms_features_newSample())) {
-#     RvarsPeakDetectionNewSample$sample_name_newSample <-
-#       unique(ms_features_newSample()$sample)
-
-#     updatePickerInput(
-#       session = session,
-#       inputId = "levelSample",
-#       choices = RvarsPeakDetectionNewSample$sample_name_newSample,
-#       selected = RvarsPeakDetectionNewSample$sample_name_newSample[1]
-#     )
-
-#     updatePickerInput(
-#       session = session,
-#       inputId = "IncludeSample",
-#       choices = RvarsPeakDetectionNewSample$sample_name_newSample,
-#       selected = RvarsPeakDetectionNewSample$sample_name_newSample
-#     )
-
-
-#   }
-
-# })
-
-# ##~~~~~~~~~~~~~~~~~ Get data features to plot ~~~~~~~~~~~~~~#
-# ms_features_newSample_toPlot <- reactive({
-#   if (!is.null(ms_features_newSample()) &
-#       !is.null(input$levelSample)) {
-#     values_plot <-
-#       req(ms_features_newSample()[ms_features_newSample()$sample %in% input$levelSample, ])
-
-#     j <- 1
-#     for (names in unique(values_plot$sample)) {
-#       values_plot[values_plot$sample == names, "sample"] <- j
-#       j <- j + 1
-#     }
-
-#     values_plot
-
-#   }
-
-# })
-
-# ###~~~~~~ CE-time Conversion ~~~~~~~~#
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$levelSample
-#              },
-#              handlerExpr = {
-#                RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime <-
-#                  isolate(req(ms_features_newSample_toPlot()))
-#                #Because les data viennent initialement en second
-#                RvarsPeakDetectionNewSample$Second <- TRUE
-#                if (input$UnitTime == "Minute") {
-#                  print(
-#                    paste(
-#                      "Convert to min",
-#                      input$UnitTime == "Minute" &
-#                        RvarsPeakDetectionNewSample$Second == TRUE
-#                    )
-#                  )
-#                  if (input$UnitTime == "Minute" &
-#                      RvarsPeakDetectionNewSample$Second == TRUE) {
-#                    if (!is.null(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime)) {
-#                      print("Yes!")
-#                      RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$`CE-time` <-
-#                        req(
-#                          RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$`CE-time`
-#                        ) / 60
-#                      RvarsPeakDetectionNewSample$Second <- FALSE
-#                    }
-#                  }
-#                }
-
-
-#              })
-
-# ## When uploaded features list
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$features_list
-#              },
-#              handlerExpr = {
-#                ## Because data is initially in second
-
-#                updateRadioGroupButtons(session = session,
-#                                        inputId = "UnitTime",
-#                                        selected = "Second")
-#                RvarsPeakDetectionNewSample$Second == TRUE
-#                ## reset coord_cartesian
-#                rangesZoomAnalyisPlotSamplesSelected$x <- NULL
-#                rangesZoomAnalyisPlotSamplesSelected$y <- NULL
-
-
-#              })
-
-
-# ##~~~~~~ CE-time conversion second or minute ~~~~~~~#
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$UnitTime
-#              },
-#              handlerExpr = {
-#                RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime <-
-#                  req(ms_features_newSample_toPlot())
-#                print(
-#                  paste(
-#                    "Convert to min",
-#                    input$UnitTime == "Minute" &
-#                      RvarsPeakDetectionNewSample$Second == TRUE
-#                  )
-#                )
-#                if (input$UnitTime == "Minute" &
-#                    RvarsPeakDetectionNewSample$Second == TRUE) {
-#                  if (!is.null(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime)) {
-#                    RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$`CE-time` <-
-#                      req(
-#                        RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$`CE-time`
-#                      ) / 60
-#                    RvarsPeakDetectionNewSample$Second <- FALSE
-#                  }
-#                }
-
-#                print(
-#                  paste(
-#                    "Covert to Second",
-#                    input$UnitTime == "Second" &
-#                      RvarsPeakDetectionNewSample$Second == FALSE
-#                  )
-#                )
-#                if (input$UnitTime == "Second" &
-#                    RvarsPeakDetectionNewSample$Second == FALSE) {
-#                  if (!is.null(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime)) {
-#                    RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$`CE-time` <-
-#                      req(
-#                        RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$`CE-time`
-#                      ) * 60
-#                    RvarsPeakDetectionNewSample$Second <- TRUE
-#                  }
-#                }
-
-#                if (input$UnitTime == "Second" &
-#                    RvarsPeakDetectionNewSample$Second == TRUE) {
-#                  RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime <-
-#                    req(ms_features_newSample_toPlot())
-#                }
-
-
-#              })
-
-
-# ##~~~~~~ Number of features ~~~~~~#
-# number_of_features <- reactive({
-#   if (length(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime) >
-#       0 &
-#       !is.null(ms_features_newSample()) &
-#       !is.null(input$levelSample)) {
-#     table(
-#       RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-#     )
-
-#   }
-# })
-
-# ##~~~~~~~~~~~~ Legend for plot ~~~~~~~~~#
-# legend_sample <- reactive({
-#   if (length(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime) >
-#       0 &
-#       !is.null(ms_features_newSample()) &
-#       !is.null(input$levelSample)) {
-#     legend_values <- data.frame(
-#       xd = 1:length(input$levelSample),
-#       yd = 1:length(input$levelSample),
-#       Samples = paste(
-#         "\n",
-#         1:length(input$levelSample),
-#         ": ",
-#         input$levelSample,
-#         "\n",
-#         sep = ""
-#       )
-#     )
-#     legend_values
-#   }
-
-# })
-
-
-# ##~~~~~~~Zoom: features list viewer ~~~~~~~~#
-# rangesZoomAnalyisPlotSamplesSelected <-
-#   reactiveValues(x = NULL, y = NULL)
-
-# # When a double-click happens, check if there's a brush on the plot.
-# # If so, zoom to the brush bounds; if not, reset the zoom.
-# observeEvent({
-#   input$plotAnalysisNewSample_dblclick
-# }, {
-#   brush <- input$plotAnalysisNewSample_brush
-#   if (!is.null(brush)) {
-#     rangesZoomAnalyisPlotSamplesSelected$x <- c(brush$xmin, brush$xmax)
-#     rangesZoomAnalyisPlotSamplesSelected$y <-
-#       c(brush$ymin, brush$ymax)
-
-#   } else {
-#     ## reset coord_cartesian
-#     rangesZoomAnalyisPlotSamplesSelected$x <- NULL
-#     rangesZoomAnalyisPlotSamplesSelected$y <- NULL
-#   }
-# })
-
-
-# #~~~~~~~~~ Features list plot ~~~~~~~#
-# output$AnalyisPlotSamplesSelected <- renderPlot({
-#   if (length(
-#     unique(
-#       RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-#     )
-#   ) > 1 &
-#   !is.null(ms_features_newSample()) & !is.null(input$levelSample)) {
-#     if (TRUE) {
-#       myPlot <-
-#         req(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime) %>%
-
-#         ggplot() +
-#         aes(x = `CE-time`,
-#             y = `M+H`,
-#             colour = intensity) +
-#         #geom_point(shape = "circle", size = input$sizePoints) +
-#         geom_point(size = req(input$sizePoints)) +
-#         scale_color_viridis_c(option = "inferno", direction = -1) +
-#         theme_gray() +
-#         facet_grid(vars(sample), vars())  +
-#         # facet_wrap(~req(sample) , dir="v", ncol = 1)  +
-#         coord_cartesian(xlim = rangesZoomAnalyisPlotSamplesSelected$x,
-#                         ylim = rangesZoomAnalyisPlotSamplesSelected$y,
-#                         expand = TRUE) +
-#         ylab("Mass (M+H) (Da)") +
-#         xlab(paste("CE-time (", input$UnitTime, ")")) +
-
-#         ggtitle(paste("Features list")) +
-
-#         scale_x_continuous(n.breaks = 14) +
-#         #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-
-
-#         #facet_grid(vars(sample), vars())+
-#         #option_graphe.2 +
-#         theme_ben() +
-#         labs(colour = "log2 Intensity") +
-#         theme(
-#           plot.title = element_text(
-#             size = rel(1),
-#             face = "bold",
-#             color = "#760001",
-#             margin = margin(0, 0, 5, 0),
-#             hjust = 0.5
-#           ),
-#           plot.subtitle = element_text(hjust = 0.5),
-#           panel.border = element_rect(
-#             fill = "transparent",
-#             # Needed to add the border
-#             color = "blue",
-#             linewidth = 0.5,
-#             linetype = "dashed"
-#           )
-#         )
-
-#     }
-
-
-
-
-
-#   }
-
-#   if (length(
-#     unique(
-#       RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-#     )
-#   ) == 1 &
-#   !is.null(ms_features_newSample()) & !is.null(input$levelSample)) {
-#     myPlot <-
-#       req(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime) %>%
-
-#       ggplot() +
-#       aes(x = `CE-time`, y = `M+H`, colour = intensity) +
-#       #geom_point(shape = "circle", size = input$sizePoints) +
-#       geom_point(size = input$sizePoints) +
-#       scale_color_viridis_c(option = "inferno", direction = -1) +
-#       ylab("Mass (M+H) (Da)") +
-#       xlab(paste("CE-time (", input$UnitTime, ")")) +
-#       coord_cartesian(xlim = rangesZoomAnalyisPlotSamplesSelected$x,
-#                       ylim = rangesZoomAnalyisPlotSamplesSelected$y,
-#                       expand = TRUE) +
-#       ggtitle(paste("Features list")) +
-
-#       scale_x_continuous(n.breaks = 14) +
-#       #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-
-
-#       #facet_grid(vars(sample), vars())+
-#       #option_graphe.3
-#       theme_ben() +
-#       labs(colour = "log2 Intensity") +
-#       theme(
-#         plot.title = element_text(
-#           size = rel(1),
-#           face = "bold",
-#           color = "#760001",
-#           margin = margin(0, 0, 5, 0),
-#           hjust = 0.5
-#         ),
-#         plot.subtitle = element_text(hjust = 0.5)
-#       )
-
-#   }
-
-#   Values_myPlot <- reactive({
-#     myPlot
-#   })
-
-#   if (length(
-#     unique(
-#       RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-#     )
-#   ) > 0 &
-#   !is.null(ms_features_newSample()) & !is.null(input$levelSample)) {
-#     shinyjs::show("PeaksMonoIsoPlotAnalysisNewSample_id")
-#     Values_myPlot()
-
-#   }
-
-# })
-
-
-# ### Position mouse
-# output$PeaksMonoIsoPlotAnalysisNewSample_info <- renderText({
-#   paste0(
-#     "Mouse position : CE-time = ",
-#     round(req(input$plotAnalysisNewSample_click$x), 0),
-#     " (",
-#     input$UnitTime,
-#     "), ",
-#     " M+H = ",
-#     round(req(input$plotAnalysisNewSample_click$y), 4),
-#     " (Da)"
-#   )
-# })
-
-
-# ##~~~~~~~~~~ Info bull for plot features list ~~~~~~~~#
-# output$plotAnalysisNewSamplet_hover_info <- renderUI({
-#   hover <- req(input$plotAnalysisNewSamplet_hover)
-#   if (length(
-#     unique(
-#       RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-#     )
-#   ) > 1 &
-#   !is.null(ms_features_newSample()) & !is.null(input$levelSample)) {
-#     myPlot_data <-
-#       req(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime)
-
-#   }
-
-#   if (length(
-#     unique(
-#       RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-#     )
-#   ) == 1 &
-#   !is.null(ms_features_newSample()) & !is.null(input$levelSample)) {
-#     myPlot_data <-
-#       req(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime)
-#   }
-
-#   Values_myPlot_data <- reactive({
-#     myPlot_data
-#   })
-
-
-#   if (length(
-#     unique(
-#       RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-#     )
-#   ) > 0 &
-#   !is.null(ms_features_newSample()) & !is.null(input$levelSample)) {
-#     point <-
-#       nearPoints(
-#         req(Values_myPlot_data()),
-#         hover,
-#         threshold = 5,
-#         maxpoints = 1,
-#         addDist = TRUE
-#       )
-#     if (nrow(point) == 0)
-#       return(NULL)
-
-
-#     # calculate point position INSIDE the image as percent of total dimensions
-#     # from left (horizontal) and from top (vertical)
-#     left_pct <-
-#       (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-#     top_pct <-
-#       (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-
-#     # calculate distance from left and bottom side of the picture in pixels
-#     left_px <-
-#       hover$range$left + left_pct * (hover$range$right - hover$range$left)
-#     top_px <-
-#       hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-
-#     # create style property fot tooltip
-#     # background color is set so tooltip is a bit transparent
-#     # z-index is set so we are sure are tooltip will be on top
-#     style <-
-#       paste0(
-#         "position:absolute; z-index:100; background-color: #f7f0f0; ",
-#         "left:",
-#         left_px + 2,
-#         "px; top:",
-#         top_px + 2,
-#         "px;"
-#       )
-
-#     # actual tooltip created as wellPanel
-#     div(class = "well well-sm",
-#         style = style,
-#         p(HTML(
-#           paste0(
-#             "<span class='bullText'> CE-time: </span>",
-#             round(point$`CE-time`, 2),
-#             "<br/>",
-#             "<span class='bullText'> M+H: </span>",
-#             round(point$`M+H`, 4),
-#             "<br/>",
-#             "<span class='bullText'> log2 Intensity: </span>",
-#             round(point$intensity, 2),
-#             "<br/>",
-#             "<span class='bullText'> Intensity: </span>",
-#             round(2 ^ (point$intensity), 0),
-#             "<br/>"
-#           )
-#         )))
-
-#   }
-
-
-# })
-
-# ##~~~~~~~~~~~ Render plot number of features ~~~~~~~~~~#
-# output$NumberOfFeatures <- renderPlot({
-#   if (length(number_of_features()) > 0 &
-#       length(
-#         unique(
-#           RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-#         )
-#       ) > 0 &
-#       !is.null(ms_features_newSample()) &
-#       !is.null(input$levelSample)) {
-#     NbPeak_for_each_sample_adj <- data.frame(number_of_features())
-#     colnames(NbPeak_for_each_sample_adj)[1] <- "Sample"
-#     ggplot(NbPeak_for_each_sample_adj) +
-#       aes(x = Sample,
-#           #colour = sample,
-#           weight = Freq) +
-#       geom_bar(width = 0.4, fill = "#4682B4") +
-#       geom_text(
-#         aes(label = paste0(round(..count.., 2))),
-#         stat = "count",
-#         vjust = 0,
-#         hjust = 0.5,
-#         size = 5,
-#         fontface = 4
-#       ) +
-#       scale_color_hue(direction = 1) +
-#       #coord_flip() +
-#       ylab("Number of Features") +
-#       xlab("") +
-#       coord_cartesian(ylim = c(0, max(NbPeak_for_each_sample_adj$Freq) +
-#                                  1000)) +
-#       theme_ben() +
-#       #theme(axis.text.x = element_text(angle = 90, size = rel(1), face = "bold"))
-#       theme(axis.text.x = element_text(size = rel(1.2), face = "bold"))
-
-#   }
-
-# })
-
-# output$sampleOutput <- renderText({
-#   legend_sample()$Samples
-# })
-
-
-# ##~~~~~~~~~~~~ Get data to save ~~~~~~~~~~#
-# ms_features_newSample_toSave <- reactive({
-#   if (!is.null(ms_features_newSample()) &
-#       !is.null(input$IncludeSample)) {
-#     values <-
-#       ms_features_newSample()[ms_features_newSample()$sample %in% input$IncludeSample, ]
-#     values$intensity <- 2 ^ (values$intensity)
-#     split(values, f = values$sample)
-
-#   }
-
-# })
-
-# ##~~~~~~~~~~~~ Get data to use ~~~~~~~~~~#
-
-# ms_features_list_newSample_toUse <- reactive({
-#   if (!is.null(ms_features_newSample()) &
-#       !is.null(input$IncludeSample)) {
-#     values <-
-#       ms_features_newSample()[ms_features_newSample()$sample %in% input$IncludeSample, ]
-#     values$intensity <- 2 ^ (values$intensity)
-
-#     split(values, f = values$sample)
-#   }
-# })
-
-
-# ##~~~~~~~~~~~~ Save features list ~~~~~~~~~~#
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$SaveAnalysis
-#              }
-#              ,
-#              handlerExpr = {
-#                shinyFileSave(input,
-#                              id = "SaveAnalysis",
-#                              roots = volumes,
-#                              session = session)
-
-
-#                path_Save_Files_origine <-
-#                  parseSavePath(volumes, input$SaveAnalysis)$datapath
-
-#                if (length(path_Save_Files_origine) > 0) {
-#                  path_Save_Files <-
-#                    strsplit(path_Save_Files_origine, split = "/")[[1]]
-#                  directory_Save_Files <-
-#                    paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
-
-#                  if (length(ms_features_newSample_toSave()) > 0 &
-#                      !is.null(ms_features_newSample()) &
-#                      !is.null(input$IncludeSample)) {
-#                    if (length(ms_features_newSample_toSave()) == 1) {
-#                      write.table(
-#                        ms_features_newSample_toSave()[[1]],
-#                        #file = path_Save_Files_origine,
-#                        file = paste0(c(
-#                          directory_Save_Files,
-#                          paste(
-#                            names(ms_features_newSample_toSave())[1],
-#                            path_Save_Files[length(path_Save_Files)],
-#                            collapse = "",
-#                            sep = "-"
-#                          )
-#                        ), collapse = "/"),
-#                        sep = ",",
-#                        row.names = FALSE
-#                      )
-#                      print("Save ok")
-#                    } else{
-#                      withProgress(message = 'Saving files...', value = 0, {
-#                        for (i in 1:length(ms_features_newSample_toSave())) {
-#                          incProgress(1 / length(ms_features_newSample_toSave()),
-#                                      detail = paste(names(
-#                                        ms_features_newSample_toSave()
-#                                      )[i]))
-#                          print(basename(paste0(
-#                            c(
-#                              directory_Save_Files,
-#                              paste(
-#                                #as.character(i),
-#                                names(ms_features_newSample_toSave())[i],
-#                                path_Save_Files[length(path_Save_Files)],
-#                                collapse = "",
-#                                sep = "-"
-#                              )
-#                            ), collapse = "/"
-#                          )))
-#                          write.table(
-#                            ms_features_newSample_toSave()[[i]],
-#                            file = paste0(c(
-#                              directory_Save_Files,
-#                              paste(
-#                                #as.character(i),
-#                                names(ms_features_newSample_toSave())[i],
-#                                path_Save_Files[length(path_Save_Files)],
-#                                collapse = "",
-#                                sep = "-"
-#                              )
-#                            ), collapse = "/"),
-#                            sep = ",",
-#                            row.names = FALSE
-#                          )
-#                          print("Save ok")
-#                        }
-
-#                      })
-
-#                    }
-
-
-#                  }
-#                }
-
-
-#              })
-
-
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 ###~~~~~~~~~~~~~~~~~~~~~~ Configure some buttons ~~~~~~~~~~~~~~~~~~~~~~~~~###
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button ReturnToPeakViewer_newSample ~~~~~~~~~~~~~~~~~~~~~~~~#*
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button returnAnalysisViewer ~~~~~~~~~~~~~~~~~~~~~~~~#*
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$ReturnToPeakViewer_newSample
+               input$returnAnalysisViewer
              }
              , {
-               updateRadioButtons(session = session,
-                                  inputId = "IdAnalysisStep",
-                                  selected = "1")
-               
-               shinyjs::show(id = "buttonResetViewAnalysis")
-               shinyjs::show(id = "RestartProjects")
-               shinyjs::show(id = "ViewAnalysis")
-               
-             })
-
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button GoToPeakView_newSample ~~~~~~~~~~~~~~~~~~~~~~~~#*
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$GoToPeakView_newSample
-             },
-             handlerExpr = {
-               updateRadioButtons(session = session,
-                                  inputId = "IdAnalysisStep",
-                                  selected = "3")
+               updateNavbarPage(session = session,
+                                inputId = "analysisNavbar",
+                                selected = "Peak detection and grouping")
                
                
-             })
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button ViewAnalysis ~~~~~~~~~~~~~~~~~~~~~~~~#*
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$ViewAnalysis
-             }
-             , {
-               updateRadioButtons(session = session,
-                                  inputId = "IdAnalysisStep",
-                                  selected = "2")
-               
-             })
-
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button ViewAnalysis_duplicate ~~~~~~~~~~~~~~~~~~~~~~~~#*
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$ViewAnalysis_duplicate
-             }
-             , {
-               updateRadioButtons(session = session,
-                                  inputId = "IdAnalysisStep",
-                                  selected = "2")
-               
-             })
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button ReturToFilterSample_newSample ~~~~~~~~~~~~~~~~~~~~~~~~#*
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$ReturToFilterSample_newSample
-             }
-             , {
-               updateRadioButtons(session = session,
-                                  inputId = "IdAnalysisStep",
-                                  selected = "2")
-               
-             })
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Buton CorrectionKernelDensityNexPage_newSample ~~~~~~~~~~~~~~~~~~~~~~~~#*
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$CorrectionKernelDensityNexPage_newSample
-             }
-             , {
                updateRadioButtons(session = session,
                                   inputId = "IdAnalysisStep",
                                   selected = "4")
                
+               enable("GoToPeakView_newSample")
+               enable("CorrectionKernelDensityNexPage_newSample")
+               
+               
              })
 
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button returnAnalysis ~~~~~~~~~~~~~~~~~~~~~~~~#*
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button normIntensity ~~~~~~~~~~~~~~~~~~~~~~~~#*
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$returnAnalysis
+               input$normIntensity
              }
              , {
-               updateRadioButtons(session = session,
-                                  inputId = "IdAnalysisStep",
-                                  selected = "3")
+               updateNavbarPage(session = session,
+                                inputId = "analysisNavbar",
+                                selected = "Samples normalization")
                
                
              })
 
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button Finish_fitModel_newSample ~~~~~~~~~~~~~~~~~~~~~~~~#*
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button normIntensity ~~~~~~~~~~~~~~~~~~~~~~~~#*
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$Finish_fitModel_newSample
-             },
-             handlerExpr = {
-               ask_confirmation(
-                 inputId = "Comfirm_FinishedCEtimeCorrection",
-                 title = NULL,
-                 text = tags$b(
-                   #icon("info"),
-                   paste0(
-                     "Are you sure you’re finished correcting CE-time ?"
-                   ),
-                   style = "color: #FA5858;"
-                 ),
-                 btn_labels = c("Cancel", "OK"),
-                 btn_colors = c("#00BFFF", "#FE2E2E"),
-                 html = TRUE
-               )
+               input$normIntensity
+             }
+             , {
+               updateNavbarPage(session = session,
+                                inputId = "analysisNavbar",
+                                selected = "Samples normalization")
                
                
              })
 
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button Comfirm_FinishedCEtimeCorrection ~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ returnMatchRef ~~~~~~~~~~~~~~~~~~~~~~~~#*
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$Comfirm_FinishedCEtimeCorrection
-             },
-             handlerExpr = {
-               if (input$Comfirm_FinishedCEtimeCorrection == TRUE) {
-                 enable("GroupingButtonIDNewSample")
-                 
-                 ## Export kernel density parameters to Excel
-                 params_log <- isolate(RvarsPeakDetectionNewSample$kernelDensity_params_log)
-                 if (!is.null(params_log) && nrow(params_log) > 0 &&
-                     length(directoryInput$directory) > 0 &&
-                     nzchar(directoryInput$directory)) {
-                   proj_dir <- tryCatch(
-                     file.path(directoryInput$directory,
-                               isolate(RvarsPeakDetectionNewSample$Project_Name)),
-                     error = function(e) directoryInput$directory
-                   )
-                   cat("proj_dir : \n")
-                   print(proj_dir)
-                   cat("directoryInput  : \n")
-                   print(directoryInput)
-                   if (length(proj_dir) == 0 || !dir.exists(proj_dir)) proj_dir <- directoryInput$directory
-                   xlsx_path <- file.path(proj_dir,
-                                          "KernelDensity_Correction_Parameters.xlsx")
-                   tryCatch({
-                     openxlsx::write.xlsx(params_log, file = xlsx_path, rowNames = FALSE)
-                     showNotification(
-                       paste("Parameters saved:", xlsx_path),
-                       type = "message",
-                       duration = 6
-                     )
-                   }, error = function(e) {
-                     showNotification(
-                       paste("Failed to save parameters:", e$message),
-                       type = "error",
-                       duration = 6
-                     )
-                   })
-                 }
-                 
-               }
-             })
-
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button GoMatch ~~~~~~~~~~~~~~~~~~~~~~~~#*
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$GoMatch
+               input$returnMatchRef
              }
              , {
                updateNavbarPage(session = session,
                                 inputId = "analysisNavbar",
                                 selected = "Match reference map")
-               
              })
 
-###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-###~~~~~~~~~~~~~~~~~~~~~~ choix du map de référance ~~~~~~~~~~~~~~~~~~~~~~~~~###
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ returnAnalysisViewer ~~~~~~~~~~~~~~~~~~~~~~~~#*
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$chosseRef
-             },
-             handlerExpr = {
-               print(input$chosseRef)
-               if (input$chosseRef == "") {
-                 print("No reference map")
-                 
-                 updateNavbarPage(session = session,
-                                  inputId = "analysisNavbar",
-                                  selected = "Peak detection")
-                 
-                 ask_confirmation(
-                   inputId = "no_ref_map",
-                   type = "warning",
-                   title = NULL,
-                   text = tags$b(
-                     icon("frown"),
-                     "No reference map available.",
-                     br(),
-                     "Please create a new reference map!",
-                     
-                     style = "color: #FA5858;"
-                   ),
-                   btn_labels = c("Yep"),
-                   btn_colors = c("#FE642E"),
-                   html = TRUE
-                 )
-                 
-                 disable("runPeakPicking")
-                 shinyjs::disable(selector = '.navbar-nav a[data-value="Match reference map"')
-                 
-               } else if (file.exists(file.path(ref_map_directory, input$chosseRef, "run_ref.mzML")) &
-                          file.exists(file.path(ref_map_directory, input$chosseRef, "map_ref.csv")) &
-                          file.exists(file.path(ref_map_directory, input$chosseRef, "paramMsdial.txt")) &
-                          file.exists(file.path(ref_map_directory, input$chosseRef, "defaultParam.txt")) &
-                          file.exists(file.path(
-                            ref_map_directory,
-                            input$chosseRef,
-                            "peaksList_run_ref.csv"
-                          )) &
-                          file.exists(file.path(ref_map_directory, input$chosseRef, "rt_ref.csv")) &
-                          file.exists(file.path(ref_map_directory, input$chosseRef, "normalizers_ref.csv")) &
-                          file.exists(file.path(ref_map_directory, input$chosseRef, "Parameters_Used.txt"))) {
-                 print("Tout est OK !")
-                 
-                 source_python('lib/AnalysisNewSample/Python_files/modify_ParamMsdial.py')
-                 
-                 RvarsPeakDetectionNewSample$run_ref_path <-
-                   file.path(ref_map_directory, input$chosseRef, "run_ref.mzML")
-                 RvarsPeakDetectionNewSample$map_ref_path <-
-                   file.path(ref_map_directory, input$chosseRef, "map_ref.csv")
-                 RvarsPeakDetectionNewSample$paramMsdial_ref_path <-
-                   file.path(ref_map_directory, input$chosseRef, "paramMsdial.txt")
-                 RvarsPeakDetectionNewSample$defaultParam_ref_path <-
-                   file.path(ref_map_directory, input$chosseRef, "defaultParam.txt")
-                 RvarsPeakDetectionNewSample$peaksList_run_ref_path <-
-                   file.path(ref_map_directory,
-                             input$chosseRef,
-                             "peaksList_run_ref.csv")
-                 RvarsPeakDetectionNewSample$rt_min_max_run_ref_path <-
-                   file.path(ref_map_directory, input$chosseRef, "rt_ref.csv")
-                 RvarsPeakDetectionNewSample$normalizers_ref_path <-
-                   file.path(ref_map_directory,
-                             input$chosseRef,
-                             "normalizers_ref.csv")
-                 
-                 RvarsPeakDetectionNewSample$export_param_path <-
-                   file.path(ref_map_directory,
-                             input$chosseRef,
-                             "Parameters_Used.txt")
-                 RvarsPeakDetectionNewSample$output_export_param_path <-
-                   file.path(ref_map_directory, input$chosseRef, "outputParam.txt")
-                 
-                 RvarsPeakDetectionNewSample$defaultParam <-
-                   readDefaultParam(req(RvarsPeakDetectionNewSample$defaultParam_ref_path))
-                 
-                 RvarsPeakDetectionNewSample$map_ref <-
-                   utils:::read.csv(RvarsPeakDetectionNewSample$map_ref_path, sep = ",")
-                 
-                 colnames(RvarsPeakDetectionNewSample$map_ref)[2:3] <-
-                   c("M+H", "CE-time")
-                 
-                 RvarsPeakDetectionNewSample$normalizers_ref <-
-                   read.csv(RvarsPeakDetectionNewSample$normalizers_ref_path, sep = ",")
-                 
-                 
-                 enable("runPeakPicking")
-                 shinyjs::enable(selector = '.navbar-nav a[data-value="Match reference map"')
-                 
-               } else {
-                 print("Pas bon !")
-                 
-                 message("Incomplete reference map...!")
-                 disable("runPeakPicking")
-                 shinyjs::disable(selector = '.navbar-nav a[data-value="Match reference map"')
-                 
-                 RvarsPeakDetectionNewSample$run_ref_path <-
-                   character()
-                 RvarsPeakDetectionNewSample$map_ref_path <-
-                   character()
-                 RvarsPeakDetectionNewSample$paramMsdial_ref_path <-
-                   character()
-                 RvarsPeakDetectionNewSample$defaultParam_ref_path <-
-                   character()
-                 RvarsPeakDetectionNewSample$peaksList_run_ref_path <-
-                   character()
-                 RvarsPeakDetectionNewSample$rt_min_max_run_ref_path <-
-                   character()
-                 RvarsPeakDetectionNewSample$normalizers_ref_path <-
-                   character()
-                 RvarsPeakDetectionNewSample$export_param_path <-
-                   NULL
-                 RvarsPeakDetectionNewSample$output_export_param_path <-
-                   NULL
-                 
-                 
-                 RvarsPeakDetectionNewSample$defaultParam = NULL
-                 
-                 RvarsPeakDetectionNewSample$map_ref <-
-                   data.frame(
-                     ID = character(),
-                     mz = numeric(0),
-                     rt = numeric(0),
-                     maxo = numeric(0)
-                   )
-                 RvarsPeakDetectionNewSample$normalizers_ref <-
-                   data.frame()
-                 
-                 
-                 
-                 
-                 ask_confirmation(
-                   inputId = "error_ref_map",
-                   type = "warning",
-                   title = NULL,
-                   text = tags$b(
-                     icon("frown"),
-                     "Incomplete reference map.",
-                     br(),
-                     "Please recreate the map again !",
-                     style = "color: #FA5858;"
-                   ),
-                   btn_labels = c("Yep"),
-                   btn_colors = c("#FE642E"),
-                   html = TRUE
-                 )
-               }
+               input$returnAnalysisViewer
+             }
+             , {
+               updateNavbarPage(session = session,
+                                inputId = "analysisNavbar",
+                                selected = "Peak detection and grouping")
+               
+               
+               updateRadioButtons(session = session,
+                                  inputId = "IdAnalysisStep",
+                                  selected = "4")
+               
                
              })
 
 
-###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Input Files ~~~~~~~~~~~~~~~~~~~~~~~~~###
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-directoryInput <- reactiveValues(directory = getwd())
-
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$directory
-             },
-             handlerExpr = {
-               if (input$directory > 0) {
-                 # condition prevents handler execution on initial app launch
-                 
-                 # launch the directory selection dialog with initial path read from the widget
-                 directoryInput$directory = choose.dir(default = readDirectoryInput(session, 'directory'))
-                 directoryInput$directory = str_replace_all(directoryInput$directory,
-                                                            pattern =  "\\\\",
-                                                            replacement  = "/")
-                 
-                 # update the widget value
-                 updateDirectoryInput(session, 'directory', value = directoryInput$directory)
-                 
-                 
-                 
-               }
-             })
-
-
-## Peuple dynamiquement la liste déroulante "Resume" : tous les sous-dossiers
-## de directoryInput$directory dont le nom commence par "<projectName>_",
-## triés du plus récent au plus ancien (même logique que côté NRM).
-output$ui_existingProjects_newSample <- renderUI({
-  req(input$resumeMode_newSample == "resume")
-  raw_dir   <- req(directoryInput$directory)
-  base_name <- trimws(input$projectName)
-  req(nzchar(base_name))
-  
-  all_dirs <- list.dirs(raw_dir, recursive = FALSE, full.names = FALSE)
-  matching <- sort(
-    all_dirs[startsWith(all_dirs, paste0(base_name, "_"))],
-    decreasing = TRUE   # most recent timestamp first
-  )
-  
-  if (length(matching) == 0) {
-    return(tagList(
-      tags$p(
-        style = "color:#a94442; font-style:italic;",
-        paste0('No existing project found for "', base_name, '".')
-      )
-    ))
-  }
-  
-  selectInput(
-    inputId  = "selectedProject_newSample",
-    label    = "Select project to resume:",
-    choices  = matching,
-    selected = matching[1],
-    width    = "100%"
-  )
-})
-
-
-## Résumé réactif avant "Execute" : combien de runs sont détectés dans le
-## dossier source, combien ont déjà un CSV (projet repris) ou une entrée
-## dans le cache inter-session (donc seraient ignorés), combien restent à
-## convertir si on lance le traitement maintenant.
-output$runsDetectionSummary_newSample <- renderUI({
-  raw_dir <- directoryInput$directory
-  req(raw_dir, nzchar(raw_dir), raw_dir != "Choose working directory")
-  
-  all_inputs <- list.files(raw_dir, pattern = "\\.d$|\\.mzML$",
-                           full.names = FALSE, ignore.case = TRUE)
-  if (length(all_inputs) == 0) {
-    return(tags$p(style = "font-style:italic;",
-                  "Aucun fichier .d/.mzML détecté dans ce dossier."))
-  }
-  input_stems <- tolower(sub("\\.(d|mzML)$", "", all_inputs, ignore.case = TRUE))
-  
-  csv_stems <- character(0)
-  if (isTRUE(input$resumeMode_newSample == "resume") &&
-      !is.null(input$selectedProject_newSample) &&
-      nzchar(input$selectedProject_newSample)) {
-    massif_dir <- file.path(raw_dir, input$selectedProject_newSample, "Massif-List")
-    if (dir.exists(massif_dir)) {
-      csv_stems <- tolower(sub("\\.csv$", "",
-                               list.files(massif_dir, pattern = "\\.csv$",
-                                          full.names = FALSE, ignore.case = TRUE),
-                               ignore.case = TRUE))
-    }
-  }
-  
-  cache_stems <- character(0)
-  cache_path <- file.path(raw_dir, ".msdial_processed_cache.txt")
-  if (file.exists(cache_path)) {
-    cached <- tolower(trimws(readLines(cache_path, warn = FALSE)))
-    cache_stems <- sub("\\.(d|mzML)$", "", cached[nzchar(cached)], ignore.case = TRUE)
-  }
-  
-  done_stems <- unique(c(csv_stems, cache_stems))
-  n_total <- length(input_stems)
-  n_done  <- sum(input_stems %in% done_stems)
-  n_todo  <- n_total - n_done
-  
-  div(
-    class = "well well-sm",
-    style = "margin-top:10px;",
-    tags$b(sprintf("%d run(s) détecté(s)", n_total)),
-    tags$br(),
-    sprintf("%d déjà converti(s), %d à convertir", n_done, n_todo)
-  )
-})
-
 
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-###~~~~~~~~~~~~~~~~~~~~~~~~~ Default for some inputs ~~~~~~~~~~~~~~~~~~~~~~~###
+###~~~~~~~~~~~~~~~~~~~~~~ Manage default parameters ~~~~~~~~~~~~~~~~~~~~~~~~~###
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 observe({
-  if (length(input$IdDataType) != 0) {
-    if (input$IdDataType == "defaults") {
-      shinyjs::reset("dataType")
-      updateSelectInput(session = session,
-                        inputId = "MS1_type",
-                        selected = "Profile")
-      updateSelectInput(session = session,
-                        inputId = "MS2_type",
-                        selected = "Profile")
+  if (length(input$normalizingParameters) != 0) {
+    if (input$normalizingParameters == "defaults") {
+      updateNumericInput(session = session,
+                         inputId = "min_iset",
+                         value = 10)
+      updateNumericInput(session = session,
+                         inputId = "cutrat",
+                         value = 1)
     }
     
   }
   
-  if (length(input$ViewSizePoints) != 0) {
-    if (input$ViewSizePoints == "defaults") {
-      shinyjs::reset("sizePoints")
+  if (length(input$ViewSizePointsMatch) != 0) {
+    if (input$ViewSizePointsMatch == "defaults") {
+      shinyjs::reset("sizePointsMatch")
     }
-    
   }
-  
   
 })
 
-
-
-
-
-###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-###~~~~~~~~~~~~~~~~~~ Run peak picking MSDIAl and Deconvolution ~~~~~~~~~~~~~~~###
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+##~~~~~~~~~~~~~~~~~~~~~~~~~ Manage button finishAnalyze ~~~~~~~~~~~~~~~~~~~~~~##
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$runPeakPicking
-             }
-             , {
-               ### Disable some buttons when prepossessing start
-               shinyjs::disable(selector = '.navbar-nav a[data-value="Match reference map"')
-               shinyjs::disable(selector = '.navbar-nav a[data-value="New reference map"')
-               shinyjs::disable(selector = '.navbar-nav a[data-value="Database"')
-               shinyjs::disable(selector = '.navbar-nav a[data-value="Statistical analysis"')
-               shinyjs::disable(selector = '.navbar-nav a[data-value="Help"')
-               
-               
-               
-               disable("runPeakPicking")
-               disable("processParameters")
-               disable("directory")
-               disable("match")
-               #disable("viewResult")
-               disable("features_list")
-               disable("normIntensity")
-               disable("runNormalizing")
-               disable("returnAnalysisViewer")
-               disable("finishAnalyze")
-               disable("returnMatchRef")
-               disable("SaveAnalysisResults")
-               
-               disable(id = "chosseRef")
-               disable(id = "projectName")
-               disable(id = "IdDataType")
-               disable(id = "dataType")
-               disable(id = "MS1_type")
-               disable(id = "MS2_type")
-               hide(id = "ViewAnalysis")
-               hide(id = "RestartProjects")
-               
-               
-               
-               # Show progress stuff
-               shinyjs::show("progressWrapper")
-               shinyjs::show("analysisProgress")
-               shinyjs::show("idpanel_analysisProgress")
-               #shinyjs::html("analysisProgress","Preprocess running !")
-               
-               if (is.na(directoryInput$directory) ||
-                   (directoryInput$directory == "") ||
-                   (directoryInput$directory == getwd()) ||
-                   (req(directoryInput$directory) == "Choose working directory") ||
-                   is.null(directoryInput$directory)) {
-                 message("No file .msdial...!")
-                 
-                 hide("progressWrapper")
-                 hide("analysisProgress")
-                 hide("idpanel_analysisProgress")
-                 enable("runPeakPicking")
-                 enable("updateProject")
-                 enable("confirmProject")
-                 enable("processParameters")
-                 enable("directory")
-                 
-                 enable(id = "chosseRef")
-                 enable(id = "projectName")
-                 enable(id = "dataType")
-                 enable(id = "IdDataType")
-                 enable(id = "MS1_type")
-                 enable(id = "MS2_type")
-                 
-                 shinyjs::html("analysisProgress", html = NULL)
-                 
-                 sendSweetAlert(
-                   session = session,
-                   title = "Warning !",
-                   text = "There is no input MS file to be imported !",
-                   type = "warning"
-                 )
-                 
-                 
-               } else {
-                 withProgress(message = 'Processing...', value = 0, {
-                   source("lib/AnalysisNewSample/R_files/ProcessingAnalysisNewsample.lib.R",
-                          local = TRUE)
-                   source_python("lib/AnalysisNewSample/Python_files/msconverter_command_line.py")
-                   
-                   #incProgress(1/10, detail = paste("Grouping isotopic massifs into features...", round(6/8*100,0),"%",collapse=""))
-                   incProgress(1 / 8, detail = paste("Start preprocessing...", collapse =
-                                                       ""))
-                   ########################################################################
-                   updateShinyProgressBar(
-                     shinyProgressData = list(
-                       session = session,
-                       progressId = "preprocessProgressBar",
-                       progressTotal = 8,
-                       textId = "analysis_pre"
-                     ),
-                     pbValue = 1,
-                     headerMsg = "Start preprocessing....",
-                     footerMsg = "Start preprocessing data..."
-                   )
-                   ########################################################################
-                   
-                   ### Directory Project
-                   if (isTRUE(input$resumeMode_newSample == "resume") &&
-                       !is.null(input$selectedProject_newSample)        &&
-                       nzchar(input$selectedProject_newSample)) {
-                     # Reprendre un projet existant : réutiliser son dossier.
-                     # Le cache .msdial_processed_cache.txt et la vérification des CSV
-                     # déjà présents garantissent que seuls les échantillons non encore
-                     # traités sont retraités.
-                     RvarsPeakDetectionNewSample$Project_Name <- input$selectedProject_newSample
-                     message(sprintf("--- Reprise du projet existant : %s ---",
-                                     input$selectedProject_newSample))
-                   } else {
-                     RvarsPeakDetectionNewSample$Project_Name <-
-                       paste(input$projectName,
-                             sub(
-                               sub(
-                                 sub(
-                                   Sys.time(),
-                                   pattern = "CEST",
-                                   replacement = "",
-                                   fixed = TRUE
-                                 ),
-                                 pattern = ":",
-                                 replacement = "-",
-                                 fixed = TRUE
-                               ),
-                               pattern = ":",
-                               replacement = "-",
-                               fixed = TRUE
-                             ),
-                             sep = "_")
-                     message(sprintf("--- Nouveau projet : %s ---",
-                                     RvarsPeakDetectionNewSample$Project_Name))
-                   }
-                   
-                   
-                   ## project directory (ne PAS supprimer en mode resume : on veut
-                   ## garder l'historique CSV/.msdial déjà produit pour ce projet)
-                   if (!dir.exists(
-                     file.path(
-                       directoryInput$directory,
-                       RvarsPeakDetectionNewSample$Project_Name
-                     )
-                   )) {
-                     dir.create(
-                       file.path(
-                         directoryInput$directory,
-                         RvarsPeakDetectionNewSample$Project_Name
-                       )
-                     )
-                   }
-                   
-                   ## creer un dossier contenant la liste des peaks (idem : ne jamais
-                   ## supprimer un Massif-List existant, sinon on perd les CSV déjà
-                   ## produits et on casse la reprise incrémentale)
-                   if (dir.exists(
-                     file.path(
-                       directoryInput$directory,
-                       RvarsPeakDetectionNewSample$Project_Name,
-                       "Massif-List"
-                     )
-                   )) {
-                     directoryOutput <-
-                       file.path(
-                         directoryInput$directory,
-                         RvarsPeakDetectionNewSample$Project_Name,
-                         "Massif-List"
-                       )
-                   } else{
-                     dir.create(
-                       file.path(
-                         directoryInput$directory,
-                         RvarsPeakDetectionNewSample$Project_Name,
-                         "Massif-List"
-                       )
-                     )
-                     directoryOutput <-
-                       file.path(
-                         directoryInput$directory,
-                         RvarsPeakDetectionNewSample$Project_Name,
-                         "Massif-List"
-                       )
-                   }
-                   
-                   
-                   ### Don't need the mzML files
-                   # ## creer un dossier contenant les fichiers mzML
-                   # if(dir.exists(file.path(directoryInput$directory, RvarsPeakDetectionNewSample$Project_Name,"mzML files"))) {
-                   #   unlink(file.path(directoryInput$directory, RvarsPeakDetectionNewSample$Project_Name,"mzML files"), recursive = TRUE)
-                   #   dir.create(file.path(directoryInput$directory, RvarsPeakDetectionNewSample$Project_Name,"mzML files"))
-                   #   RvarsPeakDetectionNewSample$directoryOutput_mzML_files<-file.path(directoryInput$directory, RvarsPeakDetectionNewSample$Project_Name,"mzML files")
-                   # } else{
-                   #   dir.create(file.path(directoryInput$directory, RvarsPeakDetectionNewSample$Project_Name, "mzML files"))
-                   #   RvarsPeakDetectionNewSample$directoryOutput_mzML_files<-file.path(directoryInput$directory, RvarsPeakDetectionNewSample$Project_Name, "mzML files")
-                   # }
-                   ## Conversion des raw data en .mzML pour l'alignement des runs
-                   # message(" \n --- Convert raw data to .mzML ---\n")
-                   #
-                   # incProgress(1/10, detail = paste("Converting raw data to .mzML...",collapse=""))
-                   # ########################################################################
-                   # updateShinyProgressBar(
-                   #   shinyProgressData=list(
-                   #     session=session,
-                   #     progressId="preprocessProgressBar",
-                   #     progressTotal=10,
-                   #     textId="analysis_pre"
-                   #   ),
-                   #   pbValue=2,
-                   #   headerMsg="Converting raw data...",
-                   #   footerMsg="Converting raw data to .mzML..."
-                   # )
-                   # ########################################################################
-                   #
-                   #
-                   # system.time(convert_to_mzML(directoryInput$directory,RvarsPeakDetectionNewSample$directoryOutput_mzML_files))
-                   # system.time(system2("lib/AnalysisNewSample/cmd/convert_raw_data_to_mzML_centroid.bat"))
-                   #
-                   #
-                   #
-                   # message("--- End converting raw data to .mzML ---\n")
-                   #
-                   # incProgress(1/10, detail = paste("End converting raw data to .mzML...",collapse=""))
-                   # ########################################################################
-                   # updateShinyProgressBar(
-                   #   shinyProgressData=list(
-                   #     session=session,
-                   #     progressId="preprocessProgressBar",
-                   #     progressTotal=10,
-                   #     textId="analysis_pre"
-                   #   ),
-                   #   pbValue=3,
-                   #   headerMsg="Converting raw data...",
-                   #   footerMsg="End coverting..."
-                   # )
-                   # ########################################################################
-                   #
-                   
-                   source_python('lib/AnalysisNewSample/Python_files/export.parameters.py')
-                   
-                   exportMsdialParam(
-                     export_param = req(RvarsPeakDetectionNewSample$export_param_path),
-                     output_export_param =  req(RvarsPeakDetectionNewSample$output_export_param_path),
-                     MS1_type = req(input$MS1_type),
-                     MS2_type = req(input$MS2_type),
-                     ion = req(RvarsPeakDetectionNewSample$defaultParam$ion),
-                     rt_begin = req(
-                       as.character(RvarsPeakDetectionNewSample$defaultParam$rt_begin)
-                     ),
-                     rt_end = req(
-                       as.character(RvarsPeakDetectionNewSample$defaultParam$rt_end)
-                     ),
-                     mz_range_begin = req(
-                       as.character(
-                         RvarsPeakDetectionNewSample$defaultParam$mz_range_begin
-                       )
-                     ),
-                     mz_range_end = req(
-                       as.character(
-                         RvarsPeakDetectionNewSample$defaultParam$mz_range_end
-                       )
-                     ),
-                     mz_tolerance_centroid_MS1 = req(
-                       as.character(
-                         RvarsPeakDetectionNewSample$defaultParam$mz_tolerance_centroid_MS1
-                       )
-                     ),
-                     mz_tolerance_centroid_MS2 = req(
-                       as.character(
-                         RvarsPeakDetectionNewSample$defaultParam$mz_tolerance_centroid_MS2
-                       )
-                     ),
-                     maxCharge = req(
-                       as.character(RvarsPeakDetectionNewSample$defaultParam$maxCharge)
-                     ),
-                     min_Peakwidth = req(
-                       as.character(
-                         RvarsPeakDetectionNewSample$defaultParam$min_Peakwidth
-                       )
-                     ),
-                     min_PeakHeight = req(
-                       as.character(
-                         RvarsPeakDetectionNewSample$defaultParam$min_PeakHeight
-                       )
-                     ),
-                     mass_slice_width = req(
-                       as.character(
-                         RvarsPeakDetectionNewSample$defaultParam$mass_slice_width
-                       )
-                     ),
-                     min_PeaksMassif = req(
-                       as.character(
-                         RvarsPeakDetectionNewSample$defaultParam$min_PeaksMassif
-                       )
-                     ),
-                     Adduct_list = req(
-                       as.list(RvarsPeakDetectionNewSample$defaultParam$Adduct_list)
-                     ),
-                     bw = req(
-                       as.character(RvarsPeakDetectionNewSample$defaultParam$bw)
-                     ),
-                     rt_tolerance = req(
-                       as.character(RvarsPeakDetectionNewSample$defaultParam$bw)
-                     ),
-                     mass_tolerance = req(
-                       as.character(
-                         RvarsPeakDetectionNewSample$defaultParam$mass_tolerance
-                       )
-                     ),
-                     min_iset = req(as.character(input$min_iset)),
-                     cutrat = req(as.character(input$cutrat)),
-                     Ref = req(input$chosseRef)
-                   )
-                   
-                   
-                   
-                   message("--- Start peak picking ---\n")
-                   incProgress(1 / 8, detail = paste("Start peak picking...", collapse =
-                                                       ""))
-                   
-                   ########################################################################
-                   updateShinyProgressBar(
-                     shinyProgressData = list(
-                       session = session,
-                       progressId = "preprocessProgressBar",
-                       progressTotal = 8,
-                       textId = "analysis_pre"
-                     ),
-                     pbValue = 2,
-                     headerMsg = "Calling peak picking...",
-                     footerMsg = "Start peak picking..."
-                   )
-                   ########################################################################
-                   
-                   #### Peak picking — batching + after_batch_fun pattern
-                   n_input_runs <- length(list.files(req(directoryInput$directory),
-                                                     pattern = "\\.d$|\\.mzML$",
-                                                     full.names = TRUE,
-                                                     ignore.case = TRUE))
-                   batch_size_msdial <- if (n_input_runs > 100) 50 else NULL
-                   timeout_sec_msdial <- if (!is.null(batch_size_msdial)) 7200 else NULL
-                   
-                   cache_path_srv <- file.path(req(directoryInput$directory),
-                                               ".msdial_processed_cache.txt")
-                   
-                   # Créer le cluster parallèle UNE SEULE FOIS pour tous les batches.
-                   # Cela évite la création/destruction répétée de sockets TCP (TIME_WAIT)
-                   # qui bloquait l'application au 5e-6e batch.
-                   .find_free_port_deconv <- function() {
-                     tryCatch({
-                       con <- serverSocket(port = 0)
-                       port <- as.integer(sub(".*:(\\d+)$", "\\1", summary(con)$description))
-                       close(con)
-                       port
-                     }, error = function(e) NULL)
-                   }
-                   deconv_bpparam <- NULL
-                   .free_port_deconv <- .find_free_port_deconv()
-                   if (!is.null(.free_port_deconv)) {
-                     deconv_bpparam <- tryCatch(
-                       BiocParallel::SnowParam(
-                         workers = max(1L, parallel::detectCores() - 1L),
-                         type = "SOCK", timeout = 120,
-                         port = .free_port_deconv
-                       ),
-                       error = function(e) {
-                         message(sprintf(
-                           "--- Cluster déconvolution : création SnowParam échouée : %s → SerialParam ---",
-                           conditionMessage(e)))
-                         NULL
-                       }
-                     )
-                     if (!is.null(deconv_bpparam))
-                       message(sprintf(
-                         "--- Cluster déconvolution créé (port %d, %d workers) ---",
-                         .free_port_deconv,
-                         BiocParallel::bpworkers(deconv_bpparam)))
-                   } else {
-                     message("--- Aucun port libre → déconvolution séquentielle ---")
-                   }
-                   
-                   processed_msdial_files <- character(0)
-                   RvarsPeakDetectionNewSample$defective_runs_newSample <- NULL
-                   RvarsPeakDetectionNewSample$empty_msdial_runs_newSample <- NULL
-                   RvarsPeakDetectionNewSample$runs_summary_newSample <- NULL
-                   after_batch_fun <- function(new_msdial_files) {
-                     new_msdial_files <- setdiff(new_msdial_files, processed_msdial_files)
-                     if (length(new_msdial_files) == 0) return(invisible(NULL))
-                     processed_msdial_files <<- c(processed_msdial_files, new_msdial_files)
-                     
-                     # Repérer les .msdial de taille 0 (run MSDIAL inexploitable) AVANT la
-                     # déconvolution : deconv_peaks_MSDIAL() les filtre silencieusement et
-                     # removeFiles() les supprime ensuite — sans cette capture, impossible
-                     # de distinguer au moment du panneau récapitulatif un run "vide" d'un
-                     # échec pour une autre raison.
-                     empty_now <- new_msdial_files[file.size(new_msdial_files) %in% c(0, NA)]
-                     if (length(empty_now) > 0) {
-                       empty_stems <- tolower(sub("\\.msdial$", "", basename(empty_now), ignore.case = TRUE))
-                       RvarsPeakDetectionNewSample$empty_msdial_runs_newSample <-
-                         unique(c(RvarsPeakDetectionNewSample$empty_msdial_runs_newSample, empty_stems))
-                     }
-                     
-                     deconv_peaks_MSDIAL(path_to_peakList = req(new_msdial_files),
-                                         output_directory = directoryOutput,
-                                         file_adduct = "data/Adduit.csv",
-                                         mass_slice_width = as.numeric(
-                                           req(RvarsPeakDetectionNewSample$defaultParam$mass_slice_width)
-                                         ),
-                                         min_PeaksMassif = as.numeric(
-                                           req(RvarsPeakDetectionNewSample$defaultParam$min_PeaksMassif)
-                                         ),
-                                         bpparam = deconv_bpparam,
-                                         shinyProgressData =
-                                           list(session = session,
-                                                progressId = "preprocessProgressBar",
-                                                progressTotal = 8,
-                                                textId = "analysis_pre"))
-                     removeFiles(path_to_files = directoryOutput, ext = '.msdial')
-                     
-                     # Écrire dans le cache APRÈS déconvolution réussie
-                     msdial_stems   <- tolower(sub("\\.msdial$", "", basename(new_msdial_files),
-                                                   ignore.case = TRUE))
-                     all_inputs_srv <- list.files(req(directoryInput$directory),
-                                                  pattern    = "\\.d$|\\.mzML$",
-                                                  full.names = FALSE, ignore.case = TRUE)
-                     input_stems_srv <- tolower(sub("\\.(d|mzML)$", "", all_inputs_srv,
-                                                    ignore.case = TRUE))
-                     matched_srv <- all_inputs_srv[input_stems_srv %in% msdial_stems]
-                     # if (length(matched_srv) > 0) {
-                     #   # Ne marquer "traité" que les échantillons ayant réellement un CSV :
-                     #   # un .msdial vide/corrompu passe par deconv_peaks_MSDIAL() sans
-                     #   # erreur mais sans produire de CSV (filtré en interne) — sans ce
-                     #   # garde-fou, l'échantillon serait marqué "fait" à tort et ne
-                     #   # serait plus jamais retraité automatiquement.
-                     #   existing_csv_stems <- tolower(sub("\\.csv$", "",
-                     #                                     list.files(directoryOutput, pattern = "\\.csv$",
-                     #                                                full.names = FALSE, ignore.case = TRUE),
-                     #                                     ignore.case = TRUE))
-                     #   matched_stems_srv <- tolower(sub("\\.(d|mzML)$", "", matched_srv, ignore.case = TRUE))
-                     #   skipped_no_csv <- matched_srv[!(matched_stems_srv %in% existing_csv_stems)]
-                     #   if (length(skipped_no_csv) > 0) {
-                     #     message(sprintf(
-                     #       "--- Cache : %d échantillon(s) NON ajoutés (pas de CSV produit) : %s ---",
-                     #       length(skipped_no_csv), paste(skipped_no_csv, collapse = ", ")))
-                     #   }
-                     #   matched_srv <- matched_srv[matched_stems_srv %in% existing_csv_stems]
-                     # }
-                     
-                     
-                     if (length(matched_srv) > 0) {
-                       existing_c <- if (file.exists(cache_path_srv)) {
-                         tolower(trimws(readLines(cache_path_srv, warn = FALSE)))
-                       } else character(0)
-                       to_add_srv <- matched_srv[!(tolower(matched_srv) %in%
-                                                     existing_c[nzchar(existing_c)])]
-                       if (length(to_add_srv) > 0) {
-                         cat(paste(to_add_srv, collapse = "\n"), "\n",
-                             file = cache_path_srv, append = TRUE)
-                         message(sprintf("--- Cache : %d échantillon(s) ajoutés ---",
-                                         length(to_add_srv)))
-                       }
-                     }
-                     gc()
-                   }
-                   
-                   # Reprise des .msdial orphelins (MS-DIAL fini mais déconvolution crashée)
-                   if (dir.exists(directoryOutput)) {
-                     all_msdial <- list.files(directoryOutput,
-                                              pattern    = "\\.msdial$",
-                                              full.names = TRUE, ignore.case = TRUE)
-                     all_msdial <- all_msdial[!grepl("AlignResult-", basename(all_msdial), ignore.case = TRUE)]
-                     existing_csv_stems <- tolower(sub("\\.csv$", "",
-                                                       list.files(directoryOutput, pattern = "\\.csv$",
-                                                                  full.names = FALSE, ignore.case = TRUE), ignore.case = TRUE))
-                     msdial_stems_chk <- tolower(sub("\\.msdial$", "", basename(all_msdial), ignore.case = TRUE))
-                     pending_msdial <- all_msdial[!(msdial_stems_chk %in% existing_csv_stems)]
-                     
-                     if (length(pending_msdial) > 0) {
-                       message(sprintf(
-                         "--- Reprise : %d fichier(s) .msdial sans CSV → déconvolution ---",
-                         length(pending_msdial)))
-                       chunk_size_deconv <- 50L
-                       n_chunks <- ceiling(length(pending_msdial) / chunk_size_deconv)
-                       for (ch in seq_len(n_chunks)) {
-                         ch_start <- (ch - 1L) * chunk_size_deconv + 1L
-                         ch_end   <- min(ch * chunk_size_deconv, length(pending_msdial))
-                         chunk_files <- pending_msdial[ch_start:ch_end]
-                         after_batch_fun(chunk_files)
-                       }
-                     }
-                   }
-                   
-                   system.time(
-                     findPeaks_MSDIAL(
-                       input_files = req(directoryInput$directory),
-                       output_files = directoryOutput,
-                       output_export_param = file.path("data/References", req(input$chosseRef)),
-                       rt_begin = req(
-                         as.character(RvarsPeakDetectionNewSample$defaultParam$rt_begin)
-                       ),
-                       rt_end = req(
-                         as.character(RvarsPeakDetectionNewSample$defaultParam$rt_end)
-                       ),
-                       mz_range_begin = req(
-                         as.character(
-                           RvarsPeakDetectionNewSample$defaultParam$mz_range_begin
-                         )
-                       ),
-                       mz_range_end = req(
-                         as.character(
-                           RvarsPeakDetectionNewSample$defaultParam$mz_range_end
-                         )
-                       ),
-                       MS1_type = req(input$MS1_type),
-                       MS2_type = req(input$MS2_type),
-                       Adduct_list = req(
-                         as.list(RvarsPeakDetectionNewSample$defaultParam$Adduct_list)
-                       ),
-                       maxCharge = req(
-                         as.character(RvarsPeakDetectionNewSample$defaultParam$maxCharge)
-                       ),
-                       min_Peakwidth = req(
-                         as.character(
-                           RvarsPeakDetectionNewSample$defaultParam$min_Peakwidth
-                         )
-                       ),
-                       min_PeakHeight = req(
-                         RvarsPeakDetectionNewSample$defaultParam$min_PeakHeight
-                       ),
-                       mass_slice_width = req(
-                         as.character(
-                           RvarsPeakDetectionNewSample$defaultParam$mass_slice_width
-                         )
-                       ),
-                       batch_size = batch_size_msdial,
-                       after_batch_fun = after_batch_fun,
-                       timeout_sec = timeout_sec_msdial,
-                       shinyProgressData = list(
-                         session = session,
-                         progressId = "preprocessProgressBar",
-                         progressTotal = 8,
-                         textId = "analysis_pre"
-                       )
-                     )
-                   )
-                   
-                   
-                   
-                   
-                   ###### Suppression des fichiers inutiles après peak picking
-                   
-                   message("--- Deleting unnecessary files ---\n")
-                   
-                   incProgress(1 / 8,
-                               detail = paste("Deleting unnecessary files...", collapse = ""))
-                   ########################################################################
-                   updateShinyProgressBar(
-                     shinyProgressData = list(
-                       session = session,
-                       progressId = "preprocessProgressBar",
-                       progressTotal = 8,
-                       textId = "analysis_pre"
-                     ),
-                     pbValue = 5,
-                     headerMsg = " Deleting unnecessary files...",
-                     footerMsg = ""
-                   )
-                   ########################################################################
-                   
-                   
-                   source_python('lib/AnalysisNewSample/Python_files/modify_ParamMsdial.py')
-                   
-                   removeFiles(path_to_files = directoryInput$directory,
-                               ext = '.dcl')
-                   removeFiles(path_to_files = directoryInput$directory,
-                               ext = '.pai2')
-                   removeFiles(path_to_files = directoryInput$directory,
-                               ext = '.aef')
-                   
-                   
-                   
-                   #### Grouping isotopic massifs into peptides
-                   
-                   # Supprimer les AlignResult-* (fichiers projet MS-DIAL, inutiles)
-                   align_files <- list.files(directoryOutput, pattern = "^AlignResult-", full.names = TRUE)
-                   if (length(align_files) > 0) file.remove(align_files)
-                   
-                   # Vérifier s'il reste des .msdial non traités (mode sans batching ou leftovers)
-                   path_file_msdial_newSample <- list.files(directoryOutput,
-                                                            pattern = "\\.msdial$",
-                                                            full.names = TRUE, ignore.case = TRUE)
-                   path_file_msdial_newSample <- path_file_msdial_newSample[
-                     !grepl("AlignResult-", basename(path_file_msdial_newSample), ignore.case = TRUE)]
-                   
-                   if (length(path_file_msdial_newSample) >= 1) {
-                     # .msdial restants = mode non-batché ou orphelins → déconvolution classique
-                     RvarsPeakDetectionNewSample$peaks_MSDIAL_mono_iso_newSample <-
-                       deconv_peaks_MSDIAL(
-                         path_to_peakList = req(path_file_msdial_newSample),
-                         output_directory = directoryOutput,
-                         file_adduct = "data/Adduit.csv",
-                         mass_slice_width = as.numeric(
-                           req(RvarsPeakDetectionNewSample$defaultParam$mass_slice_width)
-                         ),
-                         min_PeaksMassif = as.numeric(
-                           req(RvarsPeakDetectionNewSample$defaultParam$min_PeaksMassif)
-                         ),
-                         bpparam = deconv_bpparam,
-                         shinyProgressData =
-                           list(session = session,
-                                progressId = "preprocessProgressBar",
-                                progressTotal = 8,
-                                textId = "analysis_pre")
-                       )
-                     removeFiles(path_to_files = directoryOutput, ext = '.msdial')
-                   } else {
-                     # Mode batché : reconstituer le tableau depuis les CSV
-                     csv_files <- list.files(directoryOutput, pattern = "\\.csv$",
-                                             full.names = TRUE, ignore.case = TRUE)
-                     if (length(csv_files) > 0) {
-                       message(sprintf("--- Agrégation de %d CSV (produits par le traitement bout-en-bout) ---",
-                                       length(csv_files)))
-                       all_peaks <- lapply(csv_files, function(f) {
-                         tryCatch(read.csv(f, stringsAsFactors = FALSE),
-                                  error = function(e) { warning(paste("CSV illisible:", f)); NULL })
-                       })
-                       all_peaks <- all_peaks[!vapply(all_peaks, is.null, logical(1))]
-                       if (length(all_peaks) > 0) {
-                         peaks_combined <- do.call("rbind", all_peaks)
-                         colnames(peaks_combined)[1:10] <- c("mz","mzmin","mzmax","rt","rtmin","rtmax",
-                                                             "into","maxo","sn","sample")
-                         RvarsPeakDetectionNewSample$peaks_MSDIAL_mono_iso_newSample <- peaks_combined
-                       }
-                     }
-                   }
-                   
-                   # Arrêter le cluster une fois tous les batches et la déconvolution finale terminés
-                   if (!is.null(deconv_bpparam)) {
-                     tryCatch(BiocParallel::bpstop(deconv_bpparam), error = function(e) NULL)
-                     message("--- Cluster déconvolution arrêté ---")
-                     deconv_bpparam <- NULL
-                   }
-                   
-                   # Détection des runs non traités (ex : .msdial de taille 0, run MSDIAL
-                   # inexploitable) : tout échantillon d'entrée qui n'a ni CSV produit ni
-                   # entrée dans le cache, après l'intégralité du pipeline (y compris les
-                   # tours de récupération internes à findPeaks_MSDIAL). Affiché via un
-                   # panneau dédié (pas de popup automatique) pour ne pas se télescoper
-                   # avec le sendSweetAlert "Preprocess complete !" ci-dessous.
-                   {
-                     all_inputs_final <- list.files(req(directoryInput$directory),
-                                                    pattern = "\\.d$|\\.mzML$",
-                                                    full.names = FALSE, ignore.case = TRUE)
-                     input_stems_final <- tolower(sub("\\.(d|mzML)$", "", all_inputs_final,
-                                                      ignore.case = TRUE))
-                     csv_stems_final <- tolower(sub("\\.csv$", "",
-                                                    list.files(directoryOutput, pattern = "\\.csv$",
-                                                               full.names = FALSE, ignore.case = TRUE),
-                                                    ignore.case = TRUE))
-                     cache_stems_final <- character(0)
-                     if (file.exists(cache_path_srv)) {
-                       cached_final <- tolower(trimws(readLines(cache_path_srv, warn = FALSE)))
-                       cache_stems_final <- sub("\\.(d|mzML)$", "", cached_final[nzchar(cached_final)],
-                                                ignore.case = TRUE)
-                     }
-                     done_stems_final <- unique(c(csv_stems_final, cache_stems_final))
-                     RvarsPeakDetectionNewSample$defective_runs_newSample <-
-                       all_inputs_final[!(input_stems_final %in% done_stems_final)]
-                     
-                     # Compte global (feature "nombre de runs transformés") : total
-                     # détecté dans le dossier source vs. effectivement converti (CSV
-                     # ou cache) à l'issue du pipeline.
-                     RvarsPeakDetectionNewSample$runs_summary_newSample <- list(
-                       total   = length(all_inputs_final),
-                       success = sum(input_stems_final %in% done_stems_final)
-                     )
-                     
-                     if (length(RvarsPeakDetectionNewSample$defective_runs_newSample) > 0) {
-                       message(sprintf(
-                         "--- %d run(s) non traité(s) (msdial vide/défectueux) : %s ---",
-                         length(RvarsPeakDetectionNewSample$defective_runs_newSample),
-                         paste(RvarsPeakDetectionNewSample$defective_runs_newSample, collapse = ", ")))
-                     }
-                   }
-                   
-                   
-                   if (!is.null(RvarsPeakDetectionNewSample$peaks_MSDIAL_mono_iso_newSample)) {
-                     RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample <-
-                       split(
-                         RvarsPeakDetectionNewSample$peaks_MSDIAL_mono_iso_newSample,
-                         f =
-                           RvarsPeakDetectionNewSample$peaks_MSDIAL_mono_iso_newSample$sample
-                       )
-                     
-                     
-                     
-                     
-                     
-                     message(" \n --- Preprocess complete ! ---\n")
-                     ########################################################################
-                     updateShinyProgressBar(
-                       shinyProgressData = list(
-                         session = session,
-                         progressId = "preprocessProgressBar",
-                         progressTotal = 8,
-                         textId = "analysis_pre"
-                       ),
-                       pbValue = 8,
-                       headerMsg = " Preprocess complete !",
-                       footerMsg = ""
-                     )
-                     ########################################################################
-                     
-                     
-                     
-                     
-                     # Pipeline completed hopefully
-                     #shinyjs::html("analysisProgress","Preprocess complete !")
-                     
-                     #### End Processing
-                     sendSweetAlert(
-                       session = session,
-                       title = "Preprocess complete !",
-                       text = HTML(
-                         paste(
-                           '<h3> Parameters used : </h3>
-
-                <span style="font-weight:bold;">Reference map : ',
-                           req(input$chosseRef),
-                           '</span>
-
-                <h4>Mass accuracy(centroid parameter) : </h4>
+               input$finishAnalyze
+             },
+             
+             handlerExpr = {
+               ### End Processing
+               sendSweetAlert(
+                 session = session,
+                 title = paste("Thank you !", "\n", "Data Analysis has been completed."),
+                 text = HTML(
+                   '<h3> You have done the following : </h3>
                 <ol style = "list-style-type: none;">
-                <li>MS1 tolerance (Da) : ',
-                           req(
-                             as.character(
-                               RvarsPeakDetectionNewSample$defaultParam$mz_tolerance_centroid_MS1
-                             )
-                           ),
-                           '</li>
-                <li>MS2 tolerance (Da) : ',
-                           req(
-                             as.character(
-                               RvarsPeakDetectionNewSample$defaultParam$mz_tolerance_centroid_MS2
-                             )
-                           ),
-                           '</li>
-                </ol>
-
-                <h4>Peak detection parameters : </h4>
-                <ol style = "list-style-type: none;">
-                <li>Mass slice width (Da) : ',
-                           req(
-                             as.character(
-                               RvarsPeakDetectionNewSample$defaultParam$mass_slice_width
-                             )
-                           ),
-                           ' </li>
-                <li>Minimum peak height (amplitude) : ',
-                           req(
-                             as.character(
-                               RvarsPeakDetectionNewSample$defaultParam$min_PeakHeight
-                             )
-                           ),
-                           ' </li>
-                <li>Minimum peak widt (scan) : ',
-                           req(
-                             as.character(
-                               RvarsPeakDetectionNewSample$defaultParam$min_Peakwidth
-                             )
-                           ),
-                           ' </li>
-                <li>Maximum charged number : ',
-                           req(
-                             as.character(RvarsPeakDetectionNewSample$defaultParam$maxCharge)
-                           ),
-                           '</li>
-                </ol>
-
-                <h4> Grouping of chromatographic peaks within samples : </h4>
-                <ol style = "list-style-type: none;">
-                <li>Bandwidth (CE-time tolerance) (second) : ',
-                           req(
-                             as.character(RvarsPeakDetectionNewSample$defaultParam$bw)
-                           ),
-                           ' </li>
+                <li>Peak picking, CE-time correction and grouping of features which are similar in the samples.</li>
+                <li>Match features on the original reference map.</li>
+                <li>Normalization in intensity of features using internal standards.</li>
                 </ol>
                 <br/>
-                <h3>Click OK to continue !</h3>'
-                         )
-                       ),
-                       type = "success",
-                       width = "70%",
-                       closeOnClickOutside = FALSE,
-                       html = TRUE
-                     )
-                     
-                     
-                     
-                     
-                     #showTab("analysisNavbar","Samples normalization", select = TRUE, session = session)
-                     
-                     # updateNavbarPage(
-                     #   session = session,
-                     #   inputId = "analysisNavbar",
-                     #   selected = "Match reference map"
-                     # )
-                     
-                     updateRadioButtons(session = session,
-                                        inputId = "IdAnalysisStep",
-                                        selected = "2")
-                     
-                     shinyjs::show("normIntensity")
-                     shinyjs::enable(selector = '.navbar-nav a[data-value="Samples normalization"')
-                     
-                     
-                   } else {
-                     message("No file .msdial...!")
-                     hide("progressWrapper")
-                     hide("analysisProgress")
-                     hide("idpanel_analysisProgress")
-                     enable("runPeakPicking")
-                     enable("updateProject")
-                     enable("confirmProject")
-                     enable("processParameters")
-                     enable("directory")
-                     
-                     enable(id = "chosseRef")
-                     enable(id = "projectName")
-                     enable(id = "dataType")
-                     enable(id = "IdDataType")
-                     enable(id = "MS1_type")
-                     enable(id = "MS2_type")
-                     
-                     
-                     shinyjs::html("analysisProgress", html = NULL)
-                     
-                     sendSweetAlert(
-                       session = session,
-                       title = "Warning !",
-                       text = "There is no input MS file to be imported !",
-                       type = "alert"
-                     )
-                   }
-                   
-                 })
-                 
-               }
+                <h3>Click ok to return to the "Analysis new samples" page.</h3>'
+                 ),
+                 type = "success",
+                 width = "80%",
+                 closeOnClickOutside = FALSE,
+                 html = TRUE
+               )
                
+               updateNavbarPage(inputId = "analysisNavbar",
+                                session = session,
+                                selected = "Peak detection and grouping")
                
+               updateRadioButtons(session = session,
+                                  inputId = "IdAnalysisStep",
+                                  selected = "1")
                
-               enable("match")
-               enable("normIntensity")
-               enable("runNormalizing")
-               enable("returnAnalysisViewer")
-               enable("returnMatchRef")
-               enable("SaveAnalysisResults")
-               enable("finishAnalyze")
-               enable("features_list")
-               shinyjs::enable(selector = '.navbar-nav a[data-value="Match reference map"')
-               shinyjs::enable(selector = '.navbar-nav a[data-value="New reference map"')
-               shinyjs::enable(selector = '.navbar-nav a[data-value="Database"')
-               shinyjs::enable(selector = '.navbar-nav a[data-value="Statistical analysis"')
-               shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
-               
-               shinyjs::show("id_PlotCutt_newSample")
-               
-               
+               shinyjs::show("runPeakPicking")
+               shinyjs::show(id = "buttonResetViewAnalysis")
+               shinyjs::show(id = "RestartProjects")
+               shinyjs::show(id = "ViewAnalysis")
+               enable("runPeakPicking")
                
              })
 
 
-## Panneau récapitulatif après peak picking : nombre de runs transformés
-## avec succès, et (si non vide) le badge + bouton pour la liste des runs
-## non traités (msdial vide/défectueux). Pas de popup automatique, pour ne
-## pas se télescoper avec le sendSweetAlert "Preprocess complete !".
-output$defectiveRunsPanel_newSample <- renderUI({
-  summary_info <- RvarsPeakDetectionNewSample$runs_summary_newSample
-  defective <- RvarsPeakDetectionNewSample$defective_runs_newSample
-  if (is.null(summary_info)) return(NULL)
-  
-  tagList(
-    div(style = "margin-top:10px;",
-        tags$span(class = "label label-info",
-                  sprintf("%d/%d run(s) transformé(s) avec succès",
-                          summary_info$success, summary_info$total))
-    ),
-    if (!is.null(defective) && length(defective) > 0) {
-      div(style = "margin-top:5px;",
-          tags$span(class = "label label-warning",
-                    sprintf("%d run(s) non traité(s) (msdial vide/défectueux)", length(defective))),
-          actionButton("viewDefectiveRuns_newSample", "Voir la liste",
-                       class = "btn-xs btn-warning", style = "margin-left:8px;")
-      )
-    }
-  )
-})
-
-observeEvent(input$viewDefectiveRuns_newSample, {
-  defective <- RvarsPeakDetectionNewSample$defective_runs_newSample
-  empty_stems <- RvarsPeakDetectionNewSample$empty_msdial_runs_newSample
-  
-  defective_items <- lapply(defective, function(f) {
-    stem <- tolower(sub("\\.(d|mzML)$", "", f, ignore.case = TRUE))
-    reason <- if (!is.null(empty_stems) && stem %in% empty_stems) {
-      " — Run vide (MSDIAL n'a rien détecté)"
-    } else {
-      " — Non traité (raison inconnue)"
-    }
-    tags$li(paste0(f, reason))
-  })
-  
-  showModal(modalDialog(
-    title = "Runs non traités (msdial vide ou défectueux)",
-    tags$p(sprintf(
-      "%d échantillon(s) n'ont pas pu être convertis en CSV après les tours de récupération.",
-      length(defective))),
-    tags$ul(defective_items),
-    easyClose = TRUE,
-    footer = modalButton("Fermer"),
-    size = "m"
-  ))
-})
-
-
-########################################################################
-# Reset the timebar for later
-updateShinyProgressBar(
-  shinyProgressData = list(
-    session = session,
-    progressId = "preprocessProgressBar",
-    progressTotal = 8,
-    textId = "analysis_pre"
-  ),
-  pbValue = 1,
-  headerMsg = "",
-  footerMsg = ""
-)
-########################################################################
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-
-
-
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-###~~~~~~~~~~~~~~~~~~~~~~~~ Upload massif list files  ~~~~~~~~~~~~~~~~~~~~~~~~~###
+###~~~~~~~~~~~~~~~~~~~~~~ Uploading features list files ~~~~~~~~~~~~~~~~~~~~~~~~~###
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$massif_list_newSample
+               input$features_list
              }
              , {
-               files <- input$massif_list_newSample
+               files <- input$features_list
                ext <- tools::file_ext(files$datapath)
                
                
                if (length(ext) > 1) {
                  if (all.equal(ext, rep("csv", length(ext))) != TRUE) {
                    message("Please upload a csv file...!")
+                   # hide("progressWrapper")
+                   # hide("analysisProgress")
+                   # shinyjs::html("analysisProgress",html = NULL)
                    
                    sendSweetAlert(
                      session = session,
@@ -6649,132 +179,107 @@ observeEvent(ignoreNULL = TRUE,
                      type = "warning"
                    )
                  } else {
-                   a <- lapply(input$massif_list_newSample$datapath, read.csv)
+                   # req(files)
+                   # validate(need(ext == "csv", "Please upload a csv file"))
+                   
+                   a <- lapply(input$features_list$datapath, read.csv)
                    tryCatch({
                      a <- do.call("rbind", a)
                    },
                    error = function(e) {
                      message("Please upload a csv file...!")
+                     # hide("progressWrapper")
+                     # hide("analysisProgress")
+                     # shinyjs::html("analysisProgress",html = NULL)
                      
                      sendSweetAlert(
                        session = session,
                        title = "Warning !",
-                       text = "Required columns : 'M+H', 'M+H.min','M+H.max', 'CE-time','CE-time.min','CE-time.max',
-                       'integrated-intensity', 'intensity','sn', 'sample', 'iso.mass','iso.mass.link','mz_PeaksIsotopics_Group',
-                           'rt_PeaksIsotopics_Group','Height_PeaksIsotopics_Group','Adduct' not found in files.",
+                       text = "Required columns : 'M+H', 'CE-time', 'intensity', 'sample', 'iso.mass', 'iso.mass.link', 'mz_PeaksIsotopics_Group',
+                            'rt_PeaksIsotopics_Group', 'Height_PeaksIsotopics_Group', not found in files.",
                        type = "warning"
                      )
                    })
                    
                    
+                   
                    if (!is.element("M.H", colnames(a)) ||
-                       !is.element("M.H.min", colnames(a)) ||
-                       !is.element("M.H.max", colnames(a)) ||
-                       !is.element("CE.time", colnames(a)) ||
-                       !is.element("CE.time.min", colnames(a)) ||
-                       !is.element("CE.time.max", colnames(a)) ||
-                       !is.element("integrated.intensity", colnames(a)) ||
+                       !is.element('CE.time', colnames(a)) ||
                        !is.element("intensity", colnames(a)) ||
-                       !is.element("sn", colnames(a)) ||
                        !is.element("sample", colnames(a)) ||
                        !is.element("iso.mass", colnames(a)) ||
                        !is.element("iso.mass.link", colnames(a)) ||
                        !is.element("mz_PeaksIsotopics_Group", colnames(a)) ||
                        !is.element("rt_PeaksIsotopics_Group", colnames(a)) ||
                        !is.element("Height_PeaksIsotopics_Group", colnames(a)) ||
-                       !is.element("Adduct", colnames(a)) ||
-                       ncol(a) < 16) {
+                       ncol(a) < 9) {
                      message("Please upload a csv file...!")
+                     # hide("progressWrapper")
+                     # hide("analysisProgress")
+                     # shinyjs::html("analysisProgress",html = NULL)
                      
                      sendSweetAlert(
                        session = session,
                        title = "Warning !",
-                       text = "Required columns : 'M+H', 'M+H.min','M+H.max', 'CE-time','CE-time.min','CE-time.max',
-                       'integrated-intensity', 'intensity','sn', 'sample', 'iso.mass','iso.mass.link','mz_PeaksIsotopics_Group',
-                           'rt_PeaksIsotopics_Group','Height_PeaksIsotopics_Group','Adduct' not found in files.",
+                       text = "Required columns : 'M+H', 'CE-time', 'intensity', 'sample', 'iso.mass', 'iso.mass.link', 'mz_PeaksIsotopics_Group',
+                   'rt_PeaksIsotopics_Group', 'Height_PeaksIsotopics_Group', not found in files.",
                        type = "warning"
                      )
                    } else {
-                     
-                     
                      ColnameData <-
                        c(
                          'M.H',
-                         'M.H.min',
-                         'M.H.max',
                          'CE.time',
-                         'CE.time.min',
-                         'CE.time.max',
-                         'integrated-intensity',
                          'intensity',
-                         'sn',
                          'sample',
                          'iso.mass',
                          'iso.mass.link',
                          'mz_PeaksIsotopics_Group',
                          'rt_PeaksIsotopics_Group',
-                         'Height_PeaksIsotopics_Group',
-                         'Adduct'
+                         'Height_PeaksIsotopics_Group'
                        )
                      
-                     ColnamesToUse <-
-                       c(
-                         "mz",
-                         "mzmin",
-                         "mzmax",
-                         "rt",
-                         "rtmin",
-                         "rtmax",
-                         "into",
-                         "maxo",
-                         "sn",
+                     ColnamesToUse <- c(
+                       'M+H',
+                       'CE-time',
+                       'intensity',
+                       'sample',
+                       'iso.mass',
+                       'iso.mass.link',
+                       'mz_PeaksIsotopics_Group',
+                       'rt_PeaksIsotopics_Group',
+                       'Height_PeaksIsotopics_Group'
+                     )
+                     
+                     colnames(a)[which(colnames(a) %in% ColnameData)] <-
+                       ColnamesToUse
+                     
+                     a <-
+                       a[, c(
+                         "M+H",
+                         "CE-time",
+                         "intensity",
                          "sample",
                          'iso.mass',
                          'iso.mass.link',
                          'mz_PeaksIsotopics_Group',
                          'rt_PeaksIsotopics_Group',
-                         'Height_PeaksIsotopics_Group',
-                         'Adduct'
-                       )
-                     
-                     colnames(a) <- ColnamesToUse
-                     
-                     a <- a
+                         'Height_PeaksIsotopics_Group'
+                       )]
+                     #colnames(a)<-c("mz","rt","maxo","sample")
                      a <- split(a, f = a$sample)
-                     RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample <-
-                       a
-                     
-                     
-                     updateRadioButtons(session = session,
-                                        inputId = "IdAnalysisStep",
-                                        selected = "2")
-                     enable("ViewAnalysis_duplicate")
-                     shinyjs::show("id_PlotCutt_newSample")
-                     
-                     shinyjs::show("normIntensity")
-                     shinyjs::enable(selector = '.navbar-nav a[data-value="Samples normalization"')
-                     
-                     enable("match")
-                     enable("normIntensity")
-                     enable("runNormalizing")
-                     enable("returnAnalysisViewer")
-                     enable("returnMatchRef")
-                     enable("SaveAnalysisResults")
-                     enable("finishAnalyze")
-                     enable("features_list")
-                     shinyjs::enable(selector = '.navbar-nav a[data-value="Match reference map"')
-                     shinyjs::enable(selector = '.navbar-nav a[data-value="New reference map"')
-                     shinyjs::enable(selector = '.navbar-nav a[data-value="Database"')
-                     shinyjs::enable(selector = '.navbar-nav a[data-value="Statistical analysis"')
-                     shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
-                     
-                     
+                     names(a) <- 1:length(a)
+                     RvarsPeakDetectionNewSample$FeaturesList_newSample <- a
+                     #hide("runPeakPicking")
                    }
                    
                  }
                } else {
                  if (ext != "csv") {
                    message("Please upload a csv file...!")
+                   # hide("progressWrapper")
+                   # hide("analysisProgress")
+                   # shinyjs::html("analysisProgress",html = NULL)
                    
                    sendSweetAlert(
                      session = session,
@@ -6783,130 +288,1224 @@ observeEvent(ignoreNULL = TRUE,
                      type = "warning"
                    )
                  } else {
-                   a <- lapply(input$massif_list_newSample$datapath, read.csv)
+                   # req(files)
+                   # validate(need(ext == "csv", "Please upload a csv file"))
+                   a <- lapply(input$features_list$datapath, read.csv)
                    tryCatch({
                      a <- do.call("rbind", a)
                    },
                    error = function(e) {
                      message("Please upload a csv file...!")
+                     # hide("progressWrapper")
+                     # hide("analysisProgress")
+                     # shinyjs::html("analysisProgress",html = NULL)
+                     
                      
                      sendSweetAlert(
                        session = session,
                        title = "Warning !",
-                       text = "Required columns : 'M+H', 'M+H.min','M+H.max', 'CE-time','CE-time.min','CE-time.max',
-                       'integrated-intensity', 'intensity','sn', 'sample', 'iso.mass','iso.mass.link','mz_PeaksIsotopics_Group',
-                           'rt_PeaksIsotopics_Group','Height_PeaksIsotopics_Group','Adduct' not found in files.",
-                       type = "warning"
+                       text = "Required columns : 'M+H', 'CE-time', 'intensity', 'sample', 'iso.mass', 'iso.mass.link', 'mz_PeaksIsotopics_Group',
+                   'rt_PeaksIsotopics_Group', 'Height_PeaksIsotopics_Group', not found in files.",
+                       type = "warning",
                      )
                    })
                    
                    
                    
+                   
                    if (!is.element("M.H", colnames(a)) ||
-                       !is.element("M.H.min", colnames(a)) ||
-                       !is.element("M.H.max", colnames(a)) ||
                        !is.element("CE.time", colnames(a)) ||
-                       !is.element("CE.time.min", colnames(a)) ||
-                       !is.element("CE.time.max", colnames(a)) ||
-                       !is.element("integrated.intensity", colnames(a)) ||
                        !is.element("intensity", colnames(a)) ||
-                       !is.element("sn", colnames(a)) ||
                        !is.element("sample", colnames(a)) ||
                        !is.element("iso.mass", colnames(a)) ||
                        !is.element("iso.mass.link", colnames(a)) ||
                        !is.element("mz_PeaksIsotopics_Group", colnames(a)) ||
                        !is.element("rt_PeaksIsotopics_Group", colnames(a)) ||
                        !is.element("Height_PeaksIsotopics_Group", colnames(a)) ||
-                       !is.element("Adduct", colnames(a)) ||
-                       ncol(a) < 16) {
+                       ncol(a) < 9) {
                      message("Please upload a csv file...!")
+                     # hide("progressWrapper")
+                     # hide("analysisProgress")
+                     # shinyjs::html("analysisProgress",html = NULL)
                      message("\n Probleme inconnu")
                      
                      sendSweetAlert(
                        session = session,
                        title = "Warning !",
-                       text = "Required columns : 'M+H', 'M+H.min','M+H.max', 'CE-time','CE-time.min','CE-time.max',
-                       'integrated-intensity', 'intensity','sn', 'sample', 'iso.mass','iso.mass.link','mz_PeaksIsotopics_Group',
-                           'rt_PeaksIsotopics_Group','Height_PeaksIsotopics_Group','Adduct' not found in files.",
+                       text = "Required columns : 'M+H', 'CE-time', 'intensity', 'sample', 'iso.mass', 'iso.mass.link', 'mz_PeaksIsotopics_Group',
+                   'rt_PeaksIsotopics_Group', 'Height_PeaksIsotopics_Group', not found in files.",
                        type = "warning"
                      )
                    } else {
+                     ColnameData <- c(
+                       'M.H',
+                       'CE.time',
+                       'intensity',
+                       'sample',
+                       'iso.mass',
+                       'iso.mass.link',
+                       'mz_PeaksIsotopics_Group',
+                       'rt_PeaksIsotopics_Group',
+                       'Height_PeaksIsotopics_Group'
+                     )
                      
-                     ColnameData <-
-                       c(
-                         'M.H',
-                         'M.H.min',
-                         'M.H.max',
-                         'CE.time',
-                         'CE.time.min',
-                         'CE.time.max',
-                         'integrated-intensity',
-                         'intensity',
-                         'sn',
-                         'sample',
-                         'iso.mass',
-                         'iso.mass.link',
-                         'mz_PeaksIsotopics_Group',
-                         'rt_PeaksIsotopics_Group',
-                         'Height_PeaksIsotopics_Group',
-                         'Adduct'
-                       )
+                     ColnamesToUse <- c(
+                       'M+H',
+                       'CE-time',
+                       'intensity',
+                       'sample',
+                       'iso.mass',
+                       'iso.mass.link',
+                       'mz_PeaksIsotopics_Group',
+                       'rt_PeaksIsotopics_Group',
+                       'Height_PeaksIsotopics_Group'
+                     )
                      
-                     ColnamesToUse <-
-                       c(
-                         "mz",
-                         "mzmin",
-                         "mzmax",
-                         "rt",
-                         "rtmin",
-                         "rtmax",
-                         "into",
-                         "maxo",
-                         "sn",
+                     colnames(a)[which(colnames(a) %in% ColnameData)] <-
+                       ColnamesToUse
+                     
+                     a <-
+                       a[, c(
+                         "M+H",
+                         "CE-time",
+                         "intensity",
                          "sample",
                          'iso.mass',
                          'iso.mass.link',
                          'mz_PeaksIsotopics_Group',
                          'rt_PeaksIsotopics_Group',
-                         'Height_PeaksIsotopics_Group',
-                         'Adduct'
-                       )
-                     
-                     colnames(a) <- ColnamesToUse
-                     
-                     
-                     a <- a
+                         'Height_PeaksIsotopics_Group'
+                       )]
+                     #colnames(a)<-c("mz","rt","maxo","sample")
                      a <- split(a, f = a$sample)
-                     RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample <-
-                       a
-                     
-                     updateRadioButtons(session = session,
-                                        inputId = "IdAnalysisStep",
-                                        selected = "2")
-                     
-                     enable("ViewAnalysis_duplicate")
-                     shinyjs::show("id_PlotCutt_newSample")
-                     
-                     shinyjs::show("normIntensity")
-                     shinyjs::enable(selector = '.navbar-nav a[data-value="Samples normalization"')
-                     
-                     enable("match")
-                     enable("normIntensity")
-                     enable("runNormalizing")
-                     enable("returnAnalysisViewer")
-                     enable("returnMatchRef")
-                     enable("SaveAnalysisResults")
-                     enable("finishAnalyze")
-                     enable("features_list")
-                     shinyjs::enable(selector = '.navbar-nav a[data-value="Match reference map"')
-                     shinyjs::enable(selector = '.navbar-nav a[data-value="New reference map"')
-                     shinyjs::enable(selector = '.navbar-nav a[data-value="Database"')
-                     shinyjs::enable(selector = '.navbar-nav a[data-value="Statistical analysis"')
-                     shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
-                     
+                     names(a) <- 1:length(a)
+                     RvarsPeakDetectionNewSample$FeaturesList_newSample <- a
+                     #hide(id = "runPeakPicking")
                      
                    }
                  }
+               }
+               
+               
+             })
+
+
+
+###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+###~~~~~~~~~~~~~~~~~~~~~~ Matching new sample on reference map ~~~~~~~~~~~~~~~~~###
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+
+###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Automatic compute ~~~~~~~~~~~~~~~~~~~~~~~~~~###
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$IncludeSample
+             },
+             handlerExpr = {
+               shinyjs::show("wellPanelMatchOutput")
+               if (!is.null(ms_features_list_newSample_toUse())) {
+                 source("lib/AnalysisNewSample/R_files/matched_reference_map.lib.R",
+                        local = TRUE)
+                 
+                 
+                 RvarsMatchNewsample$res_match_ref <- matchNewSample_ref(
+                   ms_features_MSDIAL_list = req(ms_features_list_newSample_toUse()),
+                   map_ref = req(RvarsPeakDetectionNewSample$map_ref),
+                   rt_tolerance = req(
+                     as.numeric(RvarsPeakDetectionNewSample$defaultParam$bw)
+                   ),
+                   mass_tolerance = req(
+                     as.numeric(
+                       RvarsPeakDetectionNewSample$defaultParam$mass_tolerance
+                     )
+                   )
+                 )
+                 
+                 
+                 
+                 res_MatrixNewSample_save <-
+                   RvarsMatchNewsample$res_match_ref$res_newSample
+                 # RvarsMatchNewsample$res_MatrixNewSample<-
+                 #   read.csv("C:/Users/mouhamed.seye/Desktop/Test/New project_2022-07-22 09-04-39/Peak list result/Matrix_abondance.csv")
+                 
+                 colnames(res_MatrixNewSample_save)[2] <- "M+H"
+                 colnames(res_MatrixNewSample_save)[3] <- "CE-time"
+                 
+                 # write.table(res_MatrixNewSample_save,
+                 #           file = file.path(file.path(directoryInput$directory, rValues$Project_Name,
+                 #                                      "Peak list result","Matrix_abondance.csv"),
+                 #                            sep = ""), sep = ",", row.names = FALSE)
+                 
+                 
+                 ##### plot results
+                 RvarsMatchNewsample$res_MatrixNewSample <-
+                   req(RvarsMatchNewsample$res_match_ref$res_newSample)
+                 
+                 if (!is.null(RvarsMatchNewsample$res_MatrixNewSample)) {
+                   updateSelectInput(
+                     session = session,
+                     inputId = "levelSampleMatch",
+                     choices = colnames(RvarsMatchNewsample$res_MatrixNewSample)[4:ncol(RvarsMatchNewsample$res_MatrixNewSample)]
+                   )
+                   
+                   
+                   
+                   
+                   res_MatrixNewSampleViewer <- reactive({
+                     if (!is.null(RvarsMatchNewsample$res_MatrixNewSample)) {
+                       if (input$levelSampleMatch %in% colnames(RvarsMatchNewsample$res_MatrixNewSample)[4:ncol(RvarsMatchNewsample$res_MatrixNewSample)]) {
+                         valuesNomatch <-
+                           RvarsMatchNewsample$res_match_ref$noMatch_newSample[input$levelSampleMatch][[1]]
+                         
+                         values <-
+                           data.frame(
+                             RvarsMatchNewsample$res_MatrixNewSample[, 1:3],
+                             M.H_newSample = NA,
+                             CE.time_adj = NA,
+                             sample = RvarsMatchNewsample$res_MatrixNewSample[, input$levelSampleMatch],
+                             Match = "NULL"
+                           )
+                         
+                         
+                         
+                         valuesMatched <-
+                           valuesNomatch[!is.na(valuesNomatch$ID), ]
+                         
+                         for (i in valuesMatched$ID) {
+                           values[values$ID == i, ]$M.H_newSample <-
+                             valuesMatched[valuesMatched$ID == i, ]$`M+H`
+                           values[values$ID == i, ]$CE.time_adj <-
+                             valuesMatched[valuesMatched$ID == i, ]$`CE-time`
+                         }
+                         
+                         
+                         if (is.element(TRUE, is.na(values$sample)))
+                           values[is.na(values$sample), ]$Match <- "Ref map"
+                         if (is.element(TRUE,!is.na(values$sample)))
+                           values[!is.na(values$sample), ]$Match <- "Matched"
+                         
+                         
+                         colnames(values)[2:3] <- c("M+H", "CE-time")
+                         values <-
+                           values[, c("M+H",
+                                      "CE-time",
+                                      "M.H_newSample",
+                                      "CE.time_adj",
+                                      "sample",
+                                      "Match")]
+                         
+                         
+                         
+                         valuesNomatch$sample <- NA
+                         valuesNomatch$sample <- as.numeric(valuesNomatch$sample)
+                         
+                         idx_Duplicates_ref <-
+                           valuesNomatch[valuesNomatch$Match == "Duplicates", ]$ID
+                         
+                         
+                         if (length(idx_Duplicates_ref)) {
+                           values[idx_Duplicates_ref, ]$Match <- "Duplicates"
+                         }
+                         
+                         
+                         
+                         
+                         valuesNomatch <- valuesNomatch[is.na(valuesNomatch$ID), ]
+                         valuesNomatch$M.H_newSample <- valuesNomatch$`M+H`
+                         valuesNomatch$CE.time_adj <- valuesNomatch$`CE-time`
+                         valuesNomatch <-
+                           valuesNomatch[, c("M+H",
+                                             "CE-time",
+                                             "M.H_newSample",
+                                             "CE.time_adj",
+                                             "sample",
+                                             "Match")]
+                         
+                         
+                         res <- rbind(values, valuesNomatch)
+                         res <- as.data.frame(res)
+                         res$Match <-
+                           factor(res$Match,
+                                  levels = c("Ref map", "Matched", "No match", "Duplicates"))
+                         
+                         res
+                         
+                         
+                       }
+                     }
+                     
+                   })
+                   
+                   ##### Matched table
+                   observe({
+                     if (!is.null(RvarsMatchNewsample$res_MatrixNewSample)) {
+                       if (input$levelSampleMatch %in% colnames(RvarsMatchNewsample$res_MatrixNewSample)[4:ncol(RvarsMatchNewsample$res_MatrixNewSample)]) {
+                         RvarsMatchNewsample$matchedTable_newSample <-
+                           RvarsMatchNewsample$res_match_ref$matchedTable_newSample[input$levelSampleMatch][[1]]
+                         
+                       }
+                     }
+                   })
+                   
+                   shinyjs::show(id = "IdmatchedTableViewer")
+                   output$matchedTableViewer <- renderDT({
+                     if (!is.null(RvarsMatchNewsample$res_MatrixNewSample)) {
+                       if (input$levelSampleMatch %in% colnames(RvarsMatchNewsample$res_MatrixNewSample)[4:ncol(RvarsMatchNewsample$res_MatrixNewSample)]) {
+                         rColsUsed <-
+                           c(
+                             "M+H.ref",
+                             "CE-time.ref",
+                             "intensity.ref",
+                             "iso.mass.ref",
+                             "iso.mass.link.ref",
+                             "mz_PeaksIsotopics_Group.ref",
+                             "rt_PeaksIsotopics_Group.ref",
+                             "Height_PeaksIsotopics_Group.ref"
+                           )
+                         
+                         colnames(RvarsMatchNewsample$matchedTable_newSample)[1:8] <-
+                           rColsUsed
+                         
+                         datatable(req(RvarsMatchNewsample$matchedTable_newSample))
+                       }
+                     }
+                   })
+                   
+                   
+                   
+                   ####### Convert to min or sec the plot
+                   
+                   observe({
+                     RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime <-
+                       req(res_MatrixNewSampleViewer())
+                     
+                   })
+                   
+                   
+                   
+                   observeEvent(
+                     ignoreNULL = TRUE,
+                     eventExpr = {
+                       input$levelSampleMatch
+                     },
+                     handlerExpr = {
+                       RvarsMatchNewsample$SecondMatch <- TRUE
+                       if (input$UnitTimeMatch == "Minute") {
+                         ### Conversion Seconde en min
+                         print(
+                           paste(
+                             "Convert to min",
+                             input$UnitTimeMatch == "Minute" &
+                               RvarsMatchNewsample$SecondMatch == TRUE
+                           )
+                         )
+                         if (input$UnitTimeMatch == "Minute" &
+                             RvarsMatchNewsample$SecondMatch == TRUE) {
+                           if (!is.null(RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime)) {
+                             RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$`CE-time` <-
+                               req(
+                                 RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$`CE-time`
+                               ) / 60
+                             
+                             RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$CE.time_adj <-
+                               req(
+                                 RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$CE.time_adj
+                               ) / 60
+                             RvarsMatchNewsample$SecondMatch <- FALSE
+                           }
+                         }
+                       }
+                       
+                       
+                     }
+                   )
+                   
+                   
+                   observeEvent(
+                     ignoreNULL = TRUE,
+                     eventExpr = {
+                       input$features_list
+                     },
+                     handlerExpr = {
+                       updateRadioGroupButtons(session = session,
+                                               inputId = "UnitTimeMatch",
+                                               selected = "Second")
+                       RvarsMatchNewsample$SecondMatch == TRUE
+                       ## reset coord_cartesian
+                       rangesZoomAnalyisPlotSamplesSelected$x <- NULL
+                       rangesZoomAnalyisPlotSamplesSelected$y <- NULL
+                       
+                       
+                     }
+                   )
+                   
+                   observeEvent(
+                     ignoreNULL = TRUE,
+                     eventExpr = {
+                       input$UnitTimeMatch
+                     },
+                     handlerExpr = {
+                       #RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime<-ms_features_MSDIAL_newSample_toPlot()
+                       print(
+                         paste(
+                           "Convert to min",
+                           input$UnitTimeMatch == "Minute" &
+                             RvarsMatchNewsample$SecondMatch == TRUE
+                         )
+                       )
+                       if (input$UnitTimeMatch == "Minute" &
+                           RvarsMatchNewsample$SecondMatch == TRUE) {
+                         if (!is.null(RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime)) {
+                           RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$`CE-time` <-
+                             req(
+                               RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$`CE-time`
+                             ) / 60
+                           
+                           RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$CE.time_adj <-
+                             req(
+                               RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$CE.time_adj
+                             ) / 60
+                           RvarsMatchNewsample$SecondMatch <- FALSE
+                         }
+                       }
+                       
+                       print(
+                         paste(
+                           "Covert to Second",
+                           input$UnitTimeMatch == "Second" &
+                             RvarsMatchNewsample$SecondMatch == FALSE
+                         )
+                       )
+                       if (input$UnitTimeMatch == "Second" &
+                           RvarsMatchNewsample$SecondMatch == FALSE) {
+                         if (!is.null(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime)) {
+                           RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$`CE-time` <-
+                             req(
+                               RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$`CE-time`
+                             ) * 60
+                           
+                           RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$CE.time_adj <-
+                             req(
+                               RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$CE.time_adj
+                             ) * 60
+                           RvarsMatchNewsample$SecondMatch <- TRUE
+                         }
+                       }
+                       
+                       if (input$UnitTimeMatch == "Second" &
+                           RvarsMatchNewsample$SecondMatch == TRUE) {
+                         RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime <-
+                           req(res_MatrixNewSampleViewer())
+                       }
+                       
+                       
+                     }
+                   )
+                   
+                   number_matched <- reactive({
+                     if (!is.null(res_MatrixNewSampleViewer())) {
+                       #sum(!is.na(res_MatrixNewSampleViewer()$sample))
+                       nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match ==
+                                                          "Matched", ])
+                     }
+                   })
+                   
+                   rangesZoommatchViewer <- reactiveValues(x = NULL, y = NULL)
+                   
+                   # When a double-click happens, check if there's a brush on the plot.
+                   # If so, zoom to the brush bounds; if not, reset the zoom.
+                   observeEvent({
+                     input$matchViewerNewSample_dblclick
+                   }, {
+                     brush <- input$matchViewerNewSample_brush
+                     if (!is.null(brush)) {
+                       rangesZoommatchViewer$x <- c(brush$xmin, brush$xmax)
+                       rangesZoommatchViewer$y <- c(brush$ymin, brush$ymax)
+                       
+                     } else {
+                       rangesZoommatchViewer$x <- NULL
+                       rangesZoommatchViewer$y <- NULL
+                     }
+                   })
+                   
+                   shinyjs::show(id = "Idfeatures_matchViewer")
+                   output$features_matchViewer <- renderPlot({
+                     if (!is.null(RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime)) {
+                       res_Matrix_toPlot <-
+                         RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime
+                       
+                       
+                       numberFeatures_RefMap <-
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match == "Matched", ]) +
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match ==
+                                                            "Ref map", ]) +
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match ==
+                                                            "Duplicates", ])
+                       
+                       
+                       numberFeatures_NewSample <-
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match == "No match", ]) +
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match ==
+                                                            "Matched", ])
+                       
+                       message("\n numberFeatures_NewSample:")
+                       print(numberFeatures_NewSample)
+                       percentMatched_ByNewSample <-
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match == "Matched", ]) *
+                         100 / numberFeatures_NewSample
+                       
+                       percentDuplicates_ByNewSample <-
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match == "Duplicates", ]) *
+                         100 / numberFeatures_NewSample
+                       
+                       
+                       
+                       par(fig = c(0, 1, 0, 1), mar = c(4, 4, 10, 0))
+                       plot(
+                         x = res_Matrix_toPlot$`CE-time`,
+                         y = res_Matrix_toPlot$`M+H`,
+                         axes = T,
+                         pch = 20,
+                         col = "white",
+                         cex = input$sizePointsMatch,
+                         xlab = paste("CE-time(", input$UnitTimeMatch, ")"),
+                         ylab = "M+H(Da)",
+                         xlim = rangesZoommatchViewer$x,
+                         ylim = rangesZoommatchViewer$y,
+                         main = paste0(
+                           "REFRENCE MAP: ",
+                           req(input$chosseRef),
+                           " (",
+                           numberFeatures_RefMap,
+                           " features)",
+                           "\n",
+                           "Sample: ",
+                           input$levelSampleMatch,
+                           "\n",
+                           "Number of features matched: ",
+                           number_matched(),
+                           "\n",
+                           "",
+                           "\n",
+                           "% of matched rapported to ref map: ",
+                           round(number_matched() / numberFeatures_RefMap * 100, 2),
+                           "%",
+                           "\n",
+                           "% of matched rapported to new sample: ",
+                           round(percentMatched_ByNewSample, 2),
+                           "%",
+                           "\n",
+                           "% of Duplicates rapported to new sample: ",
+                           round(percentDuplicates_ByNewSample, 5),
+                           "%"
+                         ),
+                         
+                         col.main = "#760001",
+                         
+                         font.main = 2,
+                         cex.lab = 1.2,
+                         font.lab = 2,
+                         cex.axis = 1.1,
+                         font.axis = 2,
+                         cex.main = 1.2
+                       )
+                       
+                       
+                       
+                       points(
+                         x = res_Matrix_toPlot[res_Matrix_toPlot$Match == "Ref map", ]$`CE-time` ,
+                         y = res_Matrix_toPlot[res_Matrix_toPlot$Match == "Ref map", ]$`M+H`,
+                         pch = 20,
+                         col = "gray61",
+                         cex = input$sizePointsMatch
+                       )
+                       
+                       points(
+                         x = res_Matrix_toPlot[res_Matrix_toPlot$Match == "Matched", ]$`CE-time` ,
+                         y = res_Matrix_toPlot[res_Matrix_toPlot$Match == "Matched", ]$`M+H`,
+                         pch = 20,
+                         col = "dodgerblue",
+                         cex = input$sizePointsMatch
+                       )
+                       
+                       points(
+                         x = res_Matrix_toPlot[res_Matrix_toPlot$Match == "No match", ]$`CE-time` ,
+                         y = res_Matrix_toPlot[res_Matrix_toPlot$Match == "No match", ]$`M+H`,
+                         pch = 20,
+                         col = "red",
+                         cex = input$sizePointsMatch
+                       )
+                       
+                       points(
+                         x = res_Matrix_toPlot[res_Matrix_toPlot$Match == "Duplicates", ]$`CE-time` ,
+                         y = res_Matrix_toPlot[res_Matrix_toPlot$Match == "Duplicates", ]$`M+H`,
+                         pch = 20,
+                         col = "green",
+                         cex = input$sizePointsMatch
+                       )
+                       
+                       # axis(1,col="black",col.axis="black",
+                       #      font = 2, cex.lab = 1.3, cex.axis = 1.2, lwd = 2, line = 0)
+                       # # mtext("Ce-time(second)",side=1,line=3,col="black", font = 2, cex=1.2)
+                       # #
+                       # axis(2,col="black",col.axis="black",
+                       #      font = 2, cex.lab = 1.3, cex.axis = 1.2, lwd = 2, line = 0)
+                       # # mtext("M+H(Da)",side=2,line=3,col="black", font = 2, cex=1.2)
+                       
+                       legend(
+                         "topleft",
+                         pch = 20,
+                         pt.cex = 2,
+                         inset = 0,
+                         text.font = 2.3,
+                         legend = levels(res_Matrix_toPlot$Match),
+                         bty = "n",
+                         xpd = NA,
+                         cex = 1.2,
+                         col = c("gray61", "dodgerblue", "red", "green"),
+                         horiz = FALSE
+                       )
+                       grid(nx = 14)
+                       
+                       
+                     }
+                   })
+                   
+                   output$matchViewerNewSamplet_hover_info <- renderUI({
+                     hover <- req(input$matchViewerNewSamplet_hover)
+                     if (!is.null(RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime)) {
+                       point <-
+                         suppressWarnings(
+                           nearPoints(
+                             req(
+                               RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime
+                             ),
+                             hover,
+                             xvar = "CE-time",
+                             yvar = "M+H",
+                             threshold = 5,
+                             maxpoints = 1,
+                             addDist = TRUE
+                           )
+                         )
+                       if (nrow(point) == 0)
+                         return(NULL)
+                       
+                       # calculate point position INSIDE the image as percent of total dimensions
+                       # from left (horizontal) and from top (vertical)
+                       left_pct <-
+                         (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+                       top_pct <-
+                         (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+                       
+                       # calculate distance from left and bottom side of the picture in pixels
+                       left_px <-
+                         hover$range$left + left_pct * (hover$range$right - hover$range$left)
+                       top_px <-
+                         hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+                       
+                       # create style property fot tooltip
+                       # background color is set so tooltip is a bit transparent
+                       # z-index is set so we are sure are tooltip will be on top
+                       # style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); ",
+                       #                 "left:", left_px + 2, "px; top:", top_px + 2, "px;")
+                       
+                       style <-
+                         paste0(
+                           "position:absolute; z-index:100; background-color: #760001; color: white;",
+                           "left:",
+                           left_px + 2,
+                           "px; top:",
+                           top_px + 2,
+                           "px;"
+                         )
+                       
+                       # actual tooltip created as wellPanel
+                       div(class = "well well-sm",
+                           style = style,
+                           p(HTML(
+                             paste0(
+                               "<span class='bullText'> M+H: </span>",
+                               round(point$`M+H`, 4),
+                               "<br/>",
+                               "<span class='bullText'> CE-time: </span>",
+                               round(point$`CE-time`, 2),
+                               "<br/>"
+                             )
+                           )))
+                       
+                     }
+                     
+                     
+                   })
+                 }
+                 
+                 shinyjs::show(id = "Idpercent_matchViewer")
+                 output$percent_matchViewer <- renderDT({
+                   datatable(req(RvarsMatchNewsample$res_match_ref$pct_match_ref))
+                 })
+                 
+                 shinyjs::show("buttonNormIntensity")
+                 shinyjs::enable(selector = '.navbar-nav a[data-value="Samples normalization"')
+                 
+               }
+               
+               
+             })
+
+
+###~~~~~~~~~~~~~~~~~~~~~~~~~ When clicking button match ~~~~~~~~~~~~~~~~~~~~~~~~###
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$match
+             },
+             handlerExpr = {
+               shinyjs::show("wellPanelMatchOutput")
+               if (!is.null(ms_features_list_newSample_toUse())) {
+                 source("lib/AnalysisNewSample/R_files/matched_reference_map.lib.R",
+                        local = TRUE)
+                 
+                 
+                 RvarsMatchNewsample$res_match_ref <- matchNewSample_ref(
+                   ms_features_MSDIAL_list = req(ms_features_list_newSample_toUse()),
+                   map_ref = req(RvarsPeakDetectionNewSample$map_ref),
+                   rt_tolerance = req(
+                     as.numeric(RvarsPeakDetectionNewSample$defaultParam$bw)
+                   ),
+                   mass_tolerance = req(
+                     as.numeric(
+                       RvarsPeakDetectionNewSample$defaultParam$mass_tolerance
+                     )
+                   )
+                 )
+                 
+                 
+                 
+                 res_MatrixNewSample_save <-
+                   RvarsMatchNewsample$res_match_ref$res_newSample
+                 # RvarsMatchNewsample$res_MatrixNewSample<-
+                 #   read.csv("C:/Users/mouhamed.seye/Desktop/Test/New project_2022-07-22 09-04-39/Peak list result/Matrix_abondance.csv")
+                 
+                 colnames(res_MatrixNewSample_save)[2] <- "M+H"
+                 colnames(res_MatrixNewSample_save)[3] <- "CE-time"
+                 
+                 # write.table(res_MatrixNewSample_save,
+                 #           file = file.path(file.path(directoryInput$directory, rValues$Project_Name,
+                 #                                      "Peak list result","Matrix_abondance.csv"),
+                 #                            sep = ""), sep = ",", row.names = FALSE)
+                 
+                 
+                 ##### plot results
+                 RvarsMatchNewsample$res_MatrixNewSample <-
+                   req(RvarsMatchNewsample$res_match_ref$res_newSample)
+                 
+                 if (!is.null(RvarsMatchNewsample$res_MatrixNewSample)) {
+                   updateSelectInput(
+                     session = session,
+                     inputId = "levelSampleMatch",
+                     choices = colnames(RvarsMatchNewsample$res_MatrixNewSample)[4:ncol(RvarsMatchNewsample$res_MatrixNewSample)]
+                   )
+                   
+                   
+                   
+                   
+                   res_MatrixNewSampleViewer <- reactive({
+                     if (!is.null(RvarsMatchNewsample$res_MatrixNewSample)) {
+                       if (input$levelSampleMatch %in% colnames(RvarsMatchNewsample$res_MatrixNewSample)[4:ncol(RvarsMatchNewsample$res_MatrixNewSample)]) {
+                         valuesNomatch <-
+                           RvarsMatchNewsample$res_match_ref$noMatch_newSample[input$levelSampleMatch][[1]]
+                         
+                         values <-
+                           data.frame(
+                             RvarsMatchNewsample$res_MatrixNewSample[, 1:3],
+                             M.H_newSample = NA,
+                             CE.time_adj = NA,
+                             sample = RvarsMatchNewsample$res_MatrixNewSample[, input$levelSampleMatch],
+                             Match = "NULL"
+                           )
+                         
+                         
+                         
+                         valuesMatched <-
+                           valuesNomatch[!is.na(valuesNomatch$ID), ]
+                         
+                         for (i in valuesMatched$ID) {
+                           values[values$ID == i, ]$M.H_newSample <-
+                             valuesMatched[valuesMatched$ID == i, ]$`M+H`
+                           values[values$ID == i, ]$CE.time_adj <-
+                             valuesMatched[valuesMatched$ID == i, ]$`CE-time`
+                         }
+                         
+                         
+                         if (is.element(TRUE, is.na(values$sample)))
+                           values[is.na(values$sample), ]$Match <- "Ref map"
+                         if (is.element(TRUE,!is.na(values$sample)))
+                           values[!is.na(values$sample), ]$Match <- "Matched"
+                         
+                         
+                         colnames(values)[2:3] <- c("M+H", "CE-time")
+                         values <-
+                           values[, c("M+H",
+                                      "CE-time",
+                                      "M.H_newSample",
+                                      "CE.time_adj",
+                                      "sample",
+                                      "Match")]
+                         
+                         
+                         
+                         valuesNomatch$sample <- NA
+                         valuesNomatch$sample <- as.numeric(valuesNomatch$sample)
+                         
+                         idx_Duplicates_ref <-
+                           valuesNomatch[valuesNomatch$Match == "Duplicates", ]$ID
+                         
+                         
+                         if (length(idx_Duplicates_ref)) {
+                           values[idx_Duplicates_ref, ]$Match <- "Duplicates"
+                         }
+                         
+                         
+                         
+                         valuesNomatch <- valuesNomatch[is.na(valuesNomatch$ID), ]
+                         valuesNomatch$M.H_newSample <- valuesNomatch$`M+H`
+                         valuesNomatch$CE.time_adj <- valuesNomatch$`CE-time`
+                         valuesNomatch <-
+                           valuesNomatch[, c("M+H",
+                                             "CE-time",
+                                             "M.H_newSample",
+                                             "CE.time_adj",
+                                             "sample",
+                                             "Match")]
+                         
+                         
+                         res <- rbind(values, valuesNomatch)
+                         res <- as.data.frame(res)
+                         res$Match <-
+                           factor(res$Match,
+                                  levels = c("Ref map", "Matched", "No match", "Duplicates"))
+                         
+                         res
+                         
+                         
+                       }
+                     }
+                     
+                   })
+                   
+                   ##### Matched table
+                   observe({
+                     if (!is.null(RvarsMatchNewsample$res_MatrixNewSample)) {
+                       if (input$levelSampleMatch %in% colnames(RvarsMatchNewsample$res_MatrixNewSample)[4:ncol(RvarsMatchNewsample$res_MatrixNewSample)]) {
+                         RvarsMatchNewsample$matchedTable_newSample <-
+                           RvarsMatchNewsample$res_match_ref$matchedTable_newSample[input$levelSampleMatch][[1]]
+                         
+                       }
+                     }
+                   })
+                   
+                   shinyjs::show(id = "IdmatchedTableViewer")
+                   output$matchedTableViewer <- renderDT({
+                     if (!is.null(RvarsMatchNewsample$res_MatrixNewSample)) {
+                       if (input$levelSampleMatch %in% colnames(RvarsMatchNewsample$res_MatrixNewSample)[4:ncol(RvarsMatchNewsample$res_MatrixNewSample)]) {
+                         rColsUsed <-
+                           c(
+                             "M+H.ref",
+                             "CE-time.ref",
+                             "intensity.ref",
+                             "iso.mass.ref",
+                             "iso.mass.link.ref",
+                             "mz_PeaksIsotopics_Group.ref",
+                             "rt_PeaksIsotopics_Group.ref",
+                             "Height_PeaksIsotopics_Group.ref"
+                           )
+                         
+                         colnames(RvarsMatchNewsample$matchedTable_newSample)[1:8] <-
+                           rColsUsed
+                         
+                         datatable(req(RvarsMatchNewsample$matchedTable_newSample))
+                       }
+                     }
+                   })
+                   
+                   
+                   
+                   ####### Convert to min or sec the plot
+                   
+                   observe({
+                     RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime <-
+                       req(res_MatrixNewSampleViewer())
+                     
+                   })
+                   
+                   
+                   
+                   observeEvent(
+                     ignoreNULL = TRUE,
+                     eventExpr = {
+                       input$levelSampleMatch
+                     },
+                     handlerExpr = {
+                       RvarsMatchNewsample$SecondMatch <- TRUE
+                       if (input$UnitTimeMatch == "Minute") {
+                         ### Conversion Seconde en min
+                         print(
+                           paste(
+                             "Convert to min",
+                             input$UnitTimeMatch == "Minute" &
+                               RvarsMatchNewsample$SecondMatch == TRUE
+                           )
+                         )
+                         if (input$UnitTimeMatch == "Minute" &
+                             RvarsMatchNewsample$SecondMatch == TRUE) {
+                           if (!is.null(RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime)) {
+                             RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$`CE-time` <-
+                               req(
+                                 RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$`CE-time`
+                               ) / 60
+                             
+                             RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$CE.time_adj <-
+                               req(
+                                 RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$CE.time_adj
+                               ) / 60
+                             RvarsMatchNewsample$SecondMatch <- FALSE
+                           }
+                         }
+                       }
+                       
+                       
+                     }
+                   )
+                   
+                   
+                   observeEvent(
+                     ignoreNULL = TRUE,
+                     eventExpr = {
+                       input$features_list
+                     },
+                     handlerExpr = {
+                       updateRadioGroupButtons(session = session,
+                                               inputId = "UnitTimeMatch",
+                                               selected = "Second")
+                       RvarsMatchNewsample$SecondMatch == TRUE
+                       ## reset coord_cartesian
+                       rangesZoomAnalyisPlotSamplesSelected$x <- NULL
+                       rangesZoomAnalyisPlotSamplesSelected$y <- NULL
+                       
+                       
+                     }
+                   )
+                   
+                   observeEvent(
+                     ignoreNULL = TRUE,
+                     eventExpr = {
+                       input$UnitTimeMatch
+                     },
+                     handlerExpr = {
+                       #RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime<-ms_features_MSDIAL_newSample_toPlot()
+                       print(
+                         paste(
+                           "Convert to min",
+                           input$UnitTimeMatch == "Minute" &
+                             RvarsMatchNewsample$SecondMatch == TRUE
+                         )
+                       )
+                       if (input$UnitTimeMatch == "Minute" &
+                           RvarsMatchNewsample$SecondMatch == TRUE) {
+                         if (!is.null(RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime)) {
+                           RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$`CE-time` <-
+                             req(
+                               RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$`CE-time`
+                             ) / 60
+                           
+                           RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$CE.time_adj <-
+                             req(
+                               RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$CE.time_adj
+                             ) / 60
+                           RvarsMatchNewsample$SecondMatch <- FALSE
+                         }
+                       }
+                       
+                       print(
+                         paste(
+                           "Covert to Second",
+                           input$UnitTimeMatch == "Second" &
+                             RvarsMatchNewsample$SecondMatch == FALSE
+                         )
+                       )
+                       if (input$UnitTimeMatch == "Second" &
+                           RvarsMatchNewsample$SecondMatch == FALSE) {
+                         if (!is.null(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime)) {
+                           RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$`CE-time` <-
+                             req(
+                               RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$`CE-time`
+                             ) * 60
+                           
+                           RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$CE.time_adj <-
+                             req(
+                               RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime$CE.time_adj
+                             ) * 60
+                           RvarsMatchNewsample$SecondMatch <- TRUE
+                         }
+                       }
+                       
+                       if (input$UnitTimeMatch == "Second" &
+                           RvarsMatchNewsample$SecondMatch == TRUE) {
+                         RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime <-
+                           req(res_MatrixNewSampleViewer())
+                       }
+                       
+                       
+                     }
+                   )
+                   
+                   number_matched <- reactive({
+                     if (!is.null(res_MatrixNewSampleViewer())) {
+                       #sum(!is.na(res_MatrixNewSampleViewer()$sample))
+                       nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match ==
+                                                          "Matched", ])
+                     }
+                   })
+                   
+                   rangesZoommatchViewer <- reactiveValues(x = NULL, y = NULL)
+                   
+                   # When a double-click happens, check if there's a brush on the plot.
+                   # If so, zoom to the brush bounds; if not, reset the zoom.
+                   observeEvent({
+                     input$matchViewerNewSample_dblclick
+                   }, {
+                     brush <- input$matchViewerNewSample_brush
+                     if (!is.null(brush)) {
+                       rangesZoommatchViewer$x <- c(brush$xmin, brush$xmax)
+                       rangesZoommatchViewer$y <- c(brush$ymin, brush$ymax)
+                       
+                     } else {
+                       rangesZoommatchViewer$x <- NULL
+                       rangesZoommatchViewer$y <- NULL
+                     }
+                   })
+                   
+                   shinyjs::show(id = "Idfeatures_matchViewer")
+                   output$features_matchViewer <- renderPlot({
+                     if (!is.null(RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime)) {
+                       res_Matrix_toPlot <-
+                         RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime
+                       
+                       
+                       numberFeatures_RefMap <-
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match == "Matched", ]) +
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match ==
+                                                            "Ref map", ]) +
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match ==
+                                                            "Duplicates", ])
+                       
+                       
+                       numberFeatures_NewSample <-
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match == "No match", ]) +
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match ==
+                                                            "Matched", ])
+                       
+                       message("\n numberFeatures_NewSample:")
+                       print(numberFeatures_NewSample)
+                       percentMatched_ByNewSample <-
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match == "Matched", ]) *
+                         100 / numberFeatures_NewSample
+                       
+                       percentDuplicates_ByNewSample <-
+                         nrow(res_MatrixNewSampleViewer()[res_MatrixNewSampleViewer()$Match == "Duplicates", ]) *
+                         100 / numberFeatures_NewSample
+                       
+                       
+                       
+                       par(fig = c(0, 1, 0, 1), mar = c(4, 4, 10, 0))
+                       plot(
+                         x = res_Matrix_toPlot$`CE-time`,
+                         y = res_Matrix_toPlot$`M+H`,
+                         axes = T,
+                         pch = 20,
+                         col = "white",
+                         cex = input$sizePointsMatch,
+                         xlab = paste("CE-time(", input$UnitTimeMatch, ")"),
+                         ylab = "M+H(Da)",
+                         xlim = rangesZoommatchViewer$x,
+                         ylim = rangesZoommatchViewer$y,
+                         main = paste0(
+                           "REFRENCE MAP: ",
+                           req(input$chosseRef),
+                           " (",
+                           numberFeatures_RefMap,
+                           " features)",
+                           "\n",
+                           "Sample: ",
+                           input$levelSampleMatch,
+                           "\n",
+                           "Number of features matched: ",
+                           number_matched(),
+                           "\n",
+                           "",
+                           "\n",
+                           "% of matched rapported to ref map: ",
+                           round(number_matched() / numberFeatures_RefMap * 100, 2),
+                           "%",
+                           "\n",
+                           "% of matched rapported to new sample: ",
+                           round(percentMatched_ByNewSample, 2),
+                           "%",
+                           "\n",
+                           "% of Duplicates rapported to new sample: ",
+                           round(percentDuplicates_ByNewSample, 5),
+                           "%"
+                         ),
+                         
+                         col.main = "#760001",
+                         
+                         font.main = 2,
+                         cex.lab = 1.2,
+                         font.lab = 2,
+                         cex.axis = 1.1,
+                         font.axis = 2,
+                         cex.main = 1.2
+                       )
+                       
+                       
+                       
+                       points(
+                         x = res_Matrix_toPlot[res_Matrix_toPlot$Match == "Ref map", ]$`CE-time` ,
+                         y = res_Matrix_toPlot[res_Matrix_toPlot$Match == "Ref map", ]$`M+H`,
+                         pch = 20,
+                         col = "gray61",
+                         cex = input$sizePointsMatch
+                       )
+                       
+                       points(
+                         x = res_Matrix_toPlot[res_Matrix_toPlot$Match == "Matched", ]$`CE-time` ,
+                         y = res_Matrix_toPlot[res_Matrix_toPlot$Match == "Matched", ]$`M+H`,
+                         pch = 20,
+                         col = "dodgerblue",
+                         cex = input$sizePointsMatch
+                       )
+                       
+                       points(
+                         x = res_Matrix_toPlot[res_Matrix_toPlot$Match == "No match", ]$`CE-time` ,
+                         y = res_Matrix_toPlot[res_Matrix_toPlot$Match == "No match", ]$`M+H`,
+                         pch = 20,
+                         col = "red",
+                         cex = input$sizePointsMatch
+                       )
+                       
+                       points(
+                         x = res_Matrix_toPlot[res_Matrix_toPlot$Match == "Duplicates", ]$`CE-time` ,
+                         y = res_Matrix_toPlot[res_Matrix_toPlot$Match == "Duplicates", ]$`M+H`,
+                         pch = 20,
+                         col = "green",
+                         cex = input$sizePointsMatch
+                       )
+                       
+                       # axis(1,col="black",col.axis="black",
+                       #      font = 2, cex.lab = 1.3, cex.axis = 1.2, lwd = 2, line = 0)
+                       # # mtext("Ce-time(second)",side=1,line=3,col="black", font = 2, cex=1.2)
+                       # #
+                       # axis(2,col="black",col.axis="black",
+                       #      font = 2, cex.lab = 1.3, cex.axis = 1.2, lwd = 2, line = 0)
+                       # # mtext("M+H(Da)",side=2,line=3,col="black", font = 2, cex=1.2)
+                       
+                       legend(
+                         "topleft",
+                         pch = 20,
+                         pt.cex = 2,
+                         inset = 0,
+                         text.font = 2.3,
+                         legend = levels(res_Matrix_toPlot$Match),
+                         bty = "n",
+                         xpd = NA,
+                         cex = 1.2,
+                         col = c("gray61", "dodgerblue", "red", "green"),
+                         horiz = FALSE
+                       )
+                       grid(nx = 14)
+                       
+                       
+                     }
+                   })
+                   
+                   output$matchViewerNewSamplet_hover_info <- renderUI({
+                     hover <- req(input$matchViewerNewSamplet_hover)
+                     if (!is.null(RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime)) {
+                       point <-
+                         suppressWarnings(
+                           nearPoints(
+                             req(
+                               RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime
+                             ),
+                             hover,
+                             xvar = "CE-time",
+                             yvar = "M+H",
+                             threshold = 5,
+                             maxpoints = 1,
+                             addDist = TRUE
+                           )
+                         )
+                       if (nrow(point) == 0)
+                         return(NULL)
+                       
+                       # calculate point position INSIDE the image as percent of total dimensions
+                       # from left (horizontal) and from top (vertical)
+                       left_pct <-
+                         (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+                       top_pct <-
+                         (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+                       
+                       # calculate distance from left and bottom side of the picture in pixels
+                       left_px <-
+                         hover$range$left + left_pct * (hover$range$right - hover$range$left)
+                       top_px <-
+                         hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+                       
+                       # create style property fot tooltip
+                       # background color is set so tooltip is a bit transparent
+                       # z-index is set so we are sure are tooltip will be on top
+                       # style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85); ",
+                       #                 "left:", left_px + 2, "px; top:", top_px + 2, "px;")
+                       
+                       style <-
+                         paste0(
+                           "position:absolute; z-index:100; background-color: #760001; color: white;",
+                           "left:",
+                           left_px + 2,
+                           "px; top:",
+                           top_px + 2,
+                           "px;"
+                         )
+                       
+                       # actual tooltip created as wellPanel
+                       div(class = "well well-sm",
+                           style = style,
+                           p(HTML(
+                             paste0(
+                               "<span class='bullText'> M+H: </span>",
+                               round(point$`M+H`, 4),
+                               "<br/>",
+                               "<span class='bullText'> CE-time: </span>",
+                               round(point$`CE-time`, 2),
+                               "<br/>"
+                             )
+                           )))
+                       
+                     }
+                     
+                     
+                   })
+                 }
+                 
+                 shinyjs::show(id = "Idpercent_matchViewer")
+                 output$percent_matchViewer <- renderDT({
+                   datatable(req(RvarsMatchNewsample$res_match_ref$pct_match_ref))
+                 })
+                 
+                 shinyjs::show("buttonNormIntensity")
+                 shinyjs::enable(selector = '.navbar-nav a[data-value="Samples normalization"')
+                 
                }
                
                
@@ -6914,4176 +1513,1118 @@ observeEvent(ignoreNULL = TRUE,
 
 
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-###~~~~~~~~~~~~~~~~~~~~~~~~~~~ Samples filtering ~~~~~~~~~~~~~~~~~~~~~~~~~~###
+###~~~~~~~~~~~~~~~~~~~~~~~ matching new samples results ~~~~~~~~~~~~~~~~~~~~###
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 
-observe({
-  if (!is.null(names(
-    RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-  ))) {
-    RvarsPeakDetectionNewSample$samplesCuttingTable_newSample <-
-      data.frame(
-        row.names = names(
-          RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-        ),
-        rt_min_cut_newSample = rep(
-          NA,
-          length(
-            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-          )
-        ),
-        rt_max_cut_newSample = rep(
-          NA,
-          length(
-            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-          )
-        ),
-        Unit = rep(
-          "Second",
-          length(
-            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-          )
-        )
-      )
-    
-    
-    output$SelectSampleCut <- renderUI({
-      pickerInput(
-        inputId = "sample_selectedCutting_newSample",
-        label = "Select a sample:",
-        choices = names(
-          RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-        ),
-        options = pickerOptions(
-          size = 10,
-          showTick = TRUE,
-          style = "btn-primary"
-        ),
-        width = "fit"
-      )
-    })
-    
-    
-  } else{
-    output$SelectSampleCut <- renderUI({
-      pickerInput(
-        inputId = "sample_selectedCutting_newSample",
-        label = "Select a sample:",
-        choices = NULL,
-        options = pickerOptions(
-          size = 10,
-          showTick = TRUE,
-          style = "btn-primary"
-        ),
-        width = "fit"
-      )
-    })
-    
-    RvarsPeakDetectionNewSample$samplesCuttingTable_newSample <-
-      NULL
-  }
-  
-  
-})
 
+##~~~~~~~~~~~~~~~~~~~~~~~~~~ View zoom matching ~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ sample cutting viewer ~~~~~~~~~~~~~~~~~~~~~~~~#
-observe({
-  if (length(input$sample_selectedCutting_newSample) != 0) {
-    sample_cutting_rv <-
-      req(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[req(input$sample_selectedCutting_newSample)][[1]])
-    colnames(sample_cutting_rv)[c(1, 4, 8)] <-
-      c("M.H", "CE.time", "intensity")
-    sample_cutting_rv$intensity <- log2(sample_cutting_rv$intensity)
-    RvarsPeakDetectionNewSample$sample_cutting_newSample <-
-      sample_cutting_rv
-    
-    
-  }
-  
-})
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Sample cutting to used ~~~~~~~~~~~~~~~~~~~~~~~~#
-## Convert time sample select
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$sample_selectedCutting_newSample
-             },
-             handlerExpr = {
-               RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample <-
-                 req(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[req(input$sample_selectedCutting_newSample)][[1]])
-               colnames(RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample)[c(1, 4, 8)] <-
-                 c("M.H", "CE.time", "intensity")
-               RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$intensity <-
-                 log2(
-                   RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$intensity
-                 )
-               
-               
-               
-               #Because les data viennent initialement en second
-               RvarsPeakDetectionNewSample$Second_Cutting_newSample <-
-                 TRUE
-               if (input$UnitTime_sampleCutting_newSample == "Minute") {
-                 #RvarsPeakDetectionNewSample$peaks_mono_iso_NewRefMap_toPlot_ConvertTime<-peaks_mono_iso_NewRefMap_toPlot()
-                 print(
-                   paste(
-                     "Convert to min",
-                     input$UnitTime_sampleCutting_newSample == "Minute" &
-                       RvarsPeakDetectionNewSample$Second_Cutting_newSample == TRUE
-                   )
-                 )
-                 if (input$UnitTime_sampleCutting_newSample == "Minute" &
-                     RvarsPeakDetectionNewSample$Second_Cutting_newSample == TRUE) {
-                   if (!is.null(RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample)) {
-                     RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$CE.time <-
-                       req(
-                         RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$CE.time
-                       ) / 60
-                     RvarsPeakDetectionNewSample$Second_Cutting_newSample <-
-                       FALSE
-                   }
-                 }
-               }
-               
-               
-               if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-                 RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 3] <-
-                   input$UnitTime_sampleCutting_newSample
-                 
-               }
-             })
-
-
-
-
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$UnitTime_sampleCutting_newSample
-             },
-             handlerExpr = {
-               print(
-                 paste(
-                   "Convert to min",
-                   input$UnitTime_sampleCutting_newSample == "Minute" &
-                     RvarsPeakDetectionNewSample$Second_Cutting_newSample == TRUE
-                 )
-               )
-               if (isolate(input$UnitTime_sampleCutting_newSample) == "Minute" &
-                   RvarsPeakDetectionNewSample$Second_Cutting_newSample == TRUE) {
-                 if (!is.null(RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample)) {
-                   RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$CE.time <-
-                     req(
-                       RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$CE.time
-                     ) / 60
-                   RvarsPeakDetectionNewSample$Second_Cutting_newSample <-
-                     FALSE
-                 }
-               }
-               
-               print(
-                 paste(
-                   "Covert to Second",
-                   input$UnitTime_sampleCutting_newSample == "Second" &
-                     RvarsPeakDetectionNewSample$Second_Cutting_newSample == FALSE
-                 )
-               )
-               if (isolate(input$UnitTime_sampleCutting_newSample) == "Second" &
-                   RvarsPeakDetectionNewSample$Second_Cutting_newSample == FALSE) {
-                 if (!is.null(RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample)) {
-                   RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$CE.time <-
-                     req(
-                       RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample$CE.time
-                     ) * 60
-                   RvarsPeakDetectionNewSample$Second_Cutting_newSample <-
-                     TRUE
-                 }
-               }
-               
-               if (input$UnitTime_sampleCutting_newSample == "Second" &
-                   RvarsPeakDetectionNewSample$Second_Cutting_newSample == TRUE) {
-                 RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample <-
-                   req(RvarsPeakDetectionNewSample$sample_cutting_newSample)
-               }
-               
-               if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-                 RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 3] <-
-                   input$UnitTime_sampleCutting_newSample
-                 
-               }
-               
-               
-             })
-
-
-rangesZoomSample_selectedCutting_newSample <-
-  reactiveValues(x = NULL, y = NULL)
+rangesZoomDeatails <- reactiveValues(x = NULL, y = NULL)
 
 # When a double-click happens, check if there's a brush on the plot.
 # If so, zoom to the brush bounds; if not, reset the zoom.
 observeEvent({
-  input$sample_selectedCutting_dblclick_newSample
+  input$matchViewerNewSample_dblclick
 }, {
-  brush <- input$sample_selectedCutting_brush_newSample
+  brush <- input$matchViewerNewSample_brush
   if (!is.null(brush)) {
-    rangesZoomSample_selectedCutting_newSample$x <-
-      c(brush$xmin, brush$xmax)
-    rangesZoomSample_selectedCutting_newSample$y <-
-      c(brush$ymin, brush$ymax)
-    
-  } else {
-    ## reset coord_cartesian
-    rangesZoomSample_selectedCutting_newSample$x <- NULL
-    rangesZoomSample_selectedCutting_newSample$y <- NULL
+    rangesZoomDeatails$x <- c(brush$xmin, brush$xmax)
+    rangesZoomDeatails$y <- c(brush$ymin, brush$ymax)
   }
 })
 
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$sample_selectedCutting_newSample
-             },
-             handlerExpr = {
-               updateNumericInput(
-                 session = session,
-                 inputId = "rt_min_cut_newSample",
-                 value = RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-               )
-               
-               updateNumericInput(
-                 session = session,
-                 inputId = "rt_max_cut_newSample",
-                 value = RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-               )
-               
-               
-             })
-
-
-## Rendu unique et pleinement réactif du graphique de découpage (Step 2).
-## Avant ce fix, ce même output était réassigné séparément dans plusieurs
-## observeEvent (bouton Cut-off, changement de sélection d'échantillon,
-## observe() générique) : chaque réassignation figeait une version précise
-## du graphique (coupé ou pas), si bien qu'un changement des bornes de
-## découpage par une AUTRE voie (import batch, par ex.) n'invalidait pas la
-## version alors active — d'où le besoin de changer d'échantillon puis d'y
-## revenir pour forcer un nouveau rendu à jour. Cette fonction est lue
-## intégralement de façon réactive (aucun isolate()) : elle se redessine
-## automatiquement dès que l'échantillon sélectionné, les bornes de
-## découpage ou les données sous-jacentes changent, quelle qu'en soit la
-## source.
-render_cutting_plot_newSample <- function() {
-  sample_sel <- input$sample_selectedCutting_newSample
-  if (is.null(sample_sel)) return(NULL)
-  if (is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[sample_sel]])) return(NULL)
-  if (is.null(RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample)) return(NULL)
-
-  shinyjs::show("UnitTime_sampleCutting_id_newSample")
-  shinyjs::show("mousepositionSampleCutting_newSample")
-
-  rt_min <- NA_real_
-  rt_max <- NA_real_
-  if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-    rt_min <- as.numeric(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[sample_sel, ]$rt_min_cut_newSample)
-    rt_max <- as.numeric(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[sample_sel, ]$rt_max_cut_newSample)
-  }
-
-  p <- RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-    ggplot() +
-    aes(x = CE.time, y = M.H, colour = intensity) +
-    geom_point(size = 1)
-
-  if (!is.na(rt_min) && !is.na(rt_max)) {
-    p <- p +
-      geom_vline(xintercept = rt_min, color = "gray", linetype = "dashed") +
-      geom_vline(xintercept = rt_max, color = "gray", linetype = "dashed") +
-      ggplot2::annotate("rect", xmin = c(0, rt_max), xmax = c(rt_min, Inf),
-                        ymin = -Inf, ymax = Inf, alpha = 0.5, fill = "gray")
-  } else if (!is.na(rt_min) && is.na(rt_max)) {
-    p <- p +
-      geom_vline(xintercept = rt_min, color = "gray", linetype = "dashed") +
-      ggplot2::annotate("rect", xmin = 0, xmax = rt_min,
-                        ymin = -Inf, ymax = Inf, alpha = 0.5, fill = "gray")
-  } else if (is.na(rt_min) && !is.na(rt_max)) {
-    p <- p +
-      geom_vline(xintercept = rt_max, color = "gray", linetype = "dashed") +
-      ggplot2::annotate("rect", xmin = rt_max, xmax = Inf,
-                        ymin = -Inf, ymax = Inf, alpha = 0.5, fill = "gray")
-  }
-  # sinon : ni min ni max -> pas de bande, graphique brut
-
-  p +
-    scale_color_viridis_c(option = "inferno", direction = -1) +
-    ylab("Mass (M+H) (Da)") +
-    xlab(paste("CE-time (", req(input$UnitTime_sampleCutting_newSample), ")")) +
-    coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-                    ylim = rangesZoomSample_selectedCutting_newSample$y,
-                    expand = TRUE) +
-    ggtitle(paste("Sample selected :", sample_sel, "\n")) +
-    scale_x_continuous(n.breaks = 14) +
-    theme_ben() +
-    labs(colour = "log2 Intensity") +
-    theme(
-      plot.title = element_text(
-        size = rel(0.9), face = "bold", color = "#760001",
-        margin = margin(0, 0, 5, 0), hjust = 0.5
-      ),
-      plot.subtitle = element_text(hjust = 0.5)
+output$TableZoom <- renderDT({
+  print(paste(
+    "Table statut: ",
+    !is.null(
+      RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime
     )
-}
-
-# output$sample_selectedCutting_Plot_newSample <- renderPlot({
-#   render_cutting_plot_newSample()
-# })
-
-
-observe({
-  if (!is.null(input$sample_selectedCutting_newSample)) {
-    if (!is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[req(input$sample_selectedCutting_newSample)][[1]])) {
-      if (is.na(
-        RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-      ) &
-      is.na(
-        RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-      )) {
-        print("Sample selected not cutted")
-        if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 1:2] <-
-            c(NA, NA)
-          
-        }
-        
-        
-        
-        output$sample_selectedCutting_Plot_newSample <- renderPlot({
-          if (!is.null(
-            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-          )) {
-            shinyjs::show("UnitTime_sampleCutting_id_newSample")
-            shinyjs::show("mousepositionSampleCutting_newSample")
-            
-            RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-              ggplot() +
-              aes(x = CE.time,
-                  y = M.H,
-                  colour = intensity) +
-              #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-              geom_point(size = 1) +
-              # geom_vline(xintercept = 3229, lwd = 1.5, color = "blue", linetype = "dashed")+
-              # geom_vline(xintercept = 750, lwd = 1.5, color = "blue", linetype = "dashed")+
-              scale_color_viridis_c(option = "inferno", direction = -1) +
-              ylab("Mass (M+H) (Da)") +
-              xlab(paste(
-                "CE-time (",
-                req(input$UnitTime_sampleCutting_newSample),
-                ")"
-              )) +
-              coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-                              ylim = rangesZoomSample_selectedCutting_newSample$y,
-                              expand = TRUE) +
-              ggtitle(paste(
-                "Sample selected :",
-                req(input$sample_selectedCutting_newSample),
-                "\n"
-              )) +
-              
-              scale_x_continuous(n.breaks = 14) +
-              #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-              
-              
-              #facet_grid(vars(sample), vars())+
-              #option_graphe.3
-              theme_ben() +
-              labs(colour = "log2 Intensity") +
-              theme(
-                plot.title = element_text(
-                  size = rel(0.9),
-                  face = "bold",
-                  color = "#760001",
-                  margin = margin(0, 0, 5, 0),
-                  hjust = 0.5
-                ),
-                plot.subtitle = element_text(hjust = 0.5)
-              )
-            
-          }
-          
-          
-          
-          
-        })
-        
-        ## Mouse position
-        # output$sample_selectedCutting_Plot_info <- renderText({
-        #   paste0("Mouse position : ",
-        #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-        #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-        # })
-        
-        output$sample_selectedCutting_Plot_info_newSample <-
-          renderText({
-            paste0(
-              "Mouse position : ",
-              xy_str(
-                input$sample_selectedCutting_hover_newSample,
-                "CE-time",
-                "M+H"
-              ),
-              "Click: ",
-              xy_str(
-                input$sample_selectedCutting_click_newSample,
-                "CE-time",
-                "M+H"
-              )
-            )
-            # paste0("Mouse position : ",
-            #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-            #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-          })
-        
-        ## Bulle info
-        
-        #### info-bulle
-        output$sample_selectedCutting_hover_info_newSample <-
-          renderUI({
-            hover <- req(input$sample_selectedCutting_hover_newSample)
-            
-            if (!is.null(
-              RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-            )) {
-              point <-
-                nearPoints(
-                  req(
-                    RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                  ),
-                  hover,
-                  threshold = 5,
-                  maxpoints = 1,
-                  addDist = TRUE
-                )
-              if (nrow(point) == 0)
-                return(NULL)
-              
-              # calculate point position INSIDE the image as percent of total dimensions
-              # from left (horizontal) and from top (vertical)
-              left_pct <-
-                (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-              top_pct <-
-                (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-              
-              # calculate distance from left and bottom side of the picture in pixels
-              left_px <-
-                hover$range$left + left_pct * (hover$range$right - hover$range$left)
-              top_px <-
-                hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-              
-              # create style property fot tooltip
-              # background color is set so tooltip is a bit transparent
-              # z-index is set so we are sure are tooltip will be on top
-              style <-
-                paste0(
-                  "position:absolute; z-index:100; background-color: #760001; color: white;",
-                  "left:",
-                  left_px + 2,
-                  "px; top:",
-                  top_px + 2,
-                  "px;"
-                )
-              
-              # actual tooltip created as wellPanel
-              div(class = "well well-sm",
-                  style = style,
-                  p(HTML(
-                    paste0(
-                      "<span class='bullText'> CE-time: </span>",
-                      round(point$CE.time, 2),
-                      "<br/>",
-                      "<span class='bullText'> M+H: </span>",
-                      round(point$M.H, 4),
-                      "<br/>",
-                      "<span class='bullText'> log2 Intensity: </span>",
-                      round(point$intensity, 2),
-                      "<br/>",
-                      "<span class='bullText'> Intensity: </span>",
-                      round(2 ^ (point$intensity), 0),
-                      "<br/>"
-                    )
-                  )))
-            }
-            
-            
-            
-            
-            
-          })
-        
-        
-        
-      }
-    }
-    else {
-      output$sample_selectedCutting_Plot_newSample <- renderPlot({
-        
-      })
-      output$sample_selectedCutting_Plot_info_newSample <-
-        renderText({
-          
-        })
-      output$sample_selectedCutting_hover_info_newSample <-
-        renderUI({
-          
-        })
-      hide("UnitTime_sampleCutting_id_newSample")
-    }
-  } else {
-    output$sample_selectedCutting_Plot_newSample <- renderPlot({
-      
-    })
-  }
-  
-  
-})
-
-
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$cutOff_newSample
-             },
-             handlerExpr = {
-               if (!is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[req(input$sample_selectedCutting_newSample)][[1]])) {
-                 if (!is.na(input$rt_min_cut_newSample) &
-                     !is.na(input$rt_max_cut_newSample)) {
-                   print("cutoff_newSample")
-                   output$sample_selectedCutting_Plot_newSample <-
-                     renderPlot({
-                       if (!is.null(
-                         RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                       )) {
-                         shinyjs::show("UnitTime_sampleCutting_id_newSample")
-                         shinyjs::show("mousepositionSampleCutting_newSample")
-                         
-                         RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-                           ggplot() +
-                           aes(x = CE.time,
-                               y = M.H,
-                               colour = intensity) +
-                           #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-                           geom_point(size = 1) +
-                           geom_vline(
-                             xintercept = isolate(input$rt_min_cut_newSample),
-                             color = "gray",
-                             linetype = "dashed"
-                           ) +
-                           geom_vline(
-                             xintercept = isolate(input$rt_max_cut_newSample),
-                             color = "gray",
-                             linetype = "dashed"
-                           ) +
-                           ggplot2::annotate(
-                             "rect",
-                             xmin = c(0, isolate(input$rt_max_cut_newSample)),
-                             xmax = c(isolate(input$rt_min_cut_newSample), Inf),
-                             ymin = -Inf ,
-                             ymax = Inf,
-                             alpha = 0.5,
-                             fill = "gray"
-                           ) +
-                           scale_color_viridis_c(option = "inferno", direction = -1) +
-                           ylab("Mass (M+H) (Da)") +
-                           xlab(paste(
-                             "CE-time (",
-                             req(input$UnitTime_sampleCutting_newSample),
-                             ")"
-                           )) +
-                           coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-                                           ylim = rangesZoomSample_selectedCutting_newSample$y,
-                                           expand = TRUE) +
-                           ggtitle(paste(
-                             "Sample selected :",
-                             req(input$sample_selectedCutting_newSample),
-                             "\n"
-                           )) +
-                           
-                           scale_x_continuous(n.breaks = 14) +
-                           #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-                           
-                           
-                           #facet_grid(vars(sample), vars())+
-                           #option_graphe.3
-                           theme_ben() +
-                           labs(colour = "log2 Intensity") +
-                           theme(
-                             plot.title = element_text(
-                               size = rel(0.9),
-                               face = "bold",
-                               color = "#760001",
-                               margin = margin(0, 0, 5, 0),
-                               hjust = 0.5
-                             ),
-                             plot.subtitle = element_text(hjust = 0.5)
-                           )
-                         
-                       }
-                       
-                       
-                       
-                     })
-                   
-                   ## Mouse position
-                   # output$sample_selectedCutting_Plot_info <- renderText({
-                   #   paste0("Mouse position : ",
-                   #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-                   #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-                   # })
-                   
-                   output$sample_selectedCutting_Plot_info_newSample <-
-                     renderText({
-                       paste0(
-                         "Mouse position: ",
-                         xy_str(
-                           input$sample_selectedCutting_hover_newSample,
-                           "CE-time",
-                           "M+H"
-                         ),
-                         "Click: ",
-                         xy_str(
-                           input$sample_selectedCutting_click_newSample,
-                           "CE-time",
-                           "M+H"
-                         )
-                       )
-                       # paste0("Mouse position : ",
-                       #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-                       #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-                     })
-                   
-                   ## Bulle info
-                   
-                   #### info-bulle
-                   output$sample_selectedCutting_hover_info_newSample <-
-                     renderUI({
-                       hover <- req(input$sample_selectedCutting_hover_newSample)
-                       
-                       if (!is.null(
-                         RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                       )) {
-                         point <-
-                           nearPoints(
-                             req(
-                               RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                             ),
-                             hover,
-                             threshold = 5,
-                             maxpoints = 1,
-                             addDist = TRUE
-                           )
-                         if (nrow(point) == 0)
-                           return(NULL)
-                         
-                         # calculate point position INSIDE the image as percent of total dimensions
-                         # from left (horizontal) and from top (vertical)
-                         left_pct <-
-                           (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-                         top_pct <-
-                           (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-                         
-                         # calculate distance from left and bottom side of the picture in pixels
-                         left_px <-
-                           hover$range$left + left_pct * (hover$range$right - hover$range$left)
-                         top_px <-
-                           hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-                         
-                         # create style property fot tooltip
-                         # background color is set so tooltip is a bit transparent
-                         # z-index is set so we are sure are tooltip will be on top
-                         style <-
-                           paste0(
-                             "position:absolute; z-index:100; background-color: #760001; color: white;",
-                             "left:",
-                             left_px + 2,
-                             "px; top:",
-                             top_px + 2,
-                             "px;"
-                           )
-                         
-                         # actual tooltip created as wellPanel
-                         div(class = "well well-sm",
-                             style = style,
-                             p(HTML(
-                               paste0(
-                                 "<span class='bullText'> CE-time: </span>",
-                                 round(point$CE.time, 2),
-                                 "<br/>",
-                                 "<span class='bullText'> M+H: </span>",
-                                 round(point$M.H, 4),
-                                 "<br/>",
-                                 "<span class='bullText'> log2 Intensity: </span>",
-                                 round(point$intensity, 2),
-                                 "<br/>",
-                                 "<span class='bullText'> Intensity: </span>",
-                                 round(2 ^ (point$intensity), 0),
-                                 "<br/>"
-                               )
-                             )))
-                       }
-                       
-                       
-                       
-                       
-                       
-                     })
-                   
-                   if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-                     RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 1:2] <-
-                       c(
-                         isolate(input$rt_min_cut_newSample),
-                         isolate(input$rt_max_cut_newSample)
-                       )
-                   }
-                   
-                   
-                   
-                 } else if (!is.na(input$rt_min_cut_newSample) &
-                            is.na(input$rt_max_cut_newSample)) {
-                   print("cutoff_newSample")
-                   output$sample_selectedCutting_Plot_newSample <-
-                     renderPlot({
-                       if (!is.null(
-                         RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                       )) {
-                         shinyjs::show("UnitTime_sampleCutting_id_newSample")
-                         shinyjs::show("mousepositionSampleCutting_newSample")
-                         
-                         RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-                           ggplot() +
-                           aes(x = CE.time,
-                               y = M.H,
-                               colour = intensity) +
-                           #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-                           geom_point(size = 1) +
-                           geom_vline(
-                             xintercept = isolate(input$rt_min_cut_newSample),
-                             color = "gray",
-                             linetype = "dashed"
-                           ) +
-                           ggplot2::annotate(
-                             "rect",
-                             xmin = 0,
-                             xmax = isolate(input$rt_min_cut_newSample),
-                             ymin = -Inf ,
-                             ymax = Inf,
-                             alpha = 0.5,
-                             fill = "gray"
-                           ) +
-                           scale_color_viridis_c(option = "inferno", direction = -1) +
-                           ylab("Mass (M+H) (Da)") +
-                           xlab(paste(
-                             "CE-time (",
-                             req(input$UnitTime_sampleCutting_newSample),
-                             ")"
-                           )) +
-                           coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-                                           ylim = rangesZoomSample_selectedCutting_newSample$y,
-                                           expand = TRUE) +
-                           ggtitle(paste(
-                             "Sample selected :",
-                             req(input$sample_selectedCutting_newSample),
-                             "\n"
-                           )) +
-                           
-                           scale_x_continuous(n.breaks = 14) +
-                           #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-                           
-                           
-                           #facet_grid(vars(sample), vars())+
-                           #option_graphe.3
-                           theme_ben() +
-                           labs(colour = "log2 Intensity") +
-                           theme(
-                             plot.title = element_text(
-                               size = rel(0.9),
-                               face = "bold",
-                               color = "#760001",
-                               margin = margin(0, 0, 5, 0),
-                               hjust = 0.5
-                             ),
-                             plot.subtitle = element_text(hjust = 0.5)
-                           )
-                         
-                       }
-                       
-                       
-                       
-                     })
-                   
-                   ## Mouse position
-                   # output$sample_selectedCutting_Plot_info <- renderText({
-                   #   paste0("Mouse position : ",
-                   #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-                   #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-                   # })
-                   
-                   output$sample_selectedCutting_Plot_info_newSample <-
-                     renderText({
-                       paste0(
-                         "Mouse position: ",
-                         xy_str(
-                           input$sample_selectedCutting_hover_newSample,
-                           "CE-time",
-                           "M+H"
-                         ),
-                         "Click: ",
-                         xy_str(
-                           input$sample_selectedCutting_click_newSample,
-                           "CE-time",
-                           "M+H"
-                         )
-                       )
-                       # paste0("Mouse position : ",
-                       #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-                       #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-                     })
-                   
-                   ## Bulle info
-                   
-                   #### info-bulle
-                   output$sample_selectedCutting_hover_info_newSample <-
-                     renderUI({
-                       hover <- req(input$sample_selectedCutting_hover_newSample)
-                       
-                       if (!is.null(
-                         RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                       )) {
-                         point <-
-                           nearPoints(
-                             req(
-                               RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                             ),
-                             hover,
-                             threshold = 5,
-                             maxpoints = 1,
-                             addDist = TRUE
-                           )
-                         if (nrow(point) == 0)
-                           return(NULL)
-                         
-                         # calculate point position INSIDE the image as percent of total dimensions
-                         # from left (horizontal) and from top (vertical)
-                         left_pct <-
-                           (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-                         top_pct <-
-                           (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-                         
-                         # calculate distance from left and bottom side of the picture in pixels
-                         left_px <-
-                           hover$range$left + left_pct * (hover$range$right - hover$range$left)
-                         top_px <-
-                           hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-                         
-                         # create style property fot tooltip
-                         # background color is set so tooltip is a bit transparent
-                         # z-index is set so we are sure are tooltip will be on top
-                         style <-
-                           paste0(
-                             "position:absolute; z-index:100; background-color: #760001; color: white;",
-                             "left:",
-                             left_px + 2,
-                             "px; top:",
-                             top_px + 2,
-                             "px;"
-                           )
-                         
-                         # actual tooltip created as wellPanel
-                         div(class = "well well-sm",
-                             style = style,
-                             p(HTML(
-                               paste0(
-                                 "<span class='bullText'> CE-time: </span>",
-                                 round(point$CE.time, 2),
-                                 "<br/>",
-                                 "<span class='bullText'> M+H: </span>",
-                                 round(point$M.H, 4),
-                                 "<br/>",
-                                 "<span class='bullText'> log2 Intensity: </span>",
-                                 round(point$intensity, 2),
-                                 "<br/>",
-                                 "<span class='bullText'> Intensity: </span>",
-                                 round(2 ^ (point$intensity), 0),
-                                 "<br/>"
-                               )
-                             )))
-                       }
-                       
-                       
-                       
-                       
-                       
-                     })
-                   
-                   if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-                     RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 1:2] <-
-                       c(isolate(input$rt_min_cut_newSample), NA)
-                   }
-                   
-                   
-                 } else if (is.na(input$rt_min_cut_newSample) &
-                            !is.na(input$rt_max_cut_newSample)) {
-                   print("cutoff")
-                   output$sample_selectedCutting_Plot_newSample <-
-                     renderPlot({
-                       if (!is.null(
-                         RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                       )) {
-                         shinyjs::show("UnitTime_sampleCutting_id_newSample")
-                         shinyjs::show("mousepositionSampleCutting_newSample")
-                         
-                         RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-                           ggplot() +
-                           aes(x = CE.time,
-                               y = M.H,
-                               colour = intensity) +
-                           #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-                           geom_point(size = 1) +
-                           geom_vline(
-                             xintercept = isolate(input$rt_max_cut_newSample),
-                             color = "gray",
-                             linetype = "dashed"
-                           ) +
-                           ggplot2::annotate(
-                             "rect",
-                             xmin = isolate(input$rt_max_cut_newSample),
-                             xmax = Inf,
-                             ymin = -Inf ,
-                             ymax = Inf,
-                             alpha = 0.5,
-                             fill = "gray"
-                           ) +
-                           scale_color_viridis_c(option = "inferno", direction = -1) +
-                           ylab("Mass (M+H) (Da)") +
-                           xlab(paste(
-                             "CE-time (",
-                             req(input$UnitTime_sampleCutting_newSample),
-                             ")"
-                           )) +
-                           coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-                                           ylim = rangesZoomSample_selectedCutting_newSample$y,
-                                           expand = TRUE) +
-                           ggtitle(paste(
-                             "Sample selected :",
-                             req(input$sample_selectedCutting_newSample),
-                             "\n"
-                           )) +
-                           
-                           scale_x_continuous(n.breaks = 14) +
-                           #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-                           
-                           
-                           #facet_grid(vars(sample), vars())+
-                           #option_graphe.3
-                           theme_ben() +
-                           labs(colour = "log2 Intensity") +
-                           theme(
-                             plot.title = element_text(
-                               size = rel(0.9),
-                               face = "bold",
-                               color = "#760001",
-                               margin = margin(0, 0, 5, 0),
-                               hjust = 0.5
-                             ),
-                             plot.subtitle = element_text(hjust = 0.5)
-                           )
-                         
-                       }
-                       
-                       
-                       
-                     })
-                   
-                   ## Mouse position
-                   # output$sample_selectedCutting_Plot_info <- renderText({
-                   #   paste0("Mouse position : ",
-                   #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-                   #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-                   # })
-                   
-                   output$sample_selectedCutting_Plot_info_newSample <-
-                     renderText({
-                       paste0(
-                         "Mouse position: ",
-                         xy_str(
-                           input$sample_selectedCutting_hover_newSample,
-                           "CE-time",
-                           "M+H"
-                         ),
-                         "Click: ",
-                         xy_str(
-                           input$sample_selectedCutting_click_newSample,
-                           "CE-time",
-                           "M+H"
-                         )
-                       )
-                       # paste0("Mouse position : ",
-                       #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-                       #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-                     })
-                   
-                   ## Bulle info
-                   
-                   #### info-bulle
-                   output$sample_selectedCutting_hover_info_newSample <-
-                     renderUI({
-                       hover <- req(input$sample_selectedCutting_hover_newSample)
-                       
-                       if (!is.null(
-                         RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                       )) {
-                         point <-
-                           nearPoints(
-                             req(
-                               RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                             ),
-                             hover,
-                             threshold = 5,
-                             maxpoints = 1,
-                             addDist = TRUE
-                           )
-                         if (nrow(point) == 0)
-                           return(NULL)
-                         
-                         # calculate point position INSIDE the image as percent of total dimensions
-                         # from left (horizontal) and from top (vertical)
-                         left_pct <-
-                           (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-                         top_pct <-
-                           (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-                         
-                         # calculate distance from left and bottom side of the picture in pixels
-                         left_px <-
-                           hover$range$left + left_pct * (hover$range$right - hover$range$left)
-                         top_px <-
-                           hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-                         
-                         # create style property fot tooltip
-                         # background color is set so tooltip is a bit transparent
-                         # z-index is set so we are sure are tooltip will be on top
-                         style <-
-                           paste0(
-                             "position:absolute; z-index:100; background-color: #760001; color: white;",
-                             "left:",
-                             left_px + 2,
-                             "px; top:",
-                             top_px + 2,
-                             "px;"
-                           )
-                         
-                         # actual tooltip created as wellPanel
-                         div(class = "well well-sm",
-                             style = style,
-                             p(HTML(
-                               paste0(
-                                 "<span class='bullText'> CE-time: </span>",
-                                 round(point$CE.time, 2),
-                                 "<br/>",
-                                 "<span class='bullText'> M+H: </span>",
-                                 round(point$M.H, 4),
-                                 "<br/>",
-                                 "<span class='bullText'> log2 Intensity: </span>",
-                                 round(point$intensity, 2),
-                                 "<br/>",
-                                 "<span class='bullText'> Intensity: </span>",
-                                 round(2 ^ (point$intensity), 0),
-                                 "<br/>"
-                               )
-                             )))
-                       }
-                       
-                       
-                       
-                       
-                       
-                     })
-                   
-                   if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-                     RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 1:2] <-
-                       c(NA, isolate(input$rt_max_cut_newSample))
-                   }
-                   
-                   
-                 } else  if (is.na(input$rt_min_cut_newSample) &
-                             is.na(input$rt_max_cut_newSample)) {
-                   if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-                     RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), 1:2] <-
-                       c(NA, NA)
-                     
-                   }
-                 }
-                 
-               } else {
-                 output$sample_selectedCutting_Plot_newSample <- renderPlot({
-                   
-                 })
-                 output$sample_selectedCutting_Plot_info_newSample <-
-                   renderText({
-                     
-                   })
-                 output$sample_selectedCutting_hover_info_newSample <-
-                   renderUI({
-                     
-                   })
-                 hide("UnitTime_sampleCutting_id_newSample")
-               }
-               
-               
-               
-               
-             })
-
-
-
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$sample_selectedCutting_newSample
-             },
-             handlerExpr = {
-               updateNumericInput(
-                 session = session,
-                 inputId = "rt_min_cut_newSample",
-                 value = as.numeric(
-                   RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-                 )
-               )
-               
-               updateNumericInput(
-                 session = session,
-                 inputId = "rt_max_cut_newSample",
-                 value = as.numeric(
-                   RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-                 )
-               )
-               
-               
-             })
-
-
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$sample_selectedCutting_newSample
-             },
-             handlerExpr = {
-               if (!is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[req(input$sample_selectedCutting_newSample)][[1]])) {
-                 if (!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-                   if (!is.na(
-                     RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-                   ) &
-                   !is.na(
-                     RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-                   )) {
-                     print("Selectsample")
-                     output$sample_selectedCutting_Plot_newSample <-
-                       renderPlot({
-                         if (!is.null(
-                           RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                         )) {
-                           shinyjs::show("UnitTime_sampleCutting_id_newSample")
-                           shinyjs::show("mousepositionSampleCutting_newSample")
-                           
-                           RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-                             ggplot() +
-                             aes(x = CE.time,
-                                 y = M.H,
-                                 colour = intensity) +
-                             #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-                             geom_point(size = 1) +
-                             geom_vline(
-                               xintercept = as.numeric(
-                                 RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-                               ),
-                               color = "gray",
-                               linetype = "dashed"
-                             ) +
-                             geom_vline(
-                               xintercept = as.numeric(
-                                 RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-                               ),
-                               color = "gray",
-                               linetype = "dashed"
-                             ) +
-                             ggplot2::annotate(
-                               "rect",
-                               xmin = c(
-                                 0,
-                                 as.numeric(
-                                   RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-                                 )
-                               ),
-                               xmax = c(
-                                 as.numeric(
-                                   RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-                                 ),
-                                 Inf
-                               ),
-                               ymin = -Inf ,
-                               ymax = Inf,
-                               alpha = 0.5,
-                               fill = "gray"
-                             ) +
-                             scale_color_viridis_c(option = "inferno", direction = -1) +
-                             ylab("Mass (M+H) (Da)") +
-                             xlab(paste(
-                               "CE-time (",
-                               req(input$UnitTime_sampleCutting_newSample),
-                               ")"
-                             )) +
-                             coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-                                             ylim = rangesZoomSample_selectedCutting_newSample$y,
-                                             expand = TRUE) +
-                             ggtitle(paste(
-                               "Sample selected :",
-                               req(input$sample_selectedCutting_newSample),
-                               "\n"
-                             )) +
-                             
-                             scale_x_continuous(n.breaks = 14) +
-                             #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-                             
-                             
-                             #facet_grid(vars(sample), vars())+
-                             #option_graphe.3
-                             theme_ben() +
-                             labs(colour = "log2 Intensity") +
-                             theme(
-                               plot.title = element_text(
-                                 size = rel(0.9),
-                                 face = "bold",
-                                 color = "#760001",
-                                 margin = margin(0, 0, 5, 0),
-                                 hjust = 0.5
-                               ),
-                               plot.subtitle = element_text(hjust = 0.5)
-                             )
-                           
-                         }
-                         
-                         
-                         
-                       })
-                     
-                     ## Mouse position
-                     # output$sample_selectedCutting_Plot_info <- renderText({
-                     #   paste0("Mouse position : ",
-                     #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-                     #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-                     # })
-                     
-                     output$sample_selectedCutting_Plot_info_newSample <-
-                       renderText({
-                         paste0(
-                           "Mouse position: ",
-                           xy_str(
-                             input$sample_selectedCutting_hover_newSample,
-                             "CE-time",
-                             "M+H"
-                           ),
-                           "Click: ",
-                           xy_str(
-                             input$sample_selectedCutting_click_newSample,
-                             "CE-time",
-                             "M+H"
-                           )
-                         )
-                         # paste0("Mouse position : ",
-                         #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-                         #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-                       })
-                     ## Bulle info
-                     
-                     #### info-bulle
-                     output$sample_selectedCutting_hover_info_newSample <-
-                       renderUI({
-                         hover <- req(input$sample_selectedCutting_hover_newSample)
-                         
-                         if (!is.null(
-                           RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                         )) {
-                           point <-
-                             nearPoints(
-                               req(
-                                 RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                               ),
-                               hover,
-                               threshold = 5,
-                               maxpoints = 1,
-                               addDist = TRUE
-                             )
-                           if (nrow(point) == 0)
-                             return(NULL)
-                           
-                           # calculate point position INSIDE the image as percent of total dimensions
-                           # from left (horizontal) and from top (vertical)
-                           left_pct <-
-                             (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-                           top_pct <-
-                             (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-                           
-                           # calculate distance from left and bottom side of the picture in pixels
-                           left_px <-
-                             hover$range$left + left_pct * (hover$range$right - hover$range$left)
-                           top_px <-
-                             hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-                           
-                           # create style property fot tooltip
-                           # background color is set so tooltip is a bit transparent
-                           # z-index is set so we are sure are tooltip will be on top
-                           style <-
-                             paste0(
-                               "position:absolute; z-index:100; background-color: #760001; color: white;",
-                               "left:",
-                               left_px + 2,
-                               "px; top:",
-                               top_px + 2,
-                               "px;"
-                             )
-                           
-                           # actual tooltip created as wellPanel
-                           div(class = "well well-sm",
-                               style = style,
-                               p(HTML(
-                                 paste0(
-                                   "<span class='bullText'> CE-time: </span>",
-                                   round(point$CE.time, 2),
-                                   "<br/>",
-                                   "<span class='bullText'> M+H: </span>",
-                                   round(point$M.H, 4),
-                                   "<br/>",
-                                   "<span class='bullText'> log2 Intensity: </span>",
-                                   round(point$intensity, 2),
-                                   "<br/>",
-                                   "<span class='bullText'> Intensity: </span>",
-                                   round(2 ^ (point$intensity), 0),
-                                   "<br/>"
-                                 )
-                               )))
-                         }
-                         
-                         
-                         
-                         
-                         
-                       })
-                     
-                     # if(!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable)) {
-                     #
-                     #   RvarsPeakDetectionNewSample$samplesCuttingTable[input$sample_selectedCutting,]<-
-                     #     c(isolate(input$rt_min_cut),isolate(input$rt_max_cut), isolate(input$UnitTime_sampleCutting))
-                     # }
-                     
-                     
-                     
-                   } else if (!is.na(
-                     RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-                   ) &
-                   is.na(
-                     RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-                   )) {
-                     print("Selectsample")
-                     output$sample_selectedCutting_Plot_newSample <-
-                       renderPlot({
-                         if (!is.null(
-                           RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                         )) {
-                           shinyjs::show("UnitTime_sampleCutting_id_newSample")
-                           shinyjs::show("mousepositionSampleCutting_newSample")
-                           
-                           RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-                             ggplot() +
-                             aes(x = CE.time,
-                                 y = M.H,
-                                 colour = intensity) +
-                             #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-                             geom_point(size = 1) +
-                             geom_vline(
-                               xintercept = as.numeric(
-                                 RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-                               ),
-                               color = "gray",
-                               linetype = "dashed"
-                             ) +
-                             ggplot2::annotate(
-                               "rect",
-                               xmin = 0,
-                               xmax = as.numeric(
-                                 RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-                               ),
-                               ymin = -Inf ,
-                               ymax = Inf,
-                               alpha = 0.5,
-                               fill = "gray"
-                             ) +
-                             scale_color_viridis_c(option = "inferno", direction = -1) +
-                             ylab("Mass (M+H) (Da)") +
-                             xlab(paste(
-                               "CE-time (",
-                               req(input$UnitTime_sampleCutting_newSample),
-                               ")"
-                             )) +
-                             coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-                                             ylim = rangesZoomSample_selectedCutting_newSample$y,
-                                             expand = TRUE) +
-                             ggtitle(paste(
-                               "Sample selected :",
-                               req(input$sample_selectedCutting_newSample),
-                               "\n"
-                             )) +
-                             
-                             scale_x_continuous(n.breaks = 14) +
-                             #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-                             
-                             
-                             #facet_grid(vars(sample), vars())+
-                             #option_graphe.3
-                             theme_ben() +
-                             labs(colour = "log2 Intensity") +
-                             theme(
-                               plot.title = element_text(
-                                 size = rel(0.9),
-                                 face = "bold",
-                                 color = "#760001",
-                                 margin = margin(0, 0, 5, 0),
-                                 hjust = 0.5
-                               ),
-                               plot.subtitle = element_text(hjust = 0.5)
-                             )
-                           
-                         }
-                         
-                         
-                         
-                       })
-                     
-                     ## Mouse position
-                     # output$sample_selectedCutting_Plot_info <- renderText({
-                     #   paste0("Mouse position : ",
-                     #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-                     #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-                     # })
-                     
-                     output$sample_selectedCutting_Plot_info_newSample <-
-                       renderText({
-                         paste0(
-                           "Mouse position: ",
-                           xy_str(
-                             input$sample_selectedCutting_hover_newSample,
-                             "CE-time",
-                             "M+H"
-                           ),
-                           "Click: ",
-                           xy_str(
-                             input$sample_selectedCutting_click_newSample,
-                             "CE-time",
-                             "M+H"
-                           )
-                         )
-                         # paste0("Mouse position : ",
-                         #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-                         #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-                       })
-                     ## Bulle info
-                     
-                     #### info-bulle
-                     output$sample_selectedCutting_hover_info_newSample <-
-                       renderUI({
-                         hover <- req(input$sample_selectedCutting_hover_newSample)
-                         
-                         if (!is.null(
-                           RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                         )) {
-                           point <-
-                             nearPoints(
-                               req(
-                                 RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                               ),
-                               hover,
-                               threshold = 5,
-                               maxpoints = 1,
-                               addDist = TRUE
-                             )
-                           if (nrow(point) == 0)
-                             return(NULL)
-                           
-                           # calculate point position INSIDE the image as percent of total dimensions
-                           # from left (horizontal) and from top (vertical)
-                           left_pct <-
-                             (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-                           top_pct <-
-                             (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-                           
-                           # calculate distance from left and bottom side of the picture in pixels
-                           left_px <-
-                             hover$range$left + left_pct * (hover$range$right - hover$range$left)
-                           top_px <-
-                             hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-                           
-                           # create style property fot tooltip
-                           # background color is set so tooltip is a bit transparent
-                           # z-index is set so we are sure are tooltip will be on top
-                           style <-
-                             paste0(
-                               "position:absolute; z-index:100; background-color: #760001; color: white;",
-                               "left:",
-                               left_px + 2,
-                               "px; top:",
-                               top_px + 2,
-                               "px;"
-                             )
-                           
-                           # actual tooltip created as wellPanel
-                           div(class = "well well-sm",
-                               style = style,
-                               p(HTML(
-                                 paste0(
-                                   "<span class='bullText'> CE-time: </span>",
-                                   round(point$CE.time, 2),
-                                   "<br/>",
-                                   "<span class='bullText'> M+H: </span>",
-                                   round(point$M.H, 4),
-                                   "<br/>",
-                                   "<span class='bullText'> log2 Intensity: </span>",
-                                   round(point$intensity, 2),
-                                   "<br/>",
-                                   "<span class='bullText'> Intensity: </span>",
-                                   round(2 ^ (point$intensity), 0),
-                                   "<br/>"
-                                 )
-                               )))
-                         }
-                         
-                         
-                         
-                         
-                         
-                       })
-                     
-                     # if(!is.null(RvarsPeakDetectionNewSample$samplesCuttingTable)) {
-                     #
-                     #   RvarsPeakDetectionNewSample$samplesCuttingTable[input$sample_selectedCutting,]<-
-                     #     c(isolate(input$rt_min_cut),isolate(input$rt_max_cut), isolate(input$UnitTime_sampleCutting))
-                     # }
-                     
-                     
-                     
-                   } else if (is.na(
-                     RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_min_cut_newSample
-                   ) &
-                   !is.na(
-                     RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-                   )) {
-                     print("Selectsample")
-                     output$sample_selectedCutting_Plot_newSample <-
-                       renderPlot({
-                         if (!is.null(
-                           RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                         )) {
-                           shinyjs::show("UnitTime_sampleCutting_id_newSample")
-                           shinyjs::show("mousepositionSampleCutting_newSample")
-                           
-                           RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample %>%
-                             ggplot() +
-                             aes(x = CE.time,
-                                 y = M.H,
-                                 colour = intensity) +
-                             #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
-                             geom_point(size = 1) +
-                             geom_vline(
-                               xintercept = as.numeric(
-                                 RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-                               ),
-                               color = "gray",
-                               linetype = "dashed"
-                             ) +
-                             ggplot2::annotate(
-                               "rect",
-                               xmin = as.numeric(
-                                 RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[req(input$sample_selectedCutting_newSample), ]$rt_max_cut_newSample
-                               ),
-                               xmax = Inf,
-                               ymin = -Inf ,
-                               ymax = Inf,
-                               alpha = 0.5,
-                               fill = "gray"
-                             ) +
-                             scale_color_viridis_c(option = "inferno", direction = -1) +
-                             ylab("Mass (M+H) (Da)") +
-                             xlab(paste(
-                               "CE-time (",
-                               req(input$UnitTime_sampleCutting_newSample),
-                               ")"
-                             )) +
-                             coord_cartesian(xlim = rangesZoomSample_selectedCutting_newSample$x,
-                                             ylim = rangesZoomSample_selectedCutting_newSample$y,
-                                             expand = TRUE) +
-                             ggtitle(paste(
-                               "Sample selected :",
-                               req(input$sample_selectedCutting_newSample),
-                               "\n"
-                             )) +
-                             
-                             scale_x_continuous(n.breaks = 14) +
-                             #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-                             
-                             
-                             #facet_grid(vars(sample), vars())+
-                             #option_graphe.3
-                             theme_ben() +
-                             labs(colour = "log2 Intensity") +
-                             theme(
-                               plot.title = element_text(
-                                 size = rel(0.9),
-                                 face = "bold",
-                                 color = "#760001",
-                                 margin = margin(0, 0, 5, 0),
-                                 hjust = 0.5
-                               ),
-                               plot.subtitle = element_text(hjust = 0.5)
-                             )
-                           
-                         }
-                         
-                         
-                         
-                       })
-                     
-                     ## Mouse position
-                     # output$sample_selectedCutting_Plot_info <- renderText({
-                     #   paste0("Mouse position : ",
-                     #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
-                     #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
-                     # })
-                     
-                     output$sample_selectedCutting_Plot_info_newSample <-
-                       renderText({
-                         paste0(
-                           "Mouse position: ",
-                           xy_str(
-                             input$sample_selectedCutting_hover_newSample,
-                             "CE-time",
-                             "M+H"
-                           ),
-                           "Click: ",
-                           xy_str(
-                             input$sample_selectedCutting_click_newSample,
-                             "CE-time",
-                             "M+H"
-                           )
-                         )
-                         # paste0("Mouse position : ",
-                         #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
-                         #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
-                       })
-                     ## Bulle info
-                     
-                     #### info-bulle
-                     output$sample_selectedCutting_hover_info_newSample <-
-                       renderUI({
-                         hover <- req(input$sample_selectedCutting_hover_newSample)
-                         
-                         if (!is.null(
-                           RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                         )) {
-                           point <-
-                             suppressWarnings(
-                               nearPoints(
-                                 req(
-                                   RvarsPeakDetectionNewSample$sample_cutting_viewer_ConvertTime_newSample
-                                 )
-                               ),
-                               hover,
-                               threshold = 5,
-                               maxpoints = 1,
-                               addDist = TRUE
-                             )
-                           if (nrow(point) == 0)
-                             return(NULL)
-                           
-                           # calculate point position INSIDE the image as percent of total dimensions
-                           # from left (horizontal) and from top (vertical)
-                           left_pct <-
-                             (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-                           top_pct <-
-                             (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-                           
-                           # calculate distance from left and bottom side of the picture in pixels
-                           left_px <-
-                             hover$range$left + left_pct * (hover$range$right - hover$range$left)
-                           top_px <-
-                             hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-                           
-                           # create style property fot tooltip
-                           # background color is set so tooltip is a bit transparent
-                           # z-index is set so we are sure are tooltip will be on top
-                           style <-
-                             paste0(
-                               "position:absolute; z-index:100; background-color: #760001; color: white;",
-                               "left:",
-                               left_px + 2,
-                               "px; top:",
-                               top_px + 2,
-                               "px;"
-                             )
-                           
-                           # actual tooltip created as wellPanel
-                           div(class = "well well-sm",
-                               style = style,
-                               p(HTML(
-                                 paste0(
-                                   "<span class='bullText'> CE-time: </span>",
-                                   round(point$CE.time, 2),
-                                   "<br/>",
-                                   "<span class='bullText'> M+H: </span>",
-                                   round(point$M.H, 4),
-                                   "<br/>",
-                                   "<span class='bullText'> log2 Intensity: </span>",
-                                   round(point$intensity, 2),
-                                   "<br/>",
-                                   "<span class='bullText'> Intensity: </span>",
-                                   round(2 ^ (point$intensity), 0),
-                                   "<br/>"
-                                 )
-                               )))
-                         }
-                         
-                         
-                         
-                         
-                         
-                       })
-                     
-                     
-                     
-                   }
-                   
-                 }
-               } else {
-                 output$sample_selectedCutting_Plot_newSample <- renderPlot({
-                   
-                 })
-                 output$sample_selectedCutting_Plot_info_newSample <-
-                   renderText({
-                     
-                   })
-                 output$sample_selectedCutting_hover_info_newSample <-
-                   renderUI({
-                     
-                   })
-                 hide("UnitTime_sampleCutting_id_newSample")
-               }
-               
-               
-             })
-
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save samples cutting ~~~~~~~~~~~~~~~~~~~~~~~~#*
-peaks_mono_iso_sample_selectedCutting_newSample <- reactive({
-  if (!is.null(names(
-    RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-  ))) {
-    table_to_save <-
-      RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
+  ))
+  if (!is.null(RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime)) {
+    print(paste("Range X:", rangesZoomDeatails$x))
+    print(paste("Range Y:", rangesZoomDeatails$y))
     
-    for (i in rownames(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-      if (RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, "Unit"] ==
-          "Second") {
-        if (!is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-        ) &
-        !is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-        )) {
-          table_to_save[[i]] <-
-            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]] %>%
-            dplyr::filter(
-              RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample <
-                rt,
-              rt < RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-            )
-        } else if (!is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-        ) &
-        is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-        )) {
-          table_to_save[[i]] <-
-            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]] %>%
-            dplyr::filter(
-              RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample <
-                rt
-            )
-        } else if (is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-        ) &
-        !is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-        )) {
-          table_to_save[[i]] <-
-            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]] %>%
-            dplyr::filter(
-              rt < RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-            )
-        } else if (is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-        ) &
-        is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-        )) {
-          table_to_save[[i]] <-
-            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]]
-        }
-      } else if (RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, "Unit"] ==
-                 "Minute") {
-        if (!is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-        ) &
-        !is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-        )) {
-          table_to_save[[i]] <-
-            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]] %>%
-            dplyr::filter(
-              RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample <
-                rt / 60,
-              rt / 60 < RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-            )
-        } else if (!is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-        ) &
-        is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-        )) {
-          table_to_save[[i]] <-
-            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]] %>%
-            dplyr::filter(
-              RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample <
-                rt / 60
-            )
-        } else if (is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-        ) &
-        !is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-        )) {
-          table_to_save[[i]] <-
-            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]] %>%
-            dplyr::filter(
-              rt / 60 < RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-            )
-        } else if (is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_min_cut_newSample
-        ) &
-        is.na(
-          RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[i, ]$rt_max_cut_newSample
-        )) {
-          table_to_save[[i]] <-
-            RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample[[i]]
-        }
-      }
+    if (!is.null(rangesZoomDeatails$x) &&
+        !is.null(rangesZoomDeatails$y)) {
+      res_Matrix_toPlot <-
+        RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime
+      res_Matrix_toPlot <- res_Matrix_toPlot %>%
+        dplyr::filter(
+          `CE-time` >= req(rangesZoomDeatails$x[1]),
+          `CE-time` <= req(rangesZoomDeatails$x[2])
+        ) %>%
+        dplyr::filter(`M+H` >= req(rangesZoomDeatails$y[1]),
+                      `M+H` <= req(rangesZoomDeatails$y[2])) %>%
+        dplyr::select(`M+H`, `CE-time`, M.H_newSample, CE.time_adj, Match)
       
+      RvarsMatchNewsample$res_Matrix_toPlotZoomed <- res_Matrix_toPlot
+      datatable(data.frame(req(res_Matrix_toPlot)))
+    } else{
+      res_Matrix_toPlot <-
+        RvarsMatchNewsample$res_MatrixNewSampleViewer_ConvertTime
+      res_Matrix_toPlot <- res_Matrix_toPlot %>%
+        dplyr::select(`M+H`, `CE-time`, M.H_newSample, CE.time_adj, Match)
       
+      RvarsMatchNewsample$res_Matrix_toPlotZoomed <- res_Matrix_toPlot
+      datatable(data.frame(req(res_Matrix_toPlot)))
     }
     
-    table_to_save
-    
     
   }
   
 })
 
-
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Batch import cut-off (Min/Max en temps) ~~~~~~~~~~~~~~~~~~~~~~#*
-## Permet d'importer un fichier Excel (Sample, Min, Max, Unit optionnel) pour
-## appliquer en masse les bornes de découpage RT au lieu de les saisir
-## manuellement échantillon par échantillon. Réutilise normalize_run_key_newSample
-## (définie plus bas dans ce fichier, mais déjà disponible au moment de
-## l'exécution de cet observer — tout le code top-level du serveur s'exécute
-## une fois à l'initialisation de la session, avant toute interaction) pour
-## tolérer les variations de format de nom de run (séparateurs, zero-padding).
-observeEvent(input$applyBatchCutOff_newSample, ignoreNULL = TRUE, {
-  req(input$batchCutOffFile_newSample)
-  
-  if (is.null(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)) {
-    showNotification("Aucun échantillon chargé pour le découpage.", type = "error", duration = 8)
-    return()
-  }
-  
-  df <- tryCatch(
-    openxlsx::read.xlsx(input$batchCutOffFile_newSample$datapath, sheet = 1),
-    error = function(e) NULL
-  )
-  if (is.null(df)) {
-    showNotification("Impossible de lire le fichier Excel.", type = "error", duration = 8)
-    return()
-  }
-  
-  loaded_samples <- rownames(RvarsPeakDetectionNewSample$samplesCuttingTable_newSample)
-  loaded_key_lookup <- stats::setNames(loaded_samples, normalize_run_key_newSample(loaded_samples))
-  
-  col_names    <- colnames(df)
-  datafile_col <- col_names[grepl(pattern = "^Datafile$|^Sample$", col_names, ignore.case = TRUE)][1]
-  min_col      <- col_names[grepl(pattern = "^Min$|^RT.?min$|^CE.?time.?min$", col_names, ignore.case = TRUE)][1]
-  max_col      <- col_names[grepl(pattern = "^Max$|^RT.?max$|^CE.?time.?max$", col_names, ignore.case = TRUE)][1]
-  unit_col     <- col_names[grepl(pattern = "^Unit$", col_names, ignore.case = TRUE)][1]
-  
-  missing_cols <- c("Sample/Datafile", "Min", "Max")[is.na(c(datafile_col, min_col, max_col))]
-  if (length(missing_cols) > 0) {
-    showNotification(
-      paste("Colonnes manquantes dans le fichier :", paste(missing_cols, collapse = ", ")),
-      type = "error", duration = 10
-    )
-    return()
-  }
-  
-  n <- nrow(df)
-  results <- data.frame(Sample = character(0), Status = character(0), stringsAsFactors = FALSE)
-  
-  withProgress(message = "Import batch des bornes de découpage...", value = 0, {
-    for (i in seq_len(n)) {
-      incProgress(1 / n, detail = sprintf("%d/%d", i, n))
-      
-      sample_raw <- trimws(as.character(df[[datafile_col]][i]))
-      if (grepl("\\.d$", sample_raw, ignore.case = TRUE)) {
-        sample_raw <- sub("\\.d$", "", sample_raw, ignore.case = TRUE)
-      }
-      rt_min <- suppressWarnings(as.numeric(df[[min_col]][i]))
-      rt_max <- suppressWarnings(as.numeric(df[[max_col]][i]))
-      unit_raw <- if (!is.na(unit_col)) trimws(as.character(df[[unit_col]][i])) else NA_character_
-      unit_val <- if (!is.na(unit_raw) && tolower(unit_raw) %in% c("minute", "minutes", "min")) {
-        "Minute"
-      } else {
-        "Second"
-      }
-      
-      # Un run peut n'être découpé que d'un seul côté (Min ou Max seul) — comme
-      # pour la saisie manuelle — donc on n'ignore que si les DEUX bornes manquent.
-      if (!nzchar(sample_raw) || (is.na(rt_min) && is.na(rt_max))) {
-        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (valeurs manquantes)"))
-        next
-      }
-      
-      sample_sel <- unname(loaded_key_lookup[normalize_run_key_newSample(sample_raw)])
-      if (is.na(sample_sel)) {
-        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (run non chargé)"))
-        next
-      }
-      
-      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[sample_sel, 1:2] <- c(rt_min, rt_max)
-      RvarsPeakDetectionNewSample$samplesCuttingTable_newSample[sample_sel, 3]   <- unit_val
-      
-      results <- rbind(results, data.frame(Sample = sample_sel, Status = "OK"))
-    }
-  })
-  
-  n_ok <- sum(results$Status == "OK")
-  n_other <- nrow(results) - n_ok
-  
-  showNotification(
-    sprintf("Import batch terminé : %d run(s) découpé(s), %d ignoré(s).", n_ok, n_other),
-    type = if (n_other == 0) "message" else "warning",
-    duration = 10
-  )
-  
-  RvarsPeakDetectionNewSample$batchCutOffResults_newSample <- results
-  # Forcer le rafraîchissement du graphique pour l'échantillon actuellement
-  # affiché : output$sample_selectedCutting_Plot_newSample n'est redessiné
-  # que par observeEvent(input$sample_selectedCutting_newSample, ...), donc
-  # sans ce reset du picker (vider puis re-remplir avec la même sélection),
-  # un import batch laisserait affiché l'ancien graphique (non coupé) tant
-  # que l'utilisateur ne change pas manuellement d'échantillon.
-  current_sample <- isolate(input$sample_selectedCutting_newSample)
-  if (!is.null(current_sample) && nzchar(current_sample)) {
-    all_cut_choices <- names(RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample)
-    updatePickerInput(session = session,
-                      inputId = "sample_selectedCutting_newSample",
-                      choices = character(0))
-    updatePickerInput(session = session,
-                      inputId = "sample_selectedCutting_newSample",
-                      choices = all_cut_choices,
-                      selected = current_sample)
-  }
-  show_batch_cutoff_results_modal_newSample(results)
-})
-
-## Affiche (ou réaffiche) le tableau des résultats du dernier import batch cut-off
-show_batch_cutoff_results_modal_newSample <- function(results) {
-  output$batchCutOffResultTable_newSample <- DT::renderDataTable({
-    DT::datatable(
-      results,
-      rownames = FALSE,
-      options = list(pageLength = 15, scrollX = TRUE)
-    )
-  })
-  showModal(
-    modalDialog(
-      title = "Résultats de l'import batch — cut-off",
-      size = "l",
-      easyClose = TRUE,
-      footer = modalButton("Close"),
-      DT::dataTableOutput("batchCutOffResultTable_newSample")
-    )
-  )
-}
-
-observeEvent(input$viewBatchCutOffResults_newSample, ignoreNULL = TRUE, {
-  results <- isolate(RvarsPeakDetectionNewSample$batchCutOffResults_newSample)
-  if (is.null(results) || nrow(results) == 0) {
-    showNotification("Aucun résultat d'import batch disponible pour l'instant.",
-                     type = "message", duration = 6)
-    return()
-  }
-  show_batch_cutoff_results_modal_newSample(results)
-})
-
-
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save cutting samples (end of Step 2) ~~~~~~~~~~~~~~~~~~~~~~~~~#*
-## Port fidèle de la logique "SaveCuttingSample" côté NRM : le bouton est
-## désactivé par défaut et n'est activé qu'après confirmation de "Finish"
-## (voir enable("SaveCuttingSample_newSample") plus bas). Contrairement à
-## un export limité aux échantillons coupés, ici TOUS les échantillons sont
-## exportés (coupés ou non — peaks_mono_iso_sample_selectedCutting_newSample()
-## renvoie déjà chaque échantillon tel quel s'il n'a pas été coupé), et
-## chacun dans son propre fichier nommé "<sample>-<nom choisi par l'utilisateur>",
-## tous dans le même dossier — donc un nom de fichier cohérent et traçable
-## par run, au lieu d'un seul CSV combiné.
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$SaveCuttingSample_newSample
-             },
+               input$detail
+             }
+             ,
              handlerExpr = {
-               shinyFileSave(input,
-                             id = "SaveCuttingSample_newSample",
-                             roots = volumes,
-                             session = session)
-               
-               path_Save_Files_origine <- parseSavePath(volumes, input$SaveCuttingSample_newSample)$datapath
-               valuestoSave <- peaks_mono_iso_sample_selectedCutting_newSample()
-               if (length(valuestoSave) > 0) {
-                 valuestoSave <- do.call("rbind", valuestoSave)
-                 reqColsSaved <- c('M+H',
-                                   'M+H.min',
-                                   'M+H.max',
-                                   'CE-time',
-                                   'CE-time.min',
-                                   'CE-time.max',
-                                   'integrated-intensity',
-                                   'intensity',
-                                   'sn',
-                                   'sample'
-                 )
-                 
-                 reqColsUsed <- c('mz',
-                                  'mzmin',
-                                  'mzmax',
-                                  'rt',
-                                  'rtmin',
-                                  'rtmax',
-                                  'into',
-                                  'maxo',
-                                  'sn',
-                                  'sample')
-                 
-                 idx_reqColsSaved <- which(colnames(valuestoSave) %in% reqColsUsed)
-                 colnames(valuestoSave)[idx_reqColsSaved] <- reqColsSaved
-                 valuestoSave <- split(valuestoSave, f = valuestoSave$sample)
-                 
-                 if (length(path_Save_Files_origine) > 0) {
-                   path_Save_Files <-
-                     strsplit(path_Save_Files_origine, split = "/")[[1]]
-                   directory_Save_Files <-
-                     paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
+               showModal(
+                 modalDialog(
+                   title = "Details table",
                    
-                   
-                   if (length(valuestoSave) == 1) {
-                     write.table(
-                       valuestoSave[[1]],
-                       file = paste0(c(
-                         directory_Save_Files,
-                         paste(
-                           names(valuestoSave)[1],
-                           path_Save_Files[length(path_Save_Files)],
-                           collapse = "",
-                           sep = "-"
-                         )
-                       ), collapse = "/"),
-                       
-                       sep = ",",
-                       row.names = FALSE
-                     )
-                     print("Save ok")
-                   } else{
-                     withProgress(message = 'Saving files...', value = 0, {
-                       for (i in 1:length(valuestoSave)) {
-                         incProgress(1 / length(valuestoSave),
-                                     detail = "")
-                         print(paste0(c(
-                           directory_Save_Files,
-                           paste(
-                             names(valuestoSave)[i],
-                             path_Save_Files[length(path_Save_Files)],
-                             collapse = "",
-                             sep = "-"
-                           )
-                         ), collapse = "/"))
-                         write.table(
-                           valuestoSave[[i]],
-                           file = paste0(c(
-                             directory_Save_Files,
-                             paste(
-                               names(valuestoSave)[i],
-                               path_Save_Files[length(path_Save_Files)],
-                               collapse = "",
-                               sep = "-"
-                             )
-                           ), collapse = "/"),
-                           sep = ",",
-                           row.names = FALSE
-                         )
-                         print("Save ok")
-                       }
-                       
-                     })
+                   div(
+                     id = "detailTable",
+                     class = "well well-sm",
+                     h4("Table"),
+                     hr(),
                      
-                   }
-                   
-                 }
-               }
-               
-             })
-
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Button server for cutting new samples ~~~~~~~~~~~~~~~~~~~~~~~~#*
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$validCuttingRun_newSample
-             },
-             handlerExpr = {
-               ask_confirmation(
-                 inputId = "validCuttingRun_confirmation_newSample",
-                 title = NULL,
-                 text = tags$b(
-                   #icon("info"),
-                   paste0(
-                     "Are you sure you’re done cutting all your samples?",
-                     "\n",
-                     "Once you click OK, you may resume all if you want to go back."
+                     fluidRow(column(
+                       12,
+                       div(
+                         class = "small",
+                         DTOutput("TableZoom",
+                                  width = "100%"),
+                         style = "overflow: auto;"
+                       )
+                     ))
                    ),
-                   style = "color: #FA5858;"
-                 ),
-                 btn_labels = c("Cancel", "OK"),
-                 btn_colors = c("#00BFFF", "#FE2E2E"),
-                 html = TRUE
-               )
-               
-               
-             })
-
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$ResetCuttingRun_newSample
-             },
-             handlerExpr = {
-               ask_confirmation(
-                 inputId = "ResetCuttingRun_confirmation_newSample",
-                 title = NULL,
-                 text = tags$b(#icon("info"),
-                   "Do you really want to resume the cutting of all samples ?",
-                   style = "color: #FA5858;"),
-                 btn_labels = c("Cancel", "OK"),
-                 btn_colors = c("#00BFFF", "#FE2E2E"),
-                 html = TRUE
+                   
+                   shinySaveButton(
+                     id =  "SaveTableDetails",
+                     label = "Save",
+                     title = "Save file as...",
+                     filename = "Matched-Table",
+                     filetype = list(text = "csv"),
+                     viewtype = "icon",
+                     icon = icon("save", lib = "glyphicon"),
+                     class = "btn-primary"
+                   ),
+                   
+                   size = "l",
+                   easyClose = FALSE,
+                   fade = TRUE,
+                   footer = modalButton("Close (Esc)")
+                 )
                )
                
                
              })
 
 
+###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Hide some panel ~~~~~~~~~~~~~~~~~~~~~~~~~~~~###
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+observe({
+  hide(id = "Idfeatures_matchViewer")
+  hide(id = "Idpercent_matchViewer")
+  hide(id = "IdBoxplotNormalizing")
+  hide(id = "IdNormalizresPlot")
+  #hide(id = "id_NormalizersDistribution")
+})
 
+
+
+###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+###~~~~~~~~~~~~~~~~~~~~~~~~~~ Normalization new samples ~~~~~~~~~~~~~~~~~~~~~~~###
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+
+#~~~~~~~~~~~~~~~~ Info bull for to explain the parameter cutrat ~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$validCuttingRun_confirmation_newSample
+               input$click_info_cutrat
              },
+             
              handlerExpr = {
-               if (input$validCuttingRun_confirmation_newSample == TRUE) {
-                 disable("RetentionTimeFiltering_id_newSample")
-                 shinyjs::show("id_ResetCuttingRun_newSample")
-                 enable("SaveCuttingSample_newSample")
-                 hide("id_validCuttingRun_newSample")
-                 enable("GoToPeakView_newSample")
-                 enable("id_SelectRefrenceSamplePanel_newSample")
-                 
-               }
+               showModal(
+                 modalDialog(
+                   title = "Helper",
+                   p(column(
+                     12,
+                     p(
+                       "Deviation of intensity between the normalizers in the new sample and the reference."
+                     ),
+                     p(
+                       "This parameter is used to manage the outlier normalizers, that is,
+             the normalizers in the new sample that deviate too far from the reference normalizers."
+                     ),
+                   ),
+                   br()),
+                   size = "l",
+                   easyClose = TRUE,
+                   fade = TRUE,
+                   footer = modalButton("Close (Esc)")
+                 )
+               )
              })
 
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~ Starting automatically the normalization for new samples ~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$ResetCuttingRun_confirmation_newSample
+               input$IncludeSample
              },
              handlerExpr = {
-               if (input$ResetCuttingRun_confirmation_newSample == TRUE) {
-                 enable("RetentionTimeFiltering_id_newSample")
-                 hide("id_ResetCuttingRun_newSample")
-                 shinyjs::show("id_validCuttingRun_newSample")
-                 disable("SaveCuttingSample_newSample")
-                 shinyjs::reset("rt_min_cut_newSample")
-                 shinyjs::reset("rt_max_cut_newSample")
-                 disable("GoToPeakView_newSample")
-                 disable("id_SelectRefrenceSamplePanel_newSample")
+               updateTabsetPanel(session = session,
+                                 inputId = "normalizeViewer",
+                                 selected = "Boxplot-intensity")
+               
+               RvarsNormalizeNewsample$NoSampleNormalize <- FALSE
+               
+               shinyjs::show("wellPanelNormIntensityOutput")
+               if ((!is.null(ms_features_list_newSample_toUse()))) {
+                 res_MatrixNewSample <-
+                   req(RvarsMatchNewsample$res_match_ref$res_newSample)
                  
                  
-                 if (!is.null(names(
-                   RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-                 ))) {
-                   RvarsPeakDetectionNewSample$samplesCuttingTable_newSample <-
-                     data.frame(
-                       row.names = names(
-                         RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-                       ),
-                       rt_min_cut_newSample = rep(
-                         NA,
-                         length(
-                           RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-                         )
-                       ),
-                       rt_max_cut_newSample = rep(
-                         NA,
-                         length(
-                           RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-                         )
-                       ),
-                       Unit = rep(
-                         "Second",
-                         length(
-                           RvarsPeakDetectionNewSample$peaks_mono_iso_Cutt_newSample
-                         )
-                       )
+                 if (ncol(res_MatrixNewSample) == 4) {
+                   res_MatrixNewSample_toNormalize <-
+                     cbind(
+                       res_MatrixNewSample,
+                       Refrence.Map = 2 ^ (RvarsPeakDetectionNewSample$map_ref$maxo)
                      )
+                 } else{
+                   res_MatrixNewSample_toNormalize <- res_MatrixNewSample
                  }
                  
-                 updateAwesomeRadio(session = session,
-                                    inputId = "UnitTime_sampleCutting_newSample",
-                                    selected = "Second")
-                 RvarsPeakDetectionNewSample$Second <- TRUE
+                 RvarsNormalizeNewsample$matrix_abondance <-
+                   as.matrix(res_MatrixNewSample_toNormalize[,-(1:3)])
+                 
+                 
+                 rownames(RvarsNormalizeNewsample$matrix_abondance) <-
+                   res_MatrixNewSample$ID
+                 normalizers_intensity <-
+                   req(RvarsPeakDetectionNewSample$map_ref$maxo)
+                 names(normalizers_intensity) <-
+                   RvarsPeakDetectionNewSample$map_ref$ID
+                 # names(normalizers_intensity)<-req(RvarsPeakDetectionNewSample$normalizers_ref$ID)
+                 source("lib/AnalysisNewSample/R_files/normalizationNewsample.lib.R",
+                        local = TRUE)
+                 
+                 
+                 RvarsNormalizeNewsample$matrix_abondance_Normalize <-
+                   normalizeSamples(
+                     X = req(RvarsNormalizeNewsample$matrix_abondance),
+                     ref = 2 ^
+                       normalizers_intensity,
+                     iset.ref = req(RvarsPeakDetectionNewSample$normalizers_ref$ID),
+                     min.iset = isolate(input$min_iset),
+                     extrap =
+                       TRUE,
+                     cutrat = isolate(input$cutrat),
+                     out.scale = "natural",
+                     method = "lm"
+                   )
+                 
+                 if (length(RvarsNormalizeNewsample$matrix_abondance_Normalize) !=
+                     0) {
+                   if (ncol(RvarsNormalizeNewsample$matrix_abondance_Normalize) !=
+                       0) {
+                     RvarsNormalizeNewsample$iset.normalizer.selected <-
+                       attr(RvarsNormalizeNewsample$matrix_abondance_Normalize,
+                            "idX_normalizers")
+                     
+                     if (ncol(res_MatrixNewSample) == 4) {
+                       extract_OneSample <-
+                         cbind(
+                           RvarsMatchNewsample$res_match_ref$res_newSample[1:3],
+                           RvarsNormalizeNewsample$matrix_abondance_Normalize
+                         )
+                       RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave <-
+                         extract_OneSample[,-ncol(extract_OneSample)]
+                       RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlot <-
+                         extract_OneSample[,-ncol(extract_OneSample)]
+                       
+                       idx_Duplicates_ref <-
+                         unique(unlist(
+                           RvarsMatchNewsample$res_match_ref$idx_Duplicates_ref
+                         ))
+                       
+                       if (length(idx_Duplicates_ref)) {
+                         RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave[RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave$ID %in% idx_Duplicates_ref,-c(1:3)] <-
+                           NA
+                       }
+                       
+                       
+                     } else{
+                       RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave <-
+                         cbind(
+                           RvarsMatchNewsample$res_match_ref$res_newSample[1:3],
+                           RvarsNormalizeNewsample$matrix_abondance_Normalize
+                         )
+                       RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlot <-
+                         cbind(
+                           RvarsMatchNewsample$res_match_ref$res_newSample[1:3],
+                           RvarsNormalizeNewsample$matrix_abondance_Normalize
+                         )
+                       
+                       idx_Duplicates_ref <-
+                         unique(unlist(
+                           RvarsMatchNewsample$res_match_ref$idx_Duplicates_ref
+                         ))
+                       
+                       if (length(idx_Duplicates_ref)) {
+                         RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave[RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave$ID %in% idx_Duplicates_ref,-c(1:3)] <-
+                           NA
+                       }
+                     }
+                     
+                   } else {
+                     RvarsNormalizeNewsample$matrix_abondance_Normalize <- NULL
+                     RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave <-
+                       NULL
+                     RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlo <-
+                       NULL
+                     
+                     output$LegendNormalizersDistributionSampleName <- renderText({})
+                     output$LegendNormalizersDistribution <- renderPlot({})
+                     output$NormalizersDistribution <- renderPlot({})
+                   }
+                 } else {
+                   RvarsNormalizeNewsample$matrix_abondance_Normalize <- NULL
+                   RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave <-
+                     NULL
+                   RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlo <-
+                     NULL
+                   
+                   output$LegendNormalizersDistributionSampleName <- renderText({})
+                   output$LegendNormalizersDistribution <- renderPlot({})
+                   output$NormalizersDistribution <- renderPlot({})
+                 }
+                 
+                 
+                 
                }
+               
              })
 
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~ When the user click the button runNormalizing ~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$runNormalizing
+             }
+             , {
+               updateTabsetPanel(session = session,
+                                 inputId = "normalizeViewer",
+                                 selected = "Boxplot-intensity")
+               
+               RvarsNormalizeNewsample$NoSampleNormalize <- FALSE
+               
+               
+               
+               tryCatch({
+                 shinyjs::show("wellPanelNormIntensityOutput")
+                 # shinyjs::html("normIntensityProgress","")
+                 # shinyjs::toggle(id = "idpanel_normIntensityProgress", condition = input$runNormalizing>=1)
+                 # shinyjs::show("normIntensityProgressWrapper")
+                 res_MatrixNewSample <-
+                   RvarsMatchNewsample$res_match_ref$res_newSample
+                 
+                 if (ncol(res_MatrixNewSample) == 4) {
+                   res_MatrixNewSample_toNormalize <-
+                     cbind(
+                       res_MatrixNewSample,
+                       Refrence.Map = 2 ^ (RvarsPeakDetectionNewSample$map_ref$maxo)
+                     )
+                 } else{
+                   res_MatrixNewSample_toNormalize <- res_MatrixNewSample
+                 }
+                 
+                 RvarsNormalizeNewsample$matrix_abondance <-
+                   as.matrix(res_MatrixNewSample_toNormalize[,-(1:3)])
+                 rownames(RvarsNormalizeNewsample$matrix_abondance) <-
+                   res_MatrixNewSample$ID
+                 normalizers_intensity <-
+                   RvarsPeakDetectionNewSample$map_ref$maxo
+                 names(normalizers_intensity) <-
+                   RvarsPeakDetectionNewSample$map_ref$ID
+                 # names(normalizers_intensity)<-RvarsPeakDetectionNewSample$normalizers_ref$ID
+                 source("lib/AnalysisNewSample/R_files/normalizationNewsample.lib.R",
+                        local = TRUE)
+                 
+                 
+                 RvarsNormalizeNewsample$matrix_abondance_Normalize <-
+                   normalizeSamples(
+                     X = RvarsNormalizeNewsample$matrix_abondance,
+                     ref = 2 ^ normalizers_intensity,
+                     iset.ref = req(RvarsPeakDetectionNewSample$normalizers_ref$ID),
+                     min.iset = req(input$min_iset),
+                     extrap = TRUE,
+                     cutrat = req(input$cutrat),
+                     out.scale = "naturel",
+                     method = "lm"
+                   )
+                 
+                 if (length(RvarsNormalizeNewsample$matrix_abondance_Normalize) !=
+                     0) {
+                   if (ncol(RvarsNormalizeNewsample$matrix_abondance_Normalize) !=
+                       0) {
+                     RvarsNormalizeNewsample$iset.normalizer.selected <-
+                       attr(RvarsNormalizeNewsample$matrix_abondance_Normalize,
+                            "idX_normalizers")
+                     shinyjs::html("normIntensityProgress", "Normalizing complete !")
+                     
+                     if (ncol(res_MatrixNewSample) == 4) {
+                       extract_OneSample <-
+                         cbind(
+                           RvarsMatchNewsample$res_match_ref$res_newSample[1:3],
+                           RvarsNormalizeNewsample$matrix_abondance_Normalize
+                         )
+                       RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave <-
+                         extract_OneSample[,-ncol(extract_OneSample)]
+                       RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlot <-
+                         extract_OneSample[,-ncol(extract_OneSample)]
+                       
+                       idx_Duplicates_ref <-
+                         unique(unlist(
+                           RvarsMatchNewsample$res_match_ref$idx_Duplicates_ref
+                         ))
+                       
+                       if (length(idx_Duplicates_ref)) {
+                         RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave[RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave$ID %in% idx_Duplicates_ref,-c(1:3)] <-
+                           NA
+                       }
+                       
+                       
+                       
+                     } else{
+                       RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave <-
+                         cbind(
+                           RvarsMatchNewsample$res_match_ref$res_newSample[1:3],
+                           RvarsNormalizeNewsample$matrix_abondance_Normalize
+                         )
+                       RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlot <-
+                         cbind(
+                           RvarsMatchNewsample$res_match_ref$res_newSample[1:3],
+                           RvarsNormalizeNewsample$matrix_abondance_Normalize
+                         )
+                       
+                       idx_Duplicates_ref <-
+                         unique(unlist(
+                           RvarsMatchNewsample$res_match_ref$idx_Duplicates_ref
+                         ))
+                       
+                       if (length(idx_Duplicates_ref)) {
+                         RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave[RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave$ID %in% idx_Duplicates_ref,-c(1:3)] <-
+                           NA
+                       }
+                     }
+                   } else {
+                     RvarsNormalizeNewsample$matrix_abondance_Normalize <- NULL
+                     RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave <-
+                       NULL
+                     RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlo <-
+                       NULL
+                     
+                     
+                     output$LegendNormalizersDistributionSampleName <- renderText({})
+                     output$LegendNormalizersDistribution <- renderPlot({})
+                     output$NormalizersDistribution <- renderPlot({})
+                   }
+                 } else {
+                   RvarsNormalizeNewsample$matrix_abondance_Normalize <- NULL
+                   RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave <-
+                     NULL
+                   RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlo <-
+                     NULL
+                   
+                   
+                   output$LegendNormalizersDistributionSampleName <- renderText({})
+                   output$LegendNormalizersDistribution <- renderPlot({})
+                   output$NormalizersDistribution <- renderPlot({})
+                 }
+                 
+                 
+               },
+               error = function(e) {
+                 hide("idpanel_normIntensityProgress")
+                 message("No match results !")
+                 # hide("progressWrapper")
+                 # hide("analysisProgress")
+                 # shinyjs::html("analysisProgress",html = NULL)
+                 
+                 sendSweetAlert(
+                   session = session,
+                   title = "Warning !",
+                   text = HTML(
+                     "No match results ! Please upload some samples and do step 3 : match reference map.<br>",
+                     "Or change the normalization parameters (please decrease the parameters : 'min normalizers', 'intensity deviation') <br>"
+                   ),
+                   type = "warning",
+                   html = TRUE
+                 )
+               })
+               
+             })
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot results of normalization ~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+output$NormalizersDistribution <- renderPlot({
+  if (!is.null(RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlot)) {
+    if (ncol(RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlot) ==
+        4) {
+      X_data <-
+        RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlot
+    } else{
+      X_data <-
+        RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlot %>%
+        dplyr::select(c(1:3, RvarsNormalizeNewsample$sample_ToPrint))
+    }
+    
+    
+    
+    if (ncol(X_data) == 4) {
+      # layout(matrix(1:8,ncol=4, byrow = TRUE))
+      # par(mar=c(4,4,2,2), oma = c(0, 0, 2, 0))
+      
+      
+      
+      ID_NoNA <- X_data[!is.na(X_data[, 4]),]$ID
+      if (!all(is.na(X_data[RvarsNormalizeNewsample$iset.normalizer.selected[RvarsNormalizeNewsample$sample_ToPrint[1]][[1]], 4]))) {
+        plot(
+          x = X_data[ID_NoNA,]$`CE-time`,
+          y = X_data[ID_NoNA,]$`M+H`,
+          pch = 20,
+          col = "gray",
+          cex = 1.2,
+          #0.8
+          xlab = "Ce-time(second)",
+          ylab = "M+H(Da)",
+          main = colnames(X_data)[4],
+          cex.lab = 1.5,
+          #1.3
+          cex.axis = 1.2,
+          font.axis = 2,
+          font.main = 2,
+          cex.main = 1.2
+        )
+        grid(nx = 8)
+        points(
+          x = X_data[RvarsNormalizeNewsample$iset.normalizer.selected[RvarsNormalizeNewsample$sample_ToPrint[1]][[1]],]$`CE-time`,
+          y = X_data[RvarsNormalizeNewsample$iset.normalizer.selected[RvarsNormalizeNewsample$sample_ToPrint[1]][[1]],]$`M+H`,
+          pch = 20,
+          col = "blue",
+          cex = 1.2,
+          #0.8
+          # cex.lab = 1.3,
+          # cex.axis = 1.2,
+          # font.axis = 2
+        )
+      }
+      
+      
+    } else {
+      layout(matrix(1:8, ncol = 4, byrow = TRUE))
+      par(mar = c(4, 4, 2, 2), oma = c(0, 0, 2, 0))
+      
+      if (ncol(X_data[,-c(1:3)]) < 9) {
+        n <- ncol(X_data[,-c(1:3)])
+      } else {
+        n <- 8
+      }
+      
+      
+      for (k in 1:n) {
+        ID_NoNA <- X_data[!is.na(X_data[, k + 3]),]$ID
+        
+        if (!all(is.na(X_data[RvarsNormalizeNewsample$iset.normalizer.selected[RvarsNormalizeNewsample$sample_ToPrint[k]][[1]], 4:ncol(X_data)]))) {
+          plot(
+            x = X_data[ID_NoNA,]$`CE-time`,
+            y = X_data[ID_NoNA,]$`M+H`,
+            pch = 20,
+            col = "gray",
+            cex = 1.2,
+            #0.8
+            xlab = "Ce-time(second)",
+            ylab = "M+H(Da)",
+            main = paste("sample", k, sep = "-"),
+            cex.lab = 1.5,
+            #1.3
+            cex.axis = 1.2,
+            font.axis = 2,
+            font.main = 2,
+            cex.main = 1.2
+          )
+          points(
+            x = X_data[RvarsNormalizeNewsample$iset.normalizer.selected[RvarsNormalizeNewsample$sample_ToPrint[k]][[1]],]$`CE-time`,
+            y = X_data[RvarsNormalizeNewsample$iset.normalizer.selected[RvarsNormalizeNewsample$sample_ToPrint[k]][[1]],]$`M+H`,
+            pch = 20,
+            col = "blue",
+            cex = 1.2,
+            #0.8
+            # cex.lab = 1.3,
+            # cex.axis = 1.2,
+            # font.axis = 2
+          )
+          
+        }
+        
+      }
+    }
+    
+    
+    
+  } else {
+  }
+  
+  
+})
+
+
+output$LegendNormalizersDistribution <- renderPlot({
+  if (!is.null(RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlot)) {
+    data_legend <-
+      data.frame(
+        x = seq.int(length.out = 10),
+        y = (seq.int(length.out = 10)) ^ 2,
+        Legend = c(rep("Stable", 5), rep("Unstable", 5))
+      )
+    ggplot_legend <- ggplot(data_legend) +
+      aes(x = x, y = y, colour = Legend) +
+      geom_point(size = 5L) +
+      scale_color_manual(values = c(Stable = "blue",
+                                    Unstable = "gray")) +
+      theme_ben() +
+      theme(
+        legend.title = element_text(
+          size = rel(1.1),
+          face = "bold.italic",
+          hjust = 0.5
+        ),
+        legend.text = element_text(size = rel(0.8), face = "bold.italic"),
+        legend.key = element_rect(fill = "transparent", colour = NA),
+        legend.key.size = unit(0.5, "cm"),
+        legend.key.width = unit(0.5, "cm"),
+        legend.background = element_rect(fill = "transparent", colour = "#f7f6f1")
+      )
+    
+    legend <- get_legend(ggplot_legend)
+    grid.newpage()
+    grid.draw(legend)
+    
+    # plot.new()
+    # legend("topleft", title="Legend",
+    #        c("Stable peptides", "Unstable peptides"),
+    #        xjust = 0, yjust = 0, inset=0, title.adj = 0, title.font = 2,
+    #        fill=c("green", "gray"), horiz=FALSE, cex=1.1, border = "white")
+    
+    
+  } else {
+    
+  }
+})
+
+
+output$LegendNormalizersDistributionSampleName <- renderText({
+  if (!is.null(RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlot)) {
+    if (ncol(RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlot) >
+        4) {
+      Xn_legend <-
+        RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toPlot[,-c(1:3)]
+      Xn_legend <-
+        Xn_legend[, RvarsNormalizeNewsample$sample_ToPrint[1:RvarsNormalizeNewsample$n_nrom]]
+      data_legend <-
+        data.frame(
+          x = seq.int(length.out = ncol(Xn_legend)),
+          y = (seq.int(length.out = ncol(Xn_legend))) ^
+            2,
+          Samples = paste(
+            "\n",
+            paste("sample", 1:ncol(Xn_legend), sep = "-"),
+            ": ",
+            colnames(Xn_legend),
+            sep = ""
+          )
+        )
+      data_legend$Samples
+      
+    }
+  } else {
+  }
+})
 
 
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~ Correction time to the reference map  ~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~ Correction time with kernel Density ~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-
-##~~~~~~~~~~~~ update input 'SelectSample_KernelDensity_newSample' ~~~~~~~~~#
+##~~~~~~~~~~~~~~~ Saving results for match and normalization ~~~~~~~~~~~~~~~~##
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 
 observe({
-  if (!is.null(peaks_mono_iso_sample_selectedCutting_newSample())) {
-    sample_name <-
-      names(peaks_mono_iso_sample_selectedCutting_newSample())
-    
-    RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list <-
-      peaks_mono_iso_sample_selectedCutting_newSample()
-    
-    peaks <-
-      RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list
-    # RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <-
-    #   peaks
-    
-    # Fusion au lieu d'écrasement : préserve les corrections déjà appliquées
-    # (issues d'un "Adjust CE-time" ou restaurées du cache) pour les runs déjà
-    # présents ; n'initialise avec les données brutes que les runs manquants.
-    existing_correction <- isolate(RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection)
-    if (is.null(existing_correction)) {
-      RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <- peaks
-    } else {
-      merged <- peaks
-      already_corrected <- intersect(names(existing_correction), names(peaks))
-      # Un re-découpage (cutOff_newSample) change le nombre de lignes de
-      # peaks_mono_iso_newSample_list pour l'échantillon concerné. Si on
-      # préserve quand même l'ancienne correction (taille différente), le
-      # prochain "Fit model" assigne un predict() de N lignes à une colonne
-      # $rt qui en a M → crash $<-.data.frame ("replacement has N rows,
-      # data has M"). On n'écrase donc PAS avec les données fraîches, sauf
-      # si la taille a changé depuis la dernière correction : dans ce cas la
-      # correction est invalidée (il faudra la relancer pour ce run).
-      for (s in already_corrected) {
-        if (nrow(existing_correction[[s]]) == nrow(peaks[[s]])) {
-          merged[[s]] <- existing_correction[[s]]
-        }
-      }
-      RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <- merged
-    }
-    
-    # Forcer un vrai événement de changement de sélection : un simple
-    # updatePickerInput(choices=...) qui garde la même valeur sélectionnée
-    # ne renvoie pas toujours un nouvel input$SelectSample_KernelDensity_newSample
-    # côté serveur, donc observeEvent(input$SelectSample_KernelDensity_newSample)
-    # (qui dessine DensityFilterPlot_newSample avec les données à jour) ne se
-    # redéclenche pas après un découpage — le graphique reste figé sur les
-    # données d'avant le cut tant qu'on ne change pas manuellement de run.
-    # On vide le picker puis on le re-remplit en réaffirmant la même sélection
-    # (si elle existe toujours) pour forcer ce nouvel événement.
-    current_kd_sample <- isolate(input$SelectSample_KernelDensity_newSample)
-    selected_kd_sample <- if (!is.null(current_kd_sample) && current_kd_sample %in% sample_name) {
-      current_kd_sample
-    } else {
-      sample_name[1]
-    }
-    
-    updatePickerInput(session = session,
-                      inputId = "SelectSample_KernelDensity_newSample",
-                      choices = character(0))
-    updatePickerInput(session = session,
-                      inputId = "SelectSample_KernelDensity_newSample",
-                      choices = sample_name,
-                      selected = selected_kd_sample)
-    
-    
-    
-  } else {
-    RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list <-
-      peaks_mono_iso_sample_selectedCutting_newSample()
-    
-    peaks <-
-      RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list
-    RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection <-
-      peaks
-    
-    updatePickerInput(
-      session = session,
-      inputId = "SelectSample_KernelDensity_newSample",
-      choices = character(0),
-      selected = character(0)
-    )
-  }
-})
-
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~ Forced reactive Kernel density filter when choosing samples when cutting sample~~#
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               c(input$cutOff_newSample)
-             },
-             handlerExpr = {
-               if (!is.null(peaks_mono_iso_sample_selectedCutting_newSample())) {
-                 sample_name <-
-                   names(peaks_mono_iso_sample_selectedCutting_newSample())
-                 
-                 RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list <-
-                   peaks_mono_iso_sample_selectedCutting_newSample()
-                 
-                 updatePickerInput(
-                   session = session,
-                   inputId = "SelectSample_KernelDensity_newSample",
-                   choices = character(0),
-                   selected = character(0)
-                 )
-                 
-                 updatePickerInput(session = session,
-                                   inputId = "SelectSample_KernelDensity_newSample",
-                                   choices = sample_name)
-               }
-               
-             })
-
-## View data
-# observe({
-#   if(!is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)){
-#     View(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)
-#   }
-# })
-
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~ Kernel density filter when choosing samples ~~~~~~~~~#
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$SelectSample_KernelDensity_newSample
-             },
-             handlerExpr = {
-               if (!is.null(input$SelectSample_KernelDensity_newSample) &
-                   !is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list) &
-                   !is.null(RvarsPeakDetectionNewSample$map_ref)) {
-                 ##Matched samples
-                 
-                 source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R",
-                        local = TRUE)
-                 
-                 ref <- RvarsPeakDetectionNewSample$map_ref[2:4]
-                 colnames(ref) <- c("mz", "rt", "maxo")
-                 
-                 ref$maxo <- 2 ^ (ref$maxo)
-                 
-                 table.newSample <-
-                   RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[input$SelectSample_KernelDensity_newSample]]
-                 table.newSample <-
-                   table.newSample[, c("mz", "rt", "maxo", "sample")]
-                 
-                 resMatch.newSample <- matchMz(
-                   x = ref,
-                   table = table.newSample,
-                   ppm_tolereance = 1000,
-                   mzcol = "mz",
-                   rtcol = "rt" ,
-                   session = session
-                 )
-                 
-                 
-                 
-                 RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter <-
-                   resMatch.newSample$MatchTable[!is.na(resMatch.newSample$MatchTable$rt.2),
-                                                 c("mz.1",
-                                                   "rt.1",
-                                                   "maxo.1",
-                                                   "mz.2",
-                                                   "rt.2",
-                                                   "rt.2",
-                                                   "maxo.2",
-                                                   "sample.2")]
-                 
-                 ##Log2 intensity sample to align
-                 RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$maxo.2 <-
-                   log2(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$maxo.2)
-                 
-                 
-                 
-                 ## Filter intensity (ou filtre robuste optionnel, voir ci-dessous)
-                 observe({
-                   if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter)) {
-                     RvarsPeakDetectionNewSample$Data_Plot.newSample <-
-                       # RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter %>%
-                       # dplyr::filter(maxo.2 >= req(input$intensityFilter_newSample))
-                     filter_newSample_points_for_correction(
-                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter,
-                       use_robust = isTRUE(input$useRobustLineFilter_newSample),
-                       intensity_filter = req(input$intensityFilter_newSample),
-                       robust_threshold = input$robustLineThreshold_newSample,
-                       bandwidth_filter = req(input$bandwidth_Filter_newSample),
-                       grid_size = req(input$gridSize_newSample)
-                     )
-                   }
-                 })
-                 
-                 ## Median line
-                 if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample)) {
-                   median_line.newSample <-
-                     seq(min(
-                       range(RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2)[1],
-                       range(RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1)[1]
-                     ),
-                     max(
-                       range(RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2)[2],
-                       range(RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1)[2]
-                     ), by = 50)
-                   
-                   median_line_data.newSample <-
-                     data.frame(x =  median_line.newSample,
-                                y  =  median_line.newSample)
-                 }
-                 
-                 
-                 ####~~~~~~~~~~~~~~~~ Correction with Kernel Density ~~~~~~~~~~~~~~~~~~~~###
-                 
-                 #~~~~~~~~~~~~~~~~~~~~ Density filter ~~~~~~~~~~~~~~~~~~#
-                 data_dens_filter.newSample <-
-                   reactive(if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample) &
-                                nrow(RvarsPeakDetectionNewSample$Data_Plot.newSample) !=
-                                0) {
-                     dens <-
-                       kde2d(
-                         RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2,
-                         RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1,
-                         h = input$bandwidth_Filter_newSample,
-                         n = input$gridSize_newSample
-                       )
-                     nx <-
-                       nrow(RvarsPeakDetectionNewSample$Data_Plot.newSample)
-                     df <- expand.grid(x = dens$x, y = dens$y)
-                     df$density <- (as.vector(dens$z))
-                     df$density <- df$density / max(df$density)
-                     #df$group <- data$group[1]
-                     df$ndensity <-
-                       df$density / max(df$density, na.rm = TRUE)
-                     df$count <- nx * df$density
-                     df$n <- nx
-                     df$level <- 1
-                     df$piece <- 1
-                     df_filter <- df %>%
-                       dplyr::filter(density >= req(input$minDensity_newSample))
-                     
-                     colnames(df_filter)[1:2] <- c("rt.2", "rt.1")
-                     
-                     df_filter
-                   })
-                 
-                 
-                 #~~~~~~~~~~~~~~~~~~~~~~~~ Plot filter density ~~~~~~~~~~~~~~~~~~~~~~~#
-                 output$DensityFilterPlot_newSample <- renderPlot({
-                   if (length(data_dens_filter.newSample()) != 0) {
-                     if (!is.null(data_dens_filter.newSample()) &
-                         nrow(data_dens_filter.newSample()) != 0 &
-                         nrow(RvarsPeakDetectionNewSample$Data_Plot.newSample) !=
-                         0) {
-                       p1 <- RvarsPeakDetectionNewSample$Data_Plot.newSample %>%
-                         ggplot() +
-                         aes(x = rt.2, y = rt.1) + 
-                         geom_point(aes(color = maxo.2), size = 0.8) +
-                         # scale_color_viridis_c(option = "H", direction = -1) +
-                         scale_colour_continuous(
-                           palette = c("#ffce4d","red","#9E0B0B", "#450A0A" )
-                         )+
-                         geom_density_2d(
-                           h = input$bandwidth_Filter_newSample,
-                           n = input$gridSize_newSample
-                         ) +
-                         #scale_color_viridis_c(option = "inferno", direction = -1) +
-                         scale_x_continuous(n.breaks = 14) +
-                         scale_y_continuous(n.breaks = 14) +
-                         
-                         coord_cartesian(xlim = c(min(
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
-                           )[1],
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
-                           )[1]
-                         ),
-                         max(
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
-                           )[2],
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
-                           )[2]
-                         )),
-                         
-                         ylim = c(min(
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
-                           )[1],
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
-                           )[1]
-                         ),
-                         min(
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
-                           )[2],
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
-                           )[2]
-                         )+100)) +
-                         
-                         
-                         xlab(
-                           paste(
-                             "CE-time (",
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$sample.2,
-                             ")"
-                           )
-                         ) +
-                         ylab("CE-time (reference sample)") +
-                         #labs(colour ="log2 Intensity")+
-                         theme_ben() +
-                         labs(colour = "log2 Intensity") 
-                       
-                       p2 <-
-                         ggplot(data_dens_filter.newSample(), aes(x = rt.2, y = rt.1)) +
-                         geom_point(aes(color = density), size = 0.5) +
-                         
-                         scale_x_continuous(n.breaks = 14) +
-                         scale_y_continuous(n.breaks = 14) +
-                         scale_color_gradientn(
-                           name = "Density",
-                           colours = c("#2487FF",
-                                       "#4FE8FF",
-                                       "#A8FFFF",
-                                       "#FFE600",
-                                       "#FFB300",
-                                       "#FF7A00",
-                                       "#FF4500",
-                                       "#FF1A00"),
-                           breaks = seq(round(min(data_dens_filter.newSample()$density), 2), 
-                                        round(max(data_dens_filter.newSample()$density), 2), by = 0.1),
-                           limits = c(0, 1)
-                         )+
-                         
-                         # coord_cartesian(xlim = c(min(
-                         #   range(data_dens_filter.newSample()$rt.2)[1],
-                         #   range(data_dens_filter.newSample()$rt.1)[1]
-                         # ),
-                         # max(
-                         #   range(data_dens_filter.newSample()$rt.2)[2],
-                         #   range(data_dens_filter.newSample()$rt.1)[2]
-                         # )),
-                         # 
-                         # ylim = c(min(
-                         #   range(data_dens_filter.newSample()$rt.2)[1],
-                         #   range(data_dens_filter.newSample()$rt.1)[1]
-                         # ),
-                         # max(
-                         #   range(data_dens_filter.newSample()$rt.2)[2],
-                         #   range(data_dens_filter.newSample()$rt.1)[2]
-                         # ))) +
-                         # 
-                         coord_cartesian(xlim = c(min(
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
-                           )[1],
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
-                           )[1]
-                         ),
-                         max(
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
-                           )[2],
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
-                           )[2]
-                         )),
-                         
-                         ylim = c(min(
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
-                           )[1],
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
-                           )[1]
-                         ),
-                         min(
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
-                           )[2],
-                           range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
-                           )[2]
-                         )+100)) +
-                         xlab(
-                           paste(
-                             "CE-time (",
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$sample.2,
-                             ")"
-                           )
-                         ) +
-                         ylab("CE-time (Reference map)") +
-                         
-                         theme_ben() +
-                         theme(
-                           legend.title = element_text(
-                             size = rel(0.85),
-                             face = "bold.italic",
-                             hjust = 0.5
-                           ),
-                           legend.text = element_text(size = rel(0.70), face = "bold.italic"), 
-                           legend.key.height = unit(1.2, "cm"),
-                           legend.key.width = unit(0.7, "cm")
-                         )
-                       
-                       #grid.arrange(p1, p2, nrow = 2)
-                       g1 <- ggplotGrob(p1)
-                       g2 <- ggplotGrob(p2)
-                       maxWidth <- grid::unit.pmax(g1$widths, g2$widths)
-                       g1$widths <- maxWidth
-                       g2$widths <- maxWidth
-                       grid.arrange(g1, g2, nrow = 2)
-                       
-                     }
-                     
-                   }
-                   
-                 })
-                 
-               }
-               
-             })
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~ Anchor points (fixed correction waypoints) ~~~~~~~~~~#
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-## Permet d'épingler manuellement des points (RT échantillon ↔ RT référence)
-## par lesquels le modèle de correction (npreg) doit être tiré, en plus de
-## l'ajustement automatique. npreg (régression locale pondérée) n'a pas
-## d'option "passer exactement par ce point" ; on s'en approche en dupliquant
-## chaque ancrage plusieurs fois (poids réglable) dans les données
-## d'entraînement avant l'appel à npreg(), ce qui l'influence fortement sans
-## garantir un passage exact (lissage, pas interpolation).
-
-## Injecte les points d'ancrage (dupliqués selon `weight`) dans les données
-## d'entraînement du modèle, pour un échantillon donné. Utilisée à la fois
-## par le fit interactif ("Adjust CE-time") et par l'import batch.
-inject_kernelDensity_anchors_newSample <- function(dataDensity, sample_sel, weight = 25) {
-  anchors <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
-  if (is.null(anchors) || nrow(anchors) == 0) return(dataDensity)
-  weight <- max(1L, suppressWarnings(as.integer(weight)), na.rm = TRUE)
-  anchors_expanded <- anchors[rep(seq_len(nrow(anchors)), weight),
-                              c("rt.2", "rt.1"), drop = FALSE]
-  dplyr::bind_rows(dataDensity, anchors_expanded)
-}
-
-observeEvent(input$AnchorPlot_click_newSample, ignoreNULL = TRUE, {
-  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-  click <- input$AnchorPlot_click_newSample
-  new_anchor <- data.frame(rt.2 = click$x, rt.1 = click$y)
-  
-  existing <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
-  RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]] <-
-    rbind(existing, new_anchor)
-})
-
-observeEvent(input$clearAnchors_newSample, ignoreNULL = TRUE, {
-  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-  RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]] <- NULL
-})
-
-output$anchorCount_newSample <- renderUI({
-  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-  anchors <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
-  n <- if (is.null(anchors)) 0L else nrow(anchors)
-  tags$span(
-    style = "font-weight:bold;",
-    sprintf("%d point(s) d'ancrage pour cet échantillon", n)
-  )
-})
-
-output$AnchorPlot_newSample <- renderPlot({
-  req(RvarsPeakDetectionNewSample$Data_Plot.newSample)
-  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-  
-  p <- RvarsPeakDetectionNewSample$Data_Plot.newSample %>%
-    ggplot() +
-    aes(x = rt.2, y = rt.1) +
-    geom_point(aes(color = maxo.2), size = 0.8) +
-    scale_colour_continuous(palette = c("#ffce4d", "red", "#9E0B0B", "#450A0A")) +
-    xlab(paste("CE-time (", sample_sel, ")")) +
-    ylab("CE-time (reference sample)") +
-    labs(colour = "log2 Intensity") +
-    theme_ben()
-  
-  anchors <- RvarsPeakDetectionNewSample$kernelDensity_anchors_newSample[[sample_sel]]
-  if (!is.null(anchors) && nrow(anchors) > 0) {
-    p <- p + geom_point(
-      data = anchors,
-      mapping = aes(x = rt.2, y = rt.1),
-      inherit.aes = FALSE,
-      shape = 8,
-      size = 4,
-      color = "blue",
-      stroke = 1.5
-    )
-  }
-  
-  p
-})
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~ Robust line filter (alternative au filtre d'intensité) #
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-## Le filtre d'intensité retire les points sous un seuil, sans tenir compte
-## de leur cohérence avec la tendance réelle (rt.1 ~ rt.2). Une première
-## tentative avec une régression robuste classique (loess family="symmetric")
-## n'a pas donné de meilleur résultat : ces méthodes supposent que les
-## aberrants sont MINORITAIRES, hypothèse qui ne tient pas ici (un amas de
-## bruit peut être localement aussi dense, voire plus dense, que la vraie
-## diagonale de correspondance) — la tendance ajustée restait biaisée par ce
-## bruit.
-##
-## Alternative : suivre la CRÊTE de densité 2D (déjà calculée pour le filtre
-## de densité existant) plutôt que d'ajuster une régression globale. Pour
-## chaque tranche verticale (valeur de rt.2), on prend le rt.1 où la densité
-## kde2d est maximale — ça trace une courbe locale, tranche par tranche, qui
-## n'est jamais tirée par une zone globalement plus dense qu'une autre (le
-## problème identifié avec le filtre de densité global). On garde ensuite
-## les points proches de cette crête (résidu < seuil × MAD), comme avant.
-filter_newSample_points_for_correction <- function(data_to_filter,
-                                                   use_robust,
-                                                   intensity_filter,
-                                                   robust_threshold = 3,
-                                                   bandwidth_filter = 20,
-                                                   grid_size = 500) {
-  if (!isTRUE(use_robust)) {
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-  
-  if (nrow(data_to_filter) < 10) {
-    message("--- Robust ridge filter : pas assez de points (<10), filtre d'intensité utilisé en repli ---")
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-  
-  dens <- tryCatch(
-    MASS::kde2d(data_to_filter$rt.2, data_to_filter$rt.1,
-                h = bandwidth_filter, n = grid_size),
-    error = function(e) NULL
-  )
-  if (is.null(dens)) {
-    message("--- Robust ridge filter : échec du calcul de densité, filtre d'intensité utilisé en repli ---")
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-  
-  # Crête de densité : pour chaque tranche en x (rt.2), le y (rt.1) où la
-  # densité locale est maximale. Robuste à une zone globalement plus dense
-  # qu'une autre, car le "gagnant" est déterminé tranche par tranche, pas
-  # sur l'ensemble du graphique.
-  ridge_y <- apply(dens$z, 1, function(col) {
-    if (all(col == 0)) return(NA_real_)
-    dens$y[which.max(col)]
-  })
-  ridge <- data.frame(x = dens$x, y = ridge_y)
-  ridge <- ridge[!is.na(ridge$y), ]
-  if (nrow(ridge) < 2) {
-    message("--- Robust ridge filter : crête de densité non calculable, filtre d'intensité utilisé en repli ---")
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-  
-  predicted <- suppressWarnings(
-    stats::approx(ridge$x, ridge$y, xout = data_to_filter$rt.2, rule = 2)$y
-  )
-  residuals_val <- data_to_filter$rt.1 - predicted
-  mad_val <- stats::mad(residuals_val, na.rm = TRUE)
-  
-  if (!is.finite(mad_val) || mad_val == 0) {
-    message("--- Robust ridge filter : MAD nul/non calculable, filtre d'intensité utilisé en repli ---")
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-  
-  threshold <- suppressWarnings(as.numeric(robust_threshold)) * mad_val
-  keep <- !is.na(residuals_val) & abs(residuals_val) <= threshold
-  data_to_filter[keep, ]
-}
-
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~ Fit model kernel density estimation ~~~~~~~~~~~~~~~~~#
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               # c(input$fitModel_newSample,
-               #   input$SelectSample_KernelDensity_newSample)
-               input$fitModel_newSample
-               
-             },
-             handlerExpr = {
-               
-               if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample)) {
-                 
-                 if(nrow(RvarsPeakDetectionNewSample$Data_Plot.newSample)!=0){
-                   #~~~~~~~~~~~~~~~~~~~~ Density filter ~~~~~~~~~~~~~~~~~~#
-                   data_dens_filter.newSample <-
-                     reactive(if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample)) {
-                       dens <-
-                         kde2d(
-                           RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2,
-                           RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1,
-                           h = input$bandwidth_Filter_newSample,
-                           n = input$gridSize_newSample
-                         )
-                       nx <-
-                         nrow(RvarsPeakDetectionNewSample$Data_Plot.newSample)
-                       df <- expand.grid(x = dens$x, y = dens$y)
-                       df$density <- (as.vector(dens$z))
-                       df$density <- df$density / max(df$density)
-                       #df$group <- data$group[1]
-                       df$ndensity <-
-                         df$density / max(df$density, na.rm = TRUE)
-                       df$count <- nx * df$density
-                       df$n <- nx
-                       df$level <- 1
-                       df$piece <- 1
-                       df_filter <- df %>%
-                         dplyr::filter(density >= req(input$minDensity_newSample))
-                       
-                       colnames(df_filter)[1:2] <- c("rt.2", "rt.1")
-                       
-                       df_filter
-                     })
-                   
-                   ##~~~~~~~~~~~~~~~~~~~~~~~~~~~ Fit model ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-                   if (length(data_dens_filter.newSample()) != 0) {
-                     if (!is.null(data_dens_filter.newSample())) {
-                       dataDensity <- isolate(data_dens_filter.newSample())
-                       
-                       dataDensity <- inject_kernelDensity_anchors_newSample(
-                         dataDensity,
-                         input$SelectSample_KernelDensity_newSample,
-                         weight = isolate(input$anchorWeight_newSample)
-                       )
-                       
-                       if (!is.null(dataDensity)) {
-                         withProgress(message = 'Fit model...', value = 0, {
-                           incProgress(1 / 3, detail = "")
-                           
-                           #~~~~~~~~~~~~~~~~~ Kernel density estimation ~~~~~~~~~~~~~~~~~~~~~~~#
-                           RvarsPeakDetectionNewSample$modelKernelDensity <-
-                             npreg(
-                               rt.1 ~ rt.2,
-                               bws = req(input$"bandwidth_Model_newSample"),
-                               bwtype = c("fixed", "generalized_nn", "adaptive_nn")[1],
-                               regtype = "ll",
-                               ckertype = input$KernelType_newSample,
-                               #bwmethod = "cv.aic",
-                               gradients = TRUE,
-                               data = dataDensity
-                             )
-                           
-                           #~~~~~~~~~~~~~~~~~ Calculate prediction rt for sample selected ~~~~~~~~~~~~~~~~~~~~~~~#
-                           if (!is.null(RvarsPeakDetectionNewSample$modelKernelDensity)) {
-                             incProgress(1 / 3, detail = "")
-                             
-                             ### correction rt new sample Kernel Density
-                             RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[input$SelectSample_KernelDensity_newSample]]$rt <-
-                               predict(
-                                 RvarsPeakDetectionNewSample$modelKernelDensity,
-                                 newdata = data.frame(rt.2 = RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[input$SelectSample_KernelDensity_newSample]]$rt)
-                               )
-                             
-                             cat("diagnostics :  saving kernel densiry correction parameters :  \n")
-                             # cat("isolate(RvarsPeakDetectionNewSample$Project_Name :  ", isolate(RvarsPeakDetectionNewSample$Project_Name, "\n")
-                             print(isolate(RvarsPeakDetectionNewSample$Project_Name))
-                             print(basename(isolate(RvarsPeakDetectionNewSample$run_ref_path)))
-                             print(input$SelectSample_KernelDensity_newSample)
-                             print(input$KernelType_newSample)
-                             print(input$bandwidth_Filter_newSample)
-                             print(input$intensityFilter_newSample)
-                             print(input$minDensity_newSample)
-                             print(input$bandwidth_Model_newSample)
-                             
-                             #stockage des paramètres du kernek density
-                             new_row <- data.frame(
-                               Project          = input$projectName,
-                               Reference_Run    = basename(isolate(RvarsPeakDetectionNewSample$run_ref_path)),
-                               Sample           = input$SelectSample_KernelDensity_newSample,
-                               Kernel_Type      = input$KernelType_newSample,
-                               Bandwidth_Model  = input$bandwidth_Model_newSample,
-                               Bandwidth_Filter = input$bandwidth_Filter_newSample,
-                               Intensity_Filter = input$intensityFilter_newSample,
-                               Min_Density      = input$minDensity_newSample,
-                               stringsAsFactors = FALSE
-                             )
-                             
-                             cat("affichage de new_row")
-                             print(new_row)
-                             
-                             existing_log <- isolate(RvarsPeakDetectionNewSample$kernelDensity_params_log)
-                             if (is.null(existing_log)) {
-                               RvarsPeakDetectionNewSample$kernelDensity_params_log <- new_row
-                             } else {
-                               existing_log <- existing_log[existing_log$Sample != input$SelectSample_KernelDensity_newSample, ]
-                               RvarsPeakDetectionNewSample$kernelDensity_params_log <- rbind(existing_log, new_row)
-                             }
-                             
-                             ### Delete negative correction rt
-                             
-                             # RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[input$SelectSample_KernelDensity_newSample]]$rt<-
-                             #   RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[input$SelectSample_KernelDensity_newSample]]$rt %>% dplyr::filter(rt>0)
-                             #
-                             
-                             
-                             ## ~~~~~~~~~~~~~~~~~~ Plot correction rt with kernel Density ~~~~~~~~~~~~~#
-                             
-                             ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Before~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-                             output$PlotCorrectionKernelDensity_Before_newSample <-
-                               renderPlot({
-                                 predict_data_model.np <-
-                                   data.frame(
-                                     rt.1 = predict(
-                                       RvarsPeakDetectionNewSample$modelKernelDensity,
-                                       newdata = data.frame(rt.2 = seq(
-                                         min(
-                                           range(
-                                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                           )[1],
-                                           range(
-                                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                           )[1]
-                                         ),
-                                         max(
-                                           range(
-                                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                           )[2],
-                                           range(
-                                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                           )[2]
-                                         )
-                                       ), by = 50)
-                                     ),
-                                     rt.2 = seq(min(
-                                       range(
-                                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                       )[1],
-                                       range(
-                                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                       )[1]
-                                     ),
-                                     max(
-                                       range(
-                                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                       )[2],
-                                       range(
-                                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                       )[2]
-                                     )),
-                                     by = 50
-                                   )
-                                 
-                                 median_line <-
-                                   seq(min(
-                                     range(
-                                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                     )[1],
-                                     range(
-                                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                     )[1]
-                                   ),
-                                   max(
-                                     range(
-                                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                     )[2],
-                                     range(
-                                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                     )[2]
-                                   ),
-                                   by = 50)
-                                 
-                                 median_line_data <-
-                                   data.frame(x =  median_line, y  =  median_line)
-                                 
-                                 ggplot(
-                                   RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter,
-                                   aes(x = rt.2, y = rt.1)
-                                 ) +
-                                   geom_point(size = 0.5) +
-                                   
-                                   coord_cartesian(xlim = c(min(
-                                     range(
-                                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                     )[1],
-                                     range(
-                                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                     )[1]
-                                   ),
-                                   max(
-                                     range(
-                                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                     )[2],
-                                     range(
-                                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                     )[2]
-                                   )),
-                                   ylim = c(min(
-                                     range(
-                                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                     )[1],
-                                     range(
-                                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                     )[1]
-                                   ),
-                                   max(
-                                     range(
-                                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                     )[2],
-                                     range(
-                                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                     )[2]
-                                   ))) +
-                                   
-                                   scale_x_continuous(n.breaks = 14) +
-                                   scale_y_continuous(n.breaks = 14) +
-                                   
-                                   # xlab("CE-time (sample to align)")+
-                                   # ylab("CE-time (reference sample)")+
-                                   
-                                   geom_line(
-                                     data = predict_data_model.np,
-                                     aes(
-                                       x = rt.2,
-                                       y = rt.1,
-                                       color = "Model"
-                                     ),
-                                     lwd = 1,
-                                     size = 1.5
-                                   ) +
-                                   #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
-                                   # geom_abline(yintercept = 0, lwd = 1, color = "green")+
-                                   # geom_line(
-                                   #   data = median_line_data,
-                                   #   aes(
-                                   #     x = x,
-                                   #     y = x,
-                                   #     color = "Median"
-                                   #   ),
-                                   #   lwd = 1,
-                                   #   size = 1.5
-                                   # ) +
-                                   ggtitle("Before CE-time correction") +
-                                   
-                                   labs(
-                                     x = paste(
-                                       "CE-time (",
-                                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$sample.2,
-                                       ")"
-                                     ),
-                                     y = "CE-time (Reference map)",
-                                     color = "Legend"
-                                   ) +
-                                   
-                                   scale_color_manual(values = c(
-                                     "Model" = "red",
-                                     "Median" = "green"
-                                   )) +
-                                   
-                                   
-                                   theme_ben() +
-                                   theme(
-                                     plot.title = element_text(
-                                       size = rel(1),
-                                       face = "bold",
-                                       color = "#760001",
-                                       margin = margin(0, 0, 5, 0),
-                                       hjust = 0.5
-                                     ),
-                                     plot.subtitle = element_text(hjust = 0.5),
-                                     plot.background = element_rect(fill = "aliceblue"),
-                                     legend.title = element_text(
-                                       size = rel(0.95),
-                                       face = "bold.italic",
-                                       hjust = 0.5
-                                     ),
-                                     legend.text = element_text(size = rel(0.85), face = "bold.italic")
-                                   )
-                                 
-                               })
-                             
-                             #### info-bulle
-                             output$PlotCorrectionKernelDensity_Before_hover_info_newSample <-
-                               renderUI({
-                                 hover <-
-                                   req(input$PlotCorrectionKernelDensity_Before_hover_newSample)
-                                 
-                                 if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter)) {
-                                   point <-
-                                     nearPoints(
-                                       req(
-                                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter
-                                       ),
-                                       hover,
-                                       threshold = 5,
-                                       maxpoints = 1,
-                                       addDist = TRUE
-                                     )
-                                   if (nrow(point) == 0)
-                                     return(NULL)
-                                   
-                                   # calculate point position INSIDE the image as percent of total dimensions
-                                   # from left (horizontal) and from top (vertical)
-                                   left_pct <-
-                                     (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-                                   top_pct <-
-                                     (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-                                   
-                                   # calculate distance from left and bottom side of the picture in pixels
-                                   left_px <-
-                                     hover$range$left + left_pct * (hover$range$right - hover$range$left)
-                                   top_px <-
-                                     hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-                                   
-                                   # create style property fot tooltip
-                                   # background color is set so tooltip is a bit transparent
-                                   # z-index is set so we are sure are tooltip will be on top
-                                   style <-
-                                     paste0(
-                                       "position:absolute; z-index:100; background-color: #760001; color: white;",
-                                       "left:",
-                                       left_px + 2,
-                                       "px; top:",
-                                       top_px + 2,
-                                       "px;"
-                                     )
-                                   
-                                   # actual tooltip created as wellPanel
-                                   div(class = "well well-sm",
-                                       style = style,
-                                       p(HTML(
-                                         paste0(
-                                           "<span class='bullText'> M+H (ref): </span>",
-                                           round(point$mz.1, 4),
-                                           "<br/>",
-                                           "<span class='bullText'> CE-time (ref): </span>",
-                                           round(point$rt.1, 2),
-                                           "<br/>",
-                                           "<span class='bullText'> Intensity (ref): </span>",
-                                           round(point$maxo.1, 0),
-                                           "<br/>",
-                                           "<br>",
-                                           "<span class='bullText'> M+H (sample): </span>",
-                                           round(point$mz.2, 4),
-                                           "<br/>",
-                                           "<span class='bullText'> CE-time (sample): </span>",
-                                           round(point$rt.2, 2),
-                                           "<br/>",
-                                           "<span class='bullText'> Intensity (sample): </span>",
-                                           round(2 ^ (point$maxo.2), 0),
-                                           "<br/>"
-                                         )
-                                       )))
-                                 }
-                                 
-                               })
-                             
-                             incProgress(1 / 3, detail = "")
-                             ####~~~~~~~~~~~~~~~~~~~~ Plot After ~~~~~~~~~~~~~~~~~~~~~~~~#
-                             ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-                             output$PlotCorrectionKernelDensity_After_newSample <-
-                               renderPlot({
-                                 if (!is.null(input$SelectSample_KernelDensity_newSample) &
-                                     !is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list) &
-                                     !is.null(RvarsPeakDetectionNewSample$map_ref) &
-                                     !is.null(
-                                       RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection
-                                     )) {
-                                   source(
-                                     "lib/NewReferenceMap/R_files/CE_time_Correction.lib.R",
-                                     local = TRUE
-                                   )
-                                   
-                                   # sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-                                   # log <- RvarsPeakDetectionNewSample$kernelDensity_params_log
-                                   # if (is.null(log)) return(NULL)
-                                   # row <- log[log$Sample == sample_sel, ]
-                                   # if (nrow(row) == 0) return(NULL)
-                                   # 
-                                   
-                                   ref <-
-                                     RvarsPeakDetectionNewSample$map_ref[2:4]
-                                   colnames(ref) <-
-                                     c("mz", "rt", "maxo")
-                                   
-                                   ref$maxo <- 2 ^ (ref$maxo)
-                                   
-                                   table.after <-
-                                     RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[input$SelectSample_KernelDensity_newSample]]
-                                   
-                                   table.after <-
-                                     table.after[, c("mz", "rt", "maxo", "sample")]
-                                   
-                                   
-                                   resMatch.after <- matchMz(
-                                     x = ref,
-                                     table = table.after,
-                                     ppm_tolereance = 1000,
-                                     mzcol = "mz",
-                                     rtcol = "rt" ,
-                                     session = session
-                                   )
-                                   
-                                   Data_Plot.after <-
-                                     resMatch.after$MatchTable[!is.na(resMatch.after$MatchTable$rt.2),
-                                                               c(
-                                                                 "mz.1",
-                                                                 "rt.1",
-                                                                 "maxo.1",
-                                                                 "mz.2",
-                                                                 "rt.2",
-                                                                 "rt.2",
-                                                                 "maxo.2",
-                                                                 "sample.2"
-                                                               )]
-                                   
-                                   RvarsPeakDetectionNewSample$Data_Plot.after_KernelDensity <-
-                                     Data_Plot.after
-                                   
-                                   median_line.after <-
-                                     seq(min(
-                                       range(Data_Plot.after$rt.2)[1],
-                                       range(Data_Plot.after$rt.1)[1]
-                                     ),
-                                     max(
-                                       range(Data_Plot.after$rt.2)[2],
-                                       range(Data_Plot.after$rt.1)[2]
-                                     ),
-                                     by = 50)
-                                   
-                                   median_line_data.after <-
-                                     data.frame(x =  median_line.after,
-                                                y  =  median_line.after)
-                                   
-                                   
-                                   #~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot after Correction ~~~~~~~~~~~~~~~~~~~~~~~~~~#
-                                   Plot.after <-
-                                     ggplot(Data_Plot.after, aes(x = rt.2, y = rt.1)) +
-                                     geom_point(size = 0.5) +
-                                     
-                                     # coord_cartesian(xlim = c(
-                                     #   min(
-                                     #     range(Data_Plot.after$rt.2)[1],
-                                     #     range(Data_Plot.after$rt.1)[1]
-                                     #   ),
-                                     #   max(
-                                     #     range(Data_Plot.after$rt.2)[2],
-                                     #     range(Data_Plot.after$rt.1)[2]
-                                     #   )
-                                     # ),
-                                     # ylim = c(
-                                     #   min(
-                                     #     range(Data_Plot.after$rt.2)[1],
-                                     #     range(Data_Plot.after$rt.1)[1]
-                                     #   ),
-                                     #   max(
-                                     #     range(Data_Plot.after$rt.2)[2],
-                                     #     range(Data_Plot.after$rt.1)[2]
-                                     #   )
-                                     # )) +
-                                     
-                                     
-                                     coord_cartesian(xlim = c(min(
-                                       range(
-                                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                       )[1],
-                                       range(
-                                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                       )[1]
-                                     ),
-                                     max(
-                                       range(
-                                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                       )[2],
-                                       range(
-                                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                       )[2]
-                                     )),
-                                     ylim = c(min(
-                                       range(
-                                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                       )[1],
-                                       range(
-                                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                       )[1]
-                                     ),
-                                     max(
-                                       range(
-                                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
-                                       )[2],
-                                       range(
-                                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
-                                       )[2]
-                                     ))) +
-                                     
-                                     
-                                     
-                                     scale_x_continuous(n.breaks = 14) +
-                                     scale_y_continuous(n.breaks = 14) +
-                                     
-                                     # xlab("CE-time (sample to align)")+
-                                     # ylab("CE-time (reference sample)")+
-                                     
-                                     # geom_line(data = predict_data_model.np, aes(x = rt2, y = rt1, color = "Model"), lwd = 1, size = 1.5) +
-                                     # #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
-                                     # # geom_abline(yintercept = 0, lwd = 1, color = "green")+
-                                     
-                                     geom_line(
-                                       data = median_line_data.after,
-                                       aes(
-                                         x = x,
-                                         y = x,
-                                         color = "Median"
-                                       ),
-                                       lwd = 1,
-                                       size = 1.5
-                                     ) +
-                                     
-                                     labs(
-                                       x = paste("CE-time (", Data_Plot.after$sample.2, ")"),
-                                       y = "CE-time (Reference map)",
-                                       color = "Legend"
-                                       # ,
-                                       # subtitle =  paste("Parameters used for: ", "Kernel type = " , row$Kernel_Type,
-                                       #                   "Bandwidth (model) = ", row$Bandwidth_Model, 
-                                       #                   "Bandwidth (filter) = ", row$Bandwidth_Filter,
-                                       #                   "Intensity filter: " , row$Intensity_Filter ,
-                                       #                   "Min density: " ,row$Min_Density )
-                                       # subtitle = tags$div(
-                                       #   style = paste0(
-                                       #     "background:#f0f4f8; border:1px solid #c8d8e8; border-radius:6px;",
-                                       #     "padding:10px 16px; margin-top:12px; font-size:0.9em;"
-                                       #   ),
-                                       #   tags$b("Parameters used for: ", style = "color:#760001;"),
-                                       #   tags$span(sample_sel),
-                                       #   tags$br(),
-                                       #   tags$span(tags$b("Kernel type: "), row$Kernel_Type),
-                                       #   tags$span(" | ", style = "color:#aaa;"),
-                                       #   tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model),
-                                       #   tags$span(" | ", style = "color:#aaa;"),
-                                       #   tags$span(tags$b("Bandwidth (filter): "), row$Bandwidth_Filter),
-                                       #   tags$span(" | ", style = "color:#aaa;"),
-                                       #   tags$span(tags$b("Intensity filter: "), row$Intensity_Filter),
-                                       #   tags$span(" | ", style = "color:#aaa;"),
-                                       #   tags$span(tags$b("Min density: "), row$Min_Density)
-                                       # )
-                                     ) +
-                                     ggtitle("Correction with Kernel Density") +
-                                     
-                                     scale_color_manual(values = c("Median" = "green")) +
-                                     
-                                     
-                                     theme_ben() +
-                                     theme(
-                                       plot.title = element_text(
-                                         size = rel(1),
-                                         face = "bold",
-                                         color = "#760001",
-                                         margin = margin(0, 0, 5, 0),
-                                         hjust = 0.5
-                                       ),
-                                       plot.subtitle = element_text(hjust = 0.5),
-                                       plot.background = element_rect(fill = "aliceblue"),
-                                       legend.title = element_text(
-                                         size = rel(0.95),
-                                         face = "bold.italic",
-                                         hjust = 0.5
-                                       ),
-                                       legend.text = element_text(size = rel(0.85), face = "bold.italic")
-                                     )
-                                   
-                                   Plot.after
-                                 }
-                                 
-                               })
-                             
-                             #### info-bulle
-                             output$PlotCorrectionKernelDensity_After_hover_info_newSample <-
-                               renderUI({
-                                 hover <-
-                                   req(input$PlotCorrectionKernelDensity_After_hover_newSample)
-                                 
-                                 if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.after_KernelDensity)) {
-                                   point <-
-                                     nearPoints(
-                                       req(
-                                         RvarsPeakDetectionNewSample$Data_Plot.after_KernelDensity
-                                       ),
-                                       hover,
-                                       threshold = 5,
-                                       maxpoints = 1,
-                                       addDist = TRUE
-                                     )
-                                   if (nrow(point) == 0)
-                                     return(NULL)
-                                   
-                                   # calculate point position INSIDE the image as percent of total dimensions
-                                   # from left (horizontal) and from top (vertical)
-                                   left_pct <-
-                                     (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-                                   top_pct <-
-                                     (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-                                   
-                                   # calculate distance from left and bottom side of the picture in pixels
-                                   left_px <-
-                                     hover$range$left + left_pct * (hover$range$right - hover$range$left)
-                                   top_px <-
-                                     hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-                                   
-                                   # create style property fot tooltip
-                                   # background color is set so tooltip is a bit transparent
-                                   # z-index is set so we are sure are tooltip will be on top
-                                   style <-
-                                     paste0(
-                                       "position:absolute; z-index:100; background-color: #760001; color: white;",
-                                       "left:",
-                                       left_px + 2,
-                                       "px; top:",
-                                       top_px + 2,
-                                       "px;"
-                                     )
-                                   
-                                   # actual tooltip created as wellPanel
-                                   div(class = "well well-sm",
-                                       style = style,
-                                       p(HTML(
-                                         paste0(
-                                           "<span class='bullText'> M+H (ref): </span>",
-                                           round(point$mz.1, 4),
-                                           "<br/>",
-                                           "<span class='bullText'> CE-time (ref): </span>",
-                                           round(point$rt.1, 2),
-                                           "<br/>",
-                                           "<span class='bullText'> Intensity (ref): </span>",
-                                           round(point$maxo.1, 0),
-                                           "<br/>",
-                                           "<br>",
-                                           "<span class='bullText'> M+H (sample): </span>",
-                                           round(point$mz.2, 4),
-                                           "<br/>",
-                                           "<span class='bullText'> CE-time (sample): </span>",
-                                           round(point$rt.2, 2),
-                                           "<br/>",
-                                           "<span class='bullText'> Intensity (sample): </span>",
-                                           round(point$maxo.2, 0),
-                                           "<br/>"
-                                         )
-                                       )))
-                                 }
-                                 
-                               })
-                             
-                             #~~~~~~~~~ Plot mz (or M+H)~rt reference and mz(M+H)~rt sample (CE-time correction with xcms)~~~~~~~~~~~~~#
-                             #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-                             
-                             output$CorrectimeKernelDensityViewer_2_newSample <-
-                               renderPlot({
-                                 if (!is.null(input$SelectSample_KernelDensity_newSample) &
-                                     !is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list) &
-                                     !is.null(RvarsPeakDetectionNewSample$map_ref) &
-                                     !is.null(
-                                       RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection
-                                     )) {
-                                   ref <- RvarsPeakDetectionNewSample$map_ref
-                                   
-                                   ref <-
-                                     RvarsPeakDetectionNewSample$map_ref[2:4]
-                                   
-                                   ref$sample <- "Reference map"
-                                   colnames(ref) <-
-                                     c('mz', 'rt', 'maxo', 'sample')
-                                   
-                                   ref$maxo <- 2 ^ (ref$maxo)
-                                   
-                                   reqColstoPlot <-
-                                     c('M+H', 'CE-time', 'intensity', 'sample')
-                                   reqColsUsed <-
-                                     c('mz', 'rt', 'maxo', 'sample')
-                                   
-                                   
-                                   ##~~~~~~~~~~~~~~~~~~~~ After correction xcms ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-                                   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-                                   table.after <-
-                                     RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[input$SelectSample_KernelDensity_newSample]]
-                                   table.after <-
-                                     table.after[, c("mz", "rt", "maxo", "sample")]
-                                   
-                                   Data_after <- rbind(table.after,
-                                                       ref)
-                                   rownames(Data_after) <-
-                                     1:nrow(Data_after)
-                                   colnames(Data_after)[which(colnames(Data_after) %in% reqColsUsed)] <-
-                                     reqColstoPlot
-                                   Data_after$intensity <-
-                                     log2(Data_after$intensity)
-                                   
-                                   
-                                   Data_after$sample <-
-                                     factor(Data_after$sample,
-                                            levels = c(
-                                              unique(Data_after$sample)[unique(Data_after$sample) !=
-                                                                          "Reference map"],
-                                              "Reference map"
-                                            ))
-                                   
-                                   Plot.After <- Data_after %>%
-                                     ggplot() +
-                                     aes(x = `CE-time`,
-                                         y = `M+H`,
-                                         colour = intensity) +
-                                     #geom_point(shape = "circle", size = input$sizePoints) +
-                                     geom_point(size = 0.5) +
-                                     scale_color_viridis_c(option = "inferno", direction = -1) +
-                                     theme_gray() +
-                                     #facet_grid(vars(sample), vars())  +
-                                     facet_wrap( ~ sample, dir = "v") +
-                                     ylab("Mass (M+H) (Da)") +
-                                     #xlab(paste("CE-time (",input$UnitTime_NewRefMap,")")) +
-                                     xlab(paste("CE-time")) +
-                                     
-                                     ggtitle("Before CE-time correction") +
-                                     
-                                     scale_x_continuous(n.breaks = 14) +
-                                     scale_y_continuous(n.breaks = 5) +
-                                     
-                                     theme_ben() +
-                                     labs(colour = "log2 Intensity") +
-                                     theme(
-                                       plot.title = element_text(
-                                         size = rel(1),
-                                         face = "bold",
-                                         color = "#760001",
-                                         margin = margin(0, 0, 5, 0),
-                                         hjust = 0.5
-                                       ),
-                                       plot.subtitle = element_text(hjust = 0.5),
-                                       panel.border = element_rect(
-                                         fill = "transparent",
-                                         # Needed to add the border
-                                         color = "blue",
-                                         linewidth = 0.5,
-                                         linetype = "dashed"
-                                       ),
-                                       
-                                       # Les étiquettes dans le cas d'un facetting
-                                       strip.background = element_rect(
-                                         fill = "grey",
-                                         color = "grey"
-                                       ),
-                                       strip.text = element_text(
-                                         size = rel(1),
-                                         face = "bold.italic",
-                                         color = "black",
-                                         margin = margin(5, 0, 5, 0)
-                                       ),
-                                       plot.background = element_rect(fill = "aliceblue")
-                                     )
-                                   
-                                   ##~~~~~~~~~~~~~~~~~~~~ After correction With Kernel Density ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-                                   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-                                   table.After_KernelDensity <-
-                                     RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[input$SelectSample_KernelDensity_newSample]]
-                                   table.After_KernelDensity <-
-                                     table.After_KernelDensity[, c("mz", "rt", "maxo", "sample")]
-                                   
-                                   Data_After_KernelDensity <-
-                                     rbind(table.After_KernelDensity,
-                                           ref)
-                                   
-                                   rownames(Data_After_KernelDensity) <-
-                                     1:nrow(Data_After_KernelDensity)
-                                   
-                                   
-                                   colnames(Data_After_KernelDensity)[which(colnames(Data_After_KernelDensity) %in% reqColsUsed)] <-
-                                     reqColstoPlot
-                                   Data_After_KernelDensity$intensity <-
-                                     log2(Data_After_KernelDensity$intensity)
-                                   
-                                   
-                                   Data_After_KernelDensity$sample <-
-                                     factor(
-                                       Data_After_KernelDensity$sample,
-                                       levels = c(
-                                         unique(Data_After_KernelDensity$sample)[unique(Data_After_KernelDensity$sample) !=
-                                                                                   "Reference map"],
-                                         "Reference map"
-                                       )
-                                     )
-                                   
-                                   
-                                   
-                                   Plot.After_KernelDensity <-
-                                     Data_After_KernelDensity %>%
-                                     ggplot() +
-                                     aes(x = `CE-time`,
-                                         y = `M+H`,
-                                         colour = intensity) +
-                                     #geom_point(shape = "circle", size = input$sizePoints) +
-                                     geom_point(size = 0.5) +
-                                     scale_color_viridis_c(option = "inferno", direction = -1) +
-                                     theme_gray() +
-                                     #facet_grid(vars(sample), vars())  +
-                                     facet_wrap( ~ sample, dir = "v") +
-                                     #coord_cartesian(xlim = rangesZoomOffsetSamplePlot$x, ylim = rangesZoomOffsetSamplePlot$y, expand = TRUE)+
-                                     ylab("Mass (M+H) (Da)") +
-                                     #xlab(paste("CE-time (",input$UnitTime_NewRefMap,")")) +
-                                     xlab(paste("CE-time")) +
-                                     
-                                     ggtitle("Correction with Kernel density") +
-                                     
-                                     scale_x_continuous(n.breaks = 14) +
-                                     scale_y_continuous(n.breaks = 5) +
-                                     
-                                     theme_ben() +
-                                     labs(colour = "log2 Intensity") +
-                                     theme(
-                                       plot.title = element_text(
-                                         size = rel(1),
-                                         face = "bold",
-                                         color = "#760001",
-                                         margin = margin(0, 0, 5, 0),
-                                         hjust = 0.5
-                                       ),
-                                       plot.subtitle = element_text(hjust = 0.5),
-                                       panel.border = element_rect(
-                                         fill = "transparent",
-                                         # Needed to add the border
-                                         color = "blue",
-                                         linewidth = 0.5,
-                                         linetype = "dashed"
-                                       ),
-                                       
-                                       # Les étiquettes dans le cas d'un facetting
-                                       strip.background = element_rect(
-                                         fill = "grey",
-                                         color = "grey"
-                                       ),
-                                       strip.text = element_text(
-                                         size = rel(1),
-                                         face = "bold.italic",
-                                         color = "black",
-                                         margin = margin(5, 0, 5, 0)
-                                       ),
-                                       plot.background = element_rect(fill = "aliceblue")
-                                     )
-                                   
-                                   
-                                   
-                                   
-                                   
-                                   grid.arrange(Plot.After,
-                                                Plot.After_KernelDensity,
-                                                nrow = 2)
-                                   
-                                 }
-                                 
-                               })
-                             
-                             
-                             
-                           }
-                           
-                           
-                         })
-                         
-                       }
-                     }
-                     
-                   }
-                 }
-                 
-               }
-               
-               
-               
-             })
-
-##~~~~ Re-predict RT when sample selection changes (no npreg re-fit) ~~~~##
-# observeEvent(input$SelectSample_KernelDensity_newSample, ignoreNULL = TRUE, {
-#   
-#   if (is.null(RvarsPeakDetectionNewSample$modelKernelDensity)) return()
-#   
-#   sample_sel <- input$SelectSample_KernelDensity_newSample
-#   
-#   if (is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]])) return()
-#   
-#   RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[sample_sel]]$rt <-
-#     predict(
-#       RvarsPeakDetectionNewSample$modelKernelDensity,
-#       newdata = data.frame(
-#         rt.2 = RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]$rt
-#       )
-#     )
-# })
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~ Batch import kernel density parameters (reuse of fitModel_newSample logic) ~~##
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-## Reprend exactement les mêmes étapes que l'observer "fitModel_newSample"
-## (matchMz -> filtre intensité -> kde2d -> filtre densité -> npreg -> predict -> log),
-## mais paramétrées explicitement au lieu de lire input$..., pour pouvoir être
-## rejouées en boucle sur une liste de runs sans dépendre des widgets Shiny.
-apply_kernel_density_correction_newSample <- function(sample_sel,
-                                                      kernel_type,
-                                                      bandwidth_model,
-                                                      bandwidth_filter,
-                                                      intensity_filter,
-                                                      min_density,
-                                                      grid_size = 500) {
-  
-  if (is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]) ||
-      is.null(RvarsPeakDetectionNewSample$map_ref)) {
-    return(list(success = FALSE, reason = "run introuvable ou map_ref manquant"))
-  }
-  
-  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
-  
-  ref <- RvarsPeakDetectionNewSample$map_ref[2:4]
-  colnames(ref) <- c("mz", "rt", "maxo")
-  ref$maxo <- 2 ^ ref$maxo
-  
-  table.newSample <- RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]
-  table.newSample <- table.newSample[, c("mz", "rt", "maxo", "sample")]
-  
-  resMatch <- matchMz(x = ref, table = table.newSample, ppm_tolereance = 1000,
-                      mzcol = "mz", rtcol = "rt", session = session)
-  
-  data_to_filter <- resMatch$MatchTable[!is.na(resMatch$MatchTable$rt.2),
-                                        c("mz.1", "rt.1", "maxo.1",
-                                          "mz.2", "rt.2", "maxo.2", "sample.2")]
-  if (nrow(data_to_filter) == 0)
-    return(list(success = FALSE, reason = "aucune correspondance avec map_ref"))
-  
-  data_to_filter$maxo.2 <- log2(data_to_filter$maxo.2)
-  
-  data_filtered <- data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter)
-  if (nrow(data_filtered) == 0)
-    return(list(success = FALSE, reason = "filtre d'intensité trop restrictif"))
-  
-  dens <- MASS::kde2d(data_filtered$rt.2, data_filtered$rt.1,
-                      h = bandwidth_filter, n = grid_size)
-  df <- expand.grid(x = dens$x, y = dens$y)
-  df$density <- as.vector(dens$z)
-  df$density <- df$density / max(df$density)
-  colnames(df)[1:2] <- c("rt.2", "rt.1")
-  dataDensity <- df %>% dplyr::filter(density >= min_density)
-  if (nrow(dataDensity) == 0)
-    return(list(success = FALSE, reason = "min density trop restrictif"))
-  
-  dataDensity <- inject_kernelDensity_anchors_newSample(dataDensity, sample_sel)
-  
-  model <- tryCatch(
-    npreg(
-      rt.1 ~ rt.2,
-      bws = bandwidth_model,
-      bwtype = "fixed",
-      regtype = "ll",
-      ckertype = kernel_type,
-      gradients = TRUE,
-      data = dataDensity
+  source_python('lib/AnalysisNewSample/Python_files/export.parameters.py')
+  exportMsdialParam(
+    export_param = req(RvarsPeakDetectionNewSample$export_param_path),
+    output_export_param =  req(RvarsPeakDetectionNewSample$output_export_param_path),
+    MS1_type = req(input$MS1_type),
+    MS2_type = req(input$MS2_type),
+    ion = req(RvarsPeakDetectionNewSample$defaultParam$ion),
+    rt_begin = req(
+      as.character(RvarsPeakDetectionNewSample$defaultParam$rt_begin)
     ),
-    error = function(e) NULL
-  )
-  if (is.null(model))
-    return(list(success = FALSE, reason = "échec de l'ajustement npreg"))
-  
-  RvarsPeakDetectionNewSample$modelKernelDensity <- model
-  RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[sample_sel]]$rt <-
-    predict(
-      model,
-      newdata = data.frame(rt.2 = RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]$rt)
-    )
-  
-  new_row <- data.frame(
-    Project          =input$projectName,
-    Reference_Run    = basename(isolate(RvarsPeakDetectionNewSample$run_ref_path)),
-    Sample           = sample_sel,
-    Kernel_Type      = kernel_type,
-    Bandwidth_Model  = bandwidth_model,
-    Bandwidth_Filter = bandwidth_filter,
-    Intensity_Filter = intensity_filter,
-    Min_Density      = min_density,
-    stringsAsFactors = FALSE
-  )
-  existing_log <- isolate(RvarsPeakDetectionNewSample$kernelDensity_params_log)
-  if (is.null(existing_log)) {
-    RvarsPeakDetectionNewSample$kernelDensity_params_log <- new_row
-  } else {
-    existing_log <- existing_log[existing_log$Sample != sample_sel, ]
-    RvarsPeakDetectionNewSample$kernelDensity_params_log <- rbind(existing_log, new_row)
-  }
-  
-  list(success = TRUE, reason = NULL)
-}
-
-## Normalise un nom de run pour comparaison robuste aux variations de format
-## (séparateurs "_"/" - "/"-" et zero-padding différent du numéro de run,
-## ex: "..._Run-00008" (Excel) vs "...Run000008" (nom interne de l'app)).
-normalize_run_key_newSample <- function(x) {
-  x <- tolower(trimws(as.character(x)))
-  x <- gsub("[-_]+", " ", x)
-  x <- gsub("\\s+", " ", x)
-  x <- sub("run\\s*0*([0-9]+)\\s*$", "run\\1", x)
-  x
-}
-
-observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
-  req(input$batchKernelParamsFile_newSample)
-  
-  df <- tryCatch(
-    openxlsx::read.xlsx(input$batchKernelParamsFile_newSample$datapath, sheet = 1),
-    error = function(e) NULL
-  )
-  if (is.null(df)) {
-    showNotification("Impossible de lire le fichier Excel.", type = "error", duration = 8)
-    return()
-  }
-  
-  loaded_samples <- names(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)
-  loaded_key_lookup <- stats::setNames(loaded_samples, normalize_run_key_newSample(loaded_samples))
-  
-  col_names <- colnames(df)
-  datafile_col <- col_names[grepl(pattern = "^Sample", col_names, ignore.case = TRUE)][1]
-  bandwith_col <- col_names[grepl(pattern = "^Bandwidth_Filter", col_names, ignore.case = TRUE)][1]
-  intfilter_col <- col_names[grepl(pattern = "^Intensity_Filter", col_names, ignore.case = TRUE)][1]
-  minden_col <- col_names[grepl(pattern = "Min_Density", col_names, ignore.case = TRUE)][1]
-  corrkernel_col <- col_names[grepl(pattern = "Bandwidth_Model", col_names, ignore.case = TRUE)][1]
-  cat("datafile_col :  ", datafile_col , '\n')
-  cat("bandwith_col :  ", bandwith_col , '\n')
-  cat("intfilter_col :  ", intfilter_col , '\n')
-  cat("minden_col :  ", minden_col , '\n')
-  cat("corrkernel_col :  ", corrkernel_col , '\n')
-  
-  print(head(df[,c(datafile_col, bandwith_col, intfilter_col,minden_col, corrkernel_col)]))
-  
-  
-  missing_cols <- c("Sample", "Bandwidth_Filter", "Intensity_Filter", "Min_Density", "Bandwidth_Model")[
-    is.na(c(datafile_col, bandwith_col, intfilter_col, minden_col, corrkernel_col))
-  ]
-  if (length(missing_cols) > 0) {
-    showNotification(
-      paste("Colonnes manquantes dans le fichier :", paste(missing_cols, collapse = ", ")),
-      type = "error", duration = 10
-    )
-    return()
-  }
-  
-  n <- nrow(df)
-  results <- data.frame(Sample = character(0), Status = character(0), stringsAsFactors = FALSE)
-  
-  withProgress(message = "Import batch des corrections kernel density...", value = 0, {
-    for (i in seq_len(n)) {
-      incProgress(1 / n, detail = sprintf("%d/%d", i, n))
-      
-      if (grepl("\\.d$", datafile_col)) {
-        datafile_col <- sub("\\.d$", "", datafile_col)
-      }
-      
-      # sample_sel <- trimws(as.character(df[[datafile_col]][i]))
-      sample_raw <- trimws(as.character(df[[datafile_col]][i]))
-      bw_filter  <- suppressWarnings(as.numeric(df[[bandwith_col]][i]))
-      int_filter <- suppressWarnings(as.numeric(df[[intfilter_col]][i]))
-      min_dens   <- suppressWarnings(as.numeric(df[[minden_col]][i]))
-      bw_model   <- suppressWarnings(as.numeric(df[[corrkernel_col]][i]))
-      
-      cat("bw_filter : ", bw_filter  , "\n")
-      cat("int_filter : ", int_filter  , "\n")
-      cat('sample_raw  :  ', sample_raw ,"\n")
-      cat('min_dens  :  ', min_dens ,"\n")
-      cat('bw_model  :  ', bw_model ,"\n")
-      
-      if (!nzchar(sample_raw) || is.na(bw_filter) || is.na(int_filter) ||
-          is.na(min_dens) || is.na(bw_model)) {
-        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (valeurs manquantes)"))
-        next
-      }
-      
-      cat("sample_raw : \n")
-      print(sample_raw)
-      
-      sample_sel <- unname(loaded_key_lookup[normalize_run_key_newSample(sample_raw)])
-      if (is.na(sample_sel)) {
-        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (run non chargé)"))
-        next
-      }
-      
-      res <- apply_kernel_density_correction_newSample(
-        sample_sel       = sample_sel,
-        kernel_type      = "gaussian",
-        bandwidth_model  = as.numeric(bw_model),
-        bandwidth_filter = as.numeric(bw_filter),
-        intensity_filter = as.numeric(int_filter),
-        min_density      = as.numeric(min_dens)
+    rt_end = req(
+      as.character(RvarsPeakDetectionNewSample$defaultParam$rt_end)
+    ),
+    mz_range_begin = req(
+      as.character(RvarsPeakDetectionNewSample$defaultParam$mz_range_begin)
+    ),
+    mz_range_end = req(
+      as.character(RvarsPeakDetectionNewSample$defaultParam$mz_range_end)
+    ),
+    mz_tolerance_centroid_MS1 = req(
+      as.character(
+        RvarsPeakDetectionNewSample$defaultParam$mz_tolerance_centroid_MS1
       )
-      
-      results <- rbind(results, data.frame(
-        Sample = sample_sel,
-        Status = if (isTRUE(res$success)) "OK" else paste("Échec :", res$reason)
-      ))
-    }
-  })
-  
-  n_ok <- sum(results$Status == "OK")
-  n_other <- nrow(results) - n_ok
-  
-  cat("--- Batch import kernel density : résultats ---\n")
-  print(results)
-  
-  showNotification(
-    sprintf("Import batch terminé : %d run(s) corrigé(s), %d ignoré(s)/échoué(s).", n_ok, n_other),
-    type = if (n_other == 0) "message" else "warning",
-    duration = 10
+    ),
+    mz_tolerance_centroid_MS2 = req(
+      as.character(
+        RvarsPeakDetectionNewSample$defaultParam$mz_tolerance_centroid_MS2
+      )
+    ),
+    maxCharge = req(
+      as.character(RvarsPeakDetectionNewSample$defaultParam$maxCharge)
+    ),
+    min_Peakwidth = req(
+      as.character(RvarsPeakDetectionNewSample$defaultParam$min_Peakwidth)
+    ),
+    min_PeakHeight = req(
+      as.character(RvarsPeakDetectionNewSample$defaultParam$min_PeakHeight)
+    ),
+    mass_slice_width = req(
+      as.character(
+        RvarsPeakDetectionNewSample$defaultParam$mass_slice_width
+      )
+    ),
+    min_PeaksMassif = req(
+      as.character(
+        RvarsPeakDetectionNewSample$defaultParam$min_PeaksMassif
+      )
+    ),
+    Adduct_list = req(
+      as.list(RvarsPeakDetectionNewSample$defaultParam$Adduct_list)
+    ),
+    bw = req(
+      as.character(RvarsPeakDetectionNewSample$defaultParam$bw)
+    ),
+    rt_tolerance = req(
+      as.character(RvarsPeakDetectionNewSample$defaultParam$bw)
+    ),
+    mass_tolerance = req(
+      as.character(RvarsPeakDetectionNewSample$defaultParam$mass_tolerance)
+    ),
+    min_iset = req(as.character(input$min_iset)),
+    cutrat = req(as.character(input$cutrat)),
+    Ref = req(input$chosseRef)
   )
   
-  RvarsPeakDetectionNewSample$batchKernelParamsResults_newSample <- results
-  
-  show_batch_kernel_results_modal_newSample(results)
-  
-  ## Détail par run (dont la raison de chaque échec/ignoré) dans une fenêtre modale
-  # output$batchKernelParamsResultTable_newSample <- DT::renderDataTable({
-  #   DT::datatable(
-  #     results,
-  #     rownames = FALSE,
-  #     options = list(pageLength = 15, scrollX = TRUE)
-  #   )
-  # })
-  # showModal(
-  #   modalDialog(
-  #     title = "Résultats de l'import batch — kernel density",
-  #     size = "l",
-  #     easyClose = TRUE,
-  #     footer = modalButton("Close"),
-  #     DT::dataTableOutput("batchKernelParamsResultTable_newSample")
-  #   )
-  # )
-})
-
-
-## Affiche (ou réaffiche) le tableau des résultats du dernier import batch
-show_batch_kernel_results_modal_newSample <- function(results) {
-  output$batchKernelParamsResultTable_newSample <- DT::renderDataTable({
-    DT::datatable(
-      results,
-      rownames = FALSE,
-      options = list(pageLength = 15, scrollX = TRUE)
-    )
-  })
-  showModal(
-    modalDialog(
-      title = "Résultats de l'import batch — kernel density",
-      size = "l",
-      easyClose = TRUE,
-      footer = modalButton("Close"),
-      DT::dataTableOutput("batchKernelParamsResultTable_newSample")
-    )
-  )
-}
-
-observeEvent(input$viewBatchKernelParamsResults_newSample, ignoreNULL = TRUE, {
-  results <- isolate(RvarsPeakDetectionNewSample$batchKernelParamsResults_newSample)
-  if (is.null(results) || nrow(results) == 0) {
-    showNotification("Aucun résultat d'import batch disponible pour l'instant.",
-                     type = "message", duration = 6)
-    return()
-  }
-  show_batch_kernel_results_modal_newSample(results)
 })
 
 
 
-##
-observe({
-  if (is.null(RvarsPeakDetectionNewSample$modelKernelDensity)) {
-    output$PlotCorrectionKernelDensity_Before_newSample <-
-      renderPlot({
-        
-      })
-    output$PlotCorrectionKernelDensity_After_newSample <-
-      renderPlot({
-        
-      })
-    output$CorrectimeKernelDensityViewer_2_newSample <- renderPlot({
-      
-    })
-  }
-  
-  if (is.null(input$SelectSample_KernelDensity_newSample) ||
-      is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list) ||
-      is.null(RvarsPeakDetectionNewSample$map_ref)) {
-    output$DensityFilterPlot_newSample <- renderPlot({
-      
-    })
-  }
-})
 
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-
-###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-###~~~~~~~~~~~~~~~~~~~~ Grouping massifs into features  ~~~~~~~~~~~~~~~~~~~~~###
-###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Saving matching results (Matrix before normalizing intensity) ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$GroupingButtonIDNewSample
+               input$MatchResult
              }
              ,
              handlerExpr = {
-               if (!is.null(RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection)) {
-                 ## Load some functions:
-                 source("lib/NewReferenceMap/R_files/GenerateMapRef.lib.R",
-                        local = TRUE)
+               shinyFileSave(input,
+                             id = "MatchResult",
+                             roots = volumes,
+                             session = session)
+               
+               
+               
+               path_Save_Files_origine <-
+                 parseSavePath(volumes, input$MatchResult)$datapath
+               
+               if (length(path_Save_Files_origine) > 0) {
+                 path_Save_Files <- strsplit(path_Save_Files_origine, split = "/")[[1]]
+                 directory_Save_Files <-
+                   paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
                  
-                 withProgress(message = 'Grouping massif to features...', value = 0, {
-                   ####~~~~~~~~~~~~~~~~~~~~~~ Grouping massif in samples  ~~~~~~~~~~~~~~~~~~~~#
-                   ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+                 if (!is.null(RvarsMatchNewsample$res_match_ref) &
+                     !is.null(RvarsPeakDetectionNewSample$map_ref)) {
+                   input_Matrix <- RvarsMatchNewsample$res_match_ref$res_newSample
                    
-                   incProgress(1 / 4, detail = "starting")
                    
-                   ## Change names of columns
+                   idx_Duplicates_ref <-
+                     unique(unlist(RvarsMatchNewsample$res_match_ref$idx_Duplicates_ref))
                    
-                   Massif_List_ToGroup <-
-                     RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection
-                   
-                   for (i in 1:length(Massif_List_ToGroup)) {
-                     colSelect <-
-                       c(
-                         "M+H",
-                         "M+H.min",
-                         "M+H.max",
-                         "rt",
-                         "rtmin",
-                         "rtmax",
-                         "Area",
-                         "Height",
-                         "SN",
-                         "sample",
-                         "iso.mass",
-                         "iso.mass.link",
-                         "mz_PeaksIsotopics_Group",
-                         "rt_PeaksIsotopics_Group",
-                         "Height_PeaksIsotopics_Group",
-                         "Adduct"
-                       )
-                     
-                     colnames(Massif_List_ToGroup[[i]])[c(1:10)] <-
-                       colSelect[c(1:10)]
+                   if (length(idx_Duplicates_ref)) {
+                     input_Matrix[input_Matrix$ID %in% idx_Duplicates_ref, -c(1:3)] <- NA
                    }
+                   input_Matrix[input_Matrix$ID %in% idx_Duplicates_ref, -c(1:3)] <-
+                     NA
                    
                    
+                   colnames(input_Matrix)[1:3] <- c("ID", "M+H",	"CE-time")
                    
-                   
-                   workers <- ceiling((detectCores()) - 1)
-                   param <-
-                     SnowParam(workers = workers, type = "SOCK")
-                   
-                   
-                   incProgress(1 / 4, detail = "first grouping")
-                   res1 <- bplapply(
-                     Massif_List_ToGroup,
-                     Grouping.Massif_NewRefMap,
-                     mz.tolerance = 0.15,
-                     rt.tolerance = 30,
-                     BPPARAM = param
+                   write.table(
+                     input_Matrix,
+                     file = paste0(c(
+                       directory_Save_Files,
+                       paste(path_Save_Files[length(path_Save_Files)],
+                             collapse = "", sep = "-")
+                     ), collapse = "/"),
+                     sep = ",",
+                     row.names = FALSE
                    )
+                   print("Save ok")
                    
-                   incProgress(1 / 4, detail = "second grouping")
-                   res2 <- bplapply(
-                     res1,
-                     Grouping.Massif_NewRefMap_Second,
-                     mz.tolerance = 0.09,
-                     rt.tolerance = 180,
-                     BPPARAM = param
-                   )
+                 }
+                 
+               }
+               
+               
+             })
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Saving detail table ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$SaveTableDetails
+             }
+             ,
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "SaveTableDetails",
+                             roots = volumes,
+                             session = session)
+               
+               
+               
+               path_Save_Files_origine <-
+                 parseSavePath(volumes, input$SaveTableDetails)$datapath
+               
+               if (length(path_Save_Files_origine) > 0) {
+                 path_Save_Files <- strsplit(path_Save_Files_origine, split = "/")[[1]]
+                 directory_Save_Files <-
+                   paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
+                 
+                 if (!is.null(RvarsMatchNewsample$res_Matrix_toPlotZoomed) &
+                     !is.null(input$levelSampleMatch)) {
+                   RvarsMatchNewsample$res_Matrix_toPlotZoomed$sample <-
+                     input$levelSampleMatch
                    
                    
-                   ## Change colnames
-                   
-                   for (i in 1:length(res2)) {
-                     colSelect <-
-                       c(
-                         "M+H",
-                         "M+H.min",
-                         "M+H.max",
-                         "rt",
-                         "rtmin",
-                         "rtmax",
-                         "Area",
-                         "Height",
-                         "SN",
-                         "sample",
-                         "iso.mass",
-                         "iso.mass.link",
-                         "mz_PeaksIsotopics_Group",
-                         "rt_PeaksIsotopics_Group",
-                         "Height_PeaksIsotopics_Group",
-                         "Adduct"
+                   write.table(
+                     RvarsMatchNewsample$res_Matrix_toPlotZoomed,
+                     file = paste0(c(
+                       directory_Save_Files,
+                       paste(
+                         input$levelSampleMatch,
+                         path_Save_Files[length(path_Save_Files)],
+                         collapse = "",
+                         sep = "-"
                        )
-                     
+                     ), collapse = "/"),
+                     sep = ",",
+                     row.names = FALSE
+                   )
+                   print("OK")
+                   print("Save ok")
+                   
+                   
+                 }
+               }
+               
+               
+             })
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Saving normalize matrix ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$SaveAnalysisResults
+             }
+             ,
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "SaveAnalysisResults",
+                             roots = volumes,
+                             session = session)
+               
+               
+               
+               path_Save_Files_origine <-
+                 parseSavePath(volumes, input$SaveAnalysisResults)$datapath
+               
+               if (length(path_Save_Files_origine) > 0) {
+                 path_Save_Files <- strsplit(path_Save_Files_origine, split = "/")[[1]]
+                 directory_Save_Files <-
+                   paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
+                 
+                 if (!is.null(ms_features_newSample()) &
+                     !is.null(input$IncludeSample) &
+                     (length(ms_features_list_newSample_toUse()) >= 1) &
+                     !is.null(RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave)) {
+                   colnames(RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave)[2] <-
+                     "M+H"
+                   colnames(RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave)[3] <-
+                     "CE-time"
+                   
+                   write.table(
+                     RvarsNormalizeNewsample$res_MatrixNewSample_normalized_toSave,
+                     file = paste0(c(
+                       directory_Save_Files,
+                       paste(path_Save_Files[length(path_Save_Files)],
+                             collapse = "", sep = "-")
+                     ), collapse = "/"),
+                     sep = ",",
+                     row.names = FALSE
+                   )
+                   print("Save ok")
+                   
+                   
+                 }
+               }
+               
+               
+             })
+
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Export percentage match table ~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+## Export direct de la table affichée dans l'onglet "Percentage match"
+## (sample, percent_matched, number_match), telle quelle.
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$ExportPercentMatch_newSample
+             },
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "ExportPercentMatch_newSample",
+                             roots = volumes,
+                             session = session)
+               
+               path_Save_Files_origine <-
+                 parseSavePath(volumes, input$ExportPercentMatch_newSample)$datapath
+               
+               if (length(path_Save_Files_origine) > 0) {
+                 pct_match_df <- RvarsMatchNewsample$res_match_ref$pct_match_ref
+                 if (is.null(pct_match_df)) {
+                   showNotification("Aucune table de pourcentage de match disponible.",
+                                    type = "error", duration = 8)
+                   return()
+                 }
+                 
+                 path_Save_Files <- strsplit(path_Save_Files_origine, split = "/")[[1]]
+                 directory_Save_Files <-
+                   paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
+                 
+                 write.table(
+                   pct_match_df,
+                   file = paste0(c(
+                     directory_Save_Files,
+                     paste(path_Save_Files[length(path_Save_Files)],
+                           collapse = "", sep = "-")
+                   ), collapse = "/"),
+                   sep = ",",
+                   row.names = FALSE
+                 )
+                 showNotification("Table de pourcentage de match exportée.", type = "message", duration = 6)
+               }
+             })
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Export bilan par run ~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+## Table combinée, une ligne par échantillon : nombre de features, pourcentage
+## de match avec la carte de référence, nombre de normalisateurs utilisés, et
+## si l'échantillon a été normalisé ou non (même seuil que normalizeSamples() :
+## nbr_pep_normalizers >= min.iset). Ces 3 derniers calculs existent déjà en
+## interne (pct_match_ref, attr(...,"nbr_pep_normalizers")) mais n'étaient
+## jusqu'ici jamais exportés.
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$ExportRunSummary_newSample
+             },
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "ExportRunSummary_newSample",
+                             roots = volumes,
+                             session = session)
+               
+               path_Save_Files_origine <-
+                 parseSavePath(volumes, input$ExportRunSummary_newSample)$datapath
+               
+               if (length(path_Save_Files_origine) > 0) {
+                 if (is.null(RvarsPeakDetectionNewSample$FeaturesList_newSample)) {
+                   showNotification("Aucune feature list disponible.", type = "error", duration = 8)
+                   return()
+                 }
+                 
+                 n_features <- sapply(RvarsPeakDetectionNewSample$FeaturesList_newSample, nrow)
+                 bilan <- data.frame(
+                   Sample = names(n_features),
+                   Nombre_features = unname(n_features),
+                   stringsAsFactors = FALSE
+                 )
+                 
+                 pct_match_df <- RvarsMatchNewsample$res_match_ref$pct_match_ref
+                 if (!is.null(pct_match_df)) {
+                   bilan <- merge(
+                     bilan,
+                     data.frame(
+                       Sample = as.character(pct_match_df$sample),
+                       Pourcentage_match = pct_match_df$percent_matched,
+                       stringsAsFactors = FALSE
+                     ),
+                     by = "Sample", all.x = TRUE
+                   )
+                 } else {
+                   bilan$Pourcentage_match <- NA
+                 }
+                 
+                 if (!is.null(RvarsNormalizeNewsample$matrix_abondance) &&
+                     !is.null(RvarsPeakDetectionNewSample$normalizers_ref) &&
+                     !is.null(RvarsPeakDetectionNewSample$map_ref) &&
+                     !is.null(pct_match_df)) {
+                   
+                   Xraw <- RvarsNormalizeNewsample$matrix_abondance
+                   if (max(Xraw, na.rm = TRUE) > 107) Xraw <- log2(Xraw)
+                   
+                   ref_vec <- RvarsPeakDetectionNewSample$map_ref$maxo
+                   names(ref_vec) <- RvarsPeakDetectionNewSample$map_ref$ID
+                   
+                   iset_ref <- as.character(req(RvarsPeakDetectionNewSample$normalizers_ref$ID))
+                   iset_ref <- intersect(iset_ref, rownames(Xraw))
+                   cutrat_val <- req(input$cutrat)
+                   
+                   nbr_norm_vec <- sapply(seq_len(ncol(Xraw)), function(i) {
+                     iset_i <- iset_ref[abs(Xraw[iset_ref, i] - ref_vec[iset_ref]) <= cutrat_val]
+                     sum(!is.na(Xraw[iset_i, i]))
+                   })
+                   
+                   if (length(nbr_norm_vec) == nrow(pct_match_df)) {
+                     nbr_norm_df <- data.frame(
+                       Sample = as.character(pct_match_df$sample),
+                       Nombre_normalisateurs = nbr_norm_vec,
+                       stringsAsFactors = FALSE
+                     )
+                     bilan <- merge(bilan, nbr_norm_df, by = "Sample", all.x = TRUE)
+                     bilan$Normalisation_OK <- bilan$Nombre_normalisateurs >= req(input$min_iset)
+                   } else {
+                     bilan$Nombre_normalisateurs <- NA
+                     bilan$Normalisation_OK <- NA
+                   }
+                 } else {
+                   cat("on est dans le else pour nbr_norm \n")
+                   bilan$Nombre_normalisateurs <- NA
+                   bilan$Normalisation_OK <- NA
+                 }
+                 
+                 path_Save_Files <- strsplit(path_Save_Files_origine, split = "/")[[1]]
+                 directory_Save_Files <-
+                   paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
+                 
+                 write.table(
+                   bilan,
+                   file = paste0(c(
+                     directory_Save_Files,
+                     paste(path_Save_Files[length(path_Save_Files)],
+                           collapse = "", sep = "-")
+                   ), collapse = "/"),
+                   sep = ",",
+                   row.names = FALSE
+                 )
+                 showNotification("Bilan par run exporté.", type = "message", duration = 6)
+               }
+})
+
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Saving parameters ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+output$ExportParam <- downloadHandler(
+  filename = function() {
+    paste(
+      "Parsmeters used-",
+      sub(
+        sub(
+          sub(
+            Sys.time(),
+            pattern = "CEST",
+            replacement = "",
+            fixed = TRUE
+          ),
+          pattern = ":",
+          replacement = "-",
+          fixed = TRUE
+        ),
+        pattern = ":",
+        replacement = "-",
+        fixed = TRUE
+      ),
+      ".txt",
+      sep = ""
+    )
+  },
+  content = function(file) {
+    exportParam <-
+      readLines(file.path("data/References", req(input$chosseRef), "outputParam.txt"))
+    
+    writeLines(exportParam, file)
+  }
+)
+
+
+
+
+
+observe({
+  if (!is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list) ||
+      !is.null(RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection)) {
+    shinyjs::show("peakListToSave")
+  }
+})
+
+
+#~~~~~~~~~~~~~ Saving massif list(before CE-time correction) ~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$PeakListNewSample
+             }
+             ,
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "PeakListNewSample",
+                             roots = volumes,
+                             session = session)
+               
+               
+               path_Save_Files_origine <-
+                 parseSavePath(volumes, input$PeakListNewSample)$datapath
+               
+               if (length(path_Save_Files_origine) > 0) {
+                 path_Save_Files <- strsplit(path_Save_Files_origine, split = "/")[[1]]
+                 directory_Save_Files <-
+                   paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
+                 
+                 if (!is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)) {
+                   massifListBefore <-
+                     RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list
+                   
+                   for (i in 1:length(massifListBefore)) {
                      reqColsNames <-
                        c(
                          'M+H',
@@ -11098,622 +2639,18 @@ observeEvent(ignoreNULL = TRUE,
                          'sample'
                        )
                      
-                     colnames(res2[[i]])[c(1:10)] <- reqColsNames
-                     
-                     res2[[i]] <- res2[[i]][, -ncol(res2[[i]])]
+                     colnames(massifListBefore[[i]])[c(1:10)] <- reqColsNames
                    }
                    
                    
-                   RvarsPeakDetectionNewSample$FeaturesList_newSample <-
-                     res2
-                   incProgress(1 / 4, detail = "finish")
-                   
-                   
-                 })
-                 
-                 
-                 #"~~~~~~~ Enable Generate reference map button ~~~~~~~~#
-                 
-                 enable("CorrectionKernelDensityNexPage_newSample")
-                 
-                 updateRadioButtons(session = session,
-                                    inputId = "IdAnalysisStep",
-                                    selected = "4")
-                 
-                 
-                 sendSweetAlert(
-                   session = session,
-                   title = "Preprocess complete !",
-                   text = HTML(paste(
-                     "Grouping massif into feature well done !<br>"
-                   )),
-                   type = "success",
-                   closeOnClickOutside = FALSE,
-                   html = TRUE
-                 )
-                 
-               }
-               
-               
-             })
-
-
-
-###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-###~~~~~~~~~~~~~~~ Get features list and plot of table features ~~~~~~~~~~~~~~###
-###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-
-
-###~~~~ Get features list~~~~~~~~#
-ms_features_newSample <- reactive({
-  if ((length(RvarsPeakDetectionNewSample$FeaturesList_newSample) > 0)) {
-    ms_featuresTable <-
-      do.call(rbind,
-              RvarsPeakDetectionNewSample$FeaturesList_newSample)
-    
-    rownames(ms_featuresTable) <- 1:nrow(ms_featuresTable)
-    
-    ms_featuresTable$intensity <- log2(ms_featuresTable$intensity)
-    ms_featuresTable
-  }
-})
-
-
-
-##~~~~ Update select input (select samples to viewer or to use)~~~~~~#
-observe({
-  if (!is.null(ms_features_newSample())) {
-    RvarsPeakDetectionNewSample$sample_name_newSample <-
-      unique(ms_features_newSample()$sample)
-    
-    updatePickerInput(
-      session = session,
-      inputId = "levelSample",
-      choices = RvarsPeakDetectionNewSample$sample_name_newSample,
-      selected = RvarsPeakDetectionNewSample$sample_name_newSample[1]
-    )
-    
-    updatePickerInput(
-      session = session,
-      inputId = "IncludeSample",
-      choices = RvarsPeakDetectionNewSample$sample_name_newSample,
-      selected = RvarsPeakDetectionNewSample$sample_name_newSample
-    )
-    
-    
-  }
-  
-})
-
-##~~~~~~~~~~~~~~~~~ Get data features to plot ~~~~~~~~~~~~~~#
-ms_features_newSample_toPlot <- reactive({
-  if (!is.null(ms_features_newSample()) &
-      !is.null(input$levelSample)) {
-    values_plot <-
-      req(ms_features_newSample()[ms_features_newSample()$sample %in% input$levelSample, ])
-    
-    j <- 1
-    for (names in unique(values_plot$sample)) {
-      values_plot[values_plot$sample == names, "sample"] <- j
-      j <- j + 1
-    }
-    
-    values_plot
-    
-  }
-  
-})
-
-###~~~~~~ CE-time Conversion ~~~~~~~~#
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$levelSample
-             },
-             handlerExpr = {
-               RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime <-
-                 isolate(req(ms_features_newSample_toPlot()))
-               #Because les data viennent initialement en second
-               RvarsPeakDetectionNewSample$Second <- TRUE
-               if (input$UnitTime == "Minute") {
-                 print(
-                   paste(
-                     "Convert to min",
-                     input$UnitTime == "Minute" &
-                       RvarsPeakDetectionNewSample$Second == TRUE
-                   )
-                 )
-                 if (input$UnitTime == "Minute" &
-                     RvarsPeakDetectionNewSample$Second == TRUE) {
-                   if (!is.null(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime)) {
-                     print("Yes!")
-                     RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$`CE-time` <-
-                       req(
-                         RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$`CE-time`
-                       ) / 60
-                     RvarsPeakDetectionNewSample$Second <- FALSE
-                   }
-                 }
-               }
-               
-               
-             })
-
-## When uploaded features list
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$features_list
-             },
-             handlerExpr = {
-               ## Because data is initially in second
-               
-               updateRadioGroupButtons(session = session,
-                                       inputId = "UnitTime",
-                                       selected = "Second")
-               RvarsPeakDetectionNewSample$Second == TRUE
-               ## reset coord_cartesian
-               rangesZoomAnalyisPlotSamplesSelected$x <- NULL
-               rangesZoomAnalyisPlotSamplesSelected$y <- NULL
-               
-               
-             })
-
-
-##~~~~~~ CE-time conversion second or minute ~~~~~~~#
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$UnitTime
-             },
-             handlerExpr = {
-               RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime <-
-                 req(ms_features_newSample_toPlot())
-               print(
-                 paste(
-                   "Convert to min",
-                   input$UnitTime == "Minute" &
-                     RvarsPeakDetectionNewSample$Second == TRUE
-                 )
-               )
-               if (input$UnitTime == "Minute" &
-                   RvarsPeakDetectionNewSample$Second == TRUE) {
-                 if (!is.null(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime)) {
-                   RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$`CE-time` <-
-                     req(
-                       RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$`CE-time`
-                     ) / 60
-                   RvarsPeakDetectionNewSample$Second <- FALSE
-                 }
-               }
-               
-               print(
-                 paste(
-                   "Covert to Second",
-                   input$UnitTime == "Second" &
-                     RvarsPeakDetectionNewSample$Second == FALSE
-                 )
-               )
-               if (input$UnitTime == "Second" &
-                   RvarsPeakDetectionNewSample$Second == FALSE) {
-                 if (!is.null(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime)) {
-                   RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$`CE-time` <-
-                     req(
-                       RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$`CE-time`
-                     ) * 60
-                   RvarsPeakDetectionNewSample$Second <- TRUE
-                 }
-               }
-               
-               if (input$UnitTime == "Second" &
-                   RvarsPeakDetectionNewSample$Second == TRUE) {
-                 RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime <-
-                   req(ms_features_newSample_toPlot())
-               }
-               
-               
-             })
-
-
-##~~~~~~ Number of features ~~~~~~#
-number_of_features <- reactive({
-  if (length(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime) >
-      0 &
-      !is.null(ms_features_newSample()) &
-      !is.null(input$levelSample)) {
-    table(
-      RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-    )
-    
-  }
-})
-
-##~~~~~~~~~~~~ Legend for plot ~~~~~~~~~#
-legend_sample <- reactive({
-  if (length(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime) >
-      0 &
-      !is.null(ms_features_newSample()) &
-      !is.null(input$levelSample)) {
-    legend_values <- data.frame(
-      xd = 1:length(input$levelSample),
-      yd = 1:length(input$levelSample),
-      Samples = paste(
-        "\n",
-        1:length(input$levelSample),
-        ": ",
-        input$levelSample,
-        "\n",
-        sep = ""
-      )
-    )
-    legend_values
-  }
-  
-})
-
-
-##~~~~~~~Zoom: features list viewer ~~~~~~~~#
-rangesZoomAnalyisPlotSamplesSelected <-
-  reactiveValues(x = NULL, y = NULL)
-
-# When a double-click happens, check if there's a brush on the plot.
-# If so, zoom to the brush bounds; if not, reset the zoom.
-observeEvent({
-  input$plotAnalysisNewSample_dblclick
-}, {
-  brush <- input$plotAnalysisNewSample_brush
-  if (!is.null(brush)) {
-    rangesZoomAnalyisPlotSamplesSelected$x <- c(brush$xmin, brush$xmax)
-    rangesZoomAnalyisPlotSamplesSelected$y <-
-      c(brush$ymin, brush$ymax)
-    
-  } else {
-    ## reset coord_cartesian
-    rangesZoomAnalyisPlotSamplesSelected$x <- NULL
-    rangesZoomAnalyisPlotSamplesSelected$y <- NULL
-  }
-})
-
-
-#~~~~~~~~~ Features list plot ~~~~~~~#
-output$AnalyisPlotSamplesSelected <- renderPlot({
-  if (length(
-    unique(
-      RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-    )
-  ) > 1 &
-  !is.null(ms_features_newSample()) & !is.null(input$levelSample)) {
-    if (TRUE) {
-      myPlot <-
-        req(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime) %>%
-        
-        ggplot() +
-        aes(x = `CE-time`,
-            y = `M+H`,
-            colour = intensity) +
-        #geom_point(shape = "circle", size = input$sizePoints) +
-        geom_point(size = req(input$sizePoints)) +
-        scale_color_viridis_c(option = "inferno", direction = -1) +
-        theme_gray() +
-        facet_grid(vars(sample), vars())  +
-        # facet_wrap(~req(sample) , dir="v", ncol = 1)  +
-        coord_cartesian(xlim = rangesZoomAnalyisPlotSamplesSelected$x,
-                        ylim = rangesZoomAnalyisPlotSamplesSelected$y,
-                        expand = TRUE) +
-        ylab("Mass (M+H) (Da)") +
-        xlab(paste("CE-time (", input$UnitTime, ")")) +
-        
-        ggtitle(paste("Features list")) +
-        
-        scale_x_continuous(n.breaks = 14) +
-        #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-        
-        
-        #facet_grid(vars(sample), vars())+
-        #option_graphe.2 +
-        theme_ben() +
-        labs(colour = "log2 Intensity") +
-        theme(
-          plot.title = element_text(
-            size = rel(1),
-            face = "bold",
-            color = "#760001",
-            margin = margin(0, 0, 5, 0),
-            hjust = 0.5
-          ),
-          plot.subtitle = element_text(hjust = 0.5),
-          panel.border = element_rect(
-            fill = "transparent",
-            # Needed to add the border
-            color = "blue",
-            linewidth = 0.5,
-            linetype = "dashed"
-          )
-        )
-      
-    }
-    
-    
-    
-    
-    
-  }
-  
-  if (length(
-    unique(
-      RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-    )
-  ) == 1 &
-  !is.null(ms_features_newSample()) & !is.null(input$levelSample)) {
-    myPlot <-
-      req(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime) %>%
-      
-      ggplot() +
-      aes(x = `CE-time`, y = `M+H`, colour = intensity) +
-      #geom_point(shape = "circle", size = input$sizePoints) +
-      geom_point(size = input$sizePoints) +
-      scale_color_viridis_c(option = "inferno", direction = -1) +
-      ylab("Mass (M+H) (Da)") +
-      xlab(paste("CE-time (", input$UnitTime, ")")) +
-      coord_cartesian(xlim = rangesZoomAnalyisPlotSamplesSelected$x,
-                      ylim = rangesZoomAnalyisPlotSamplesSelected$y,
-                      expand = TRUE) +
-      ggtitle(paste("Features list")) +
-      
-      scale_x_continuous(n.breaks = 14) +
-      #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
-      
-      
-      #facet_grid(vars(sample), vars())+
-      #option_graphe.3
-      theme_ben() +
-      labs(colour = "log2 Intensity") +
-      theme(
-        plot.title = element_text(
-          size = rel(1),
-          face = "bold",
-          color = "#760001",
-          margin = margin(0, 0, 5, 0),
-          hjust = 0.5
-        ),
-        plot.subtitle = element_text(hjust = 0.5)
-      )
-    
-  }
-  
-  Values_myPlot <- reactive({
-    myPlot
-  })
-  
-  if (length(
-    unique(
-      RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-    )
-  ) > 0 &
-  !is.null(ms_features_newSample()) & !is.null(input$levelSample)) {
-    shinyjs::show("PeaksMonoIsoPlotAnalysisNewSample_id")
-    Values_myPlot()
-    
-  }
-  
-})
-
-
-### Position mouse
-output$PeaksMonoIsoPlotAnalysisNewSample_info <- renderText({
-  paste0(
-    "Mouse position : CE-time = ",
-    round(req(input$plotAnalysisNewSample_click$x), 0),
-    " (",
-    input$UnitTime,
-    "), ",
-    " M+H = ",
-    round(req(input$plotAnalysisNewSample_click$y), 4),
-    " (Da)"
-  )
-})
-
-
-##~~~~~~~~~~ Info bull for plot features list ~~~~~~~~#
-output$plotAnalysisNewSamplet_hover_info <- renderUI({
-  hover <- req(input$plotAnalysisNewSamplet_hover)
-  if (length(
-    unique(
-      RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-    )
-  ) > 1 &
-  !is.null(ms_features_newSample()) & !is.null(input$levelSample)) {
-    myPlot_data <-
-      req(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime)
-    
-  }
-  
-  if (length(
-    unique(
-      RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-    )
-  ) == 1 &
-  !is.null(ms_features_newSample()) & !is.null(input$levelSample)) {
-    myPlot_data <-
-      req(RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime)
-  }
-  
-  Values_myPlot_data <- reactive({
-    myPlot_data
-  })
-  
-  
-  if (length(
-    unique(
-      RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-    )
-  ) > 0 &
-  !is.null(ms_features_newSample()) & !is.null(input$levelSample)) {
-    point <-
-      nearPoints(
-        req(Values_myPlot_data()),
-        hover,
-        threshold = 5,
-        maxpoints = 1,
-        addDist = TRUE
-      )
-    if (nrow(point) == 0)
-      return(NULL)
-    
-    
-    # calculate point position INSIDE the image as percent of total dimensions
-    # from left (horizontal) and from top (vertical)
-    left_pct <-
-      (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
-    top_pct <-
-      (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
-    
-    # calculate distance from left and bottom side of the picture in pixels
-    left_px <-
-      hover$range$left + left_pct * (hover$range$right - hover$range$left)
-    top_px <-
-      hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
-    
-    # create style property fot tooltip
-    # background color is set so tooltip is a bit transparent
-    # z-index is set so we are sure are tooltip will be on top
-    style <-
-      paste0(
-        "position:absolute; z-index:100; background-color: #f7f0f0; ",
-        "left:",
-        left_px + 2,
-        "px; top:",
-        top_px + 2,
-        "px;"
-      )
-    
-    # actual tooltip created as wellPanel
-    div(class = "well well-sm",
-        style = style,
-        p(HTML(
-          paste0(
-            "<span class='bullText'> CE-time: </span>",
-            round(point$`CE-time`, 2),
-            "<br/>",
-            "<span class='bullText'> M+H: </span>",
-            round(point$`M+H`, 4),
-            "<br/>",
-            "<span class='bullText'> log2 Intensity: </span>",
-            round(point$intensity, 2),
-            "<br/>",
-            "<span class='bullText'> Intensity: </span>",
-            round(2 ^ (point$intensity), 0),
-            "<br/>"
-          )
-        )))
-    
-  }
-  
-  
-})
-
-##~~~~~~~~~~~ Render plot number of features ~~~~~~~~~~#
-output$NumberOfFeatures <- renderPlot({
-  if (length(number_of_features()) > 0 &
-      length(
-        unique(
-          RvarsPeakDetectionNewSample$ms_features_newSample_toPlot_ConvertTime$sample
-        )
-      ) > 0 &
-      !is.null(ms_features_newSample()) &
-      !is.null(input$levelSample)) {
-    NbPeak_for_each_sample_adj <- data.frame(number_of_features())
-    colnames(NbPeak_for_each_sample_adj)[1] <- "Sample"
-    ggplot(NbPeak_for_each_sample_adj) +
-      aes(x = Sample,
-          #colour = sample,
-          weight = Freq) +
-      geom_bar(width = 0.4, fill = "#4682B4") +
-      geom_text(
-        aes(label = paste0(round(..count.., 2))),
-        stat = "count",
-        vjust = 0,
-        hjust = 0.5,
-        size = 5,
-        fontface = 4
-      ) +
-      scale_color_hue(direction = 1) +
-      #coord_flip() +
-      ylab("Number of Features") +
-      xlab("") +
-      coord_cartesian(ylim = c(0, max(NbPeak_for_each_sample_adj$Freq) +
-                                 1000)) +
-      theme_ben() +
-      #theme(axis.text.x = element_text(angle = 90, size = rel(1), face = "bold"))
-      theme(axis.text.x = element_text(size = rel(1.2), face = "bold"))
-    
-  }
-  
-})
-
-output$sampleOutput <- renderText({
-  legend_sample()$Samples
-})
-
-
-##~~~~~~~~~~~~ Get data to save ~~~~~~~~~~#
-ms_features_newSample_toSave <- reactive({
-  if (!is.null(ms_features_newSample()) &
-      !is.null(input$IncludeSample)) {
-    values <-
-      ms_features_newSample()[ms_features_newSample()$sample %in% input$IncludeSample, ]
-    values$intensity <- 2 ^ (values$intensity)
-    split(values, f = values$sample)
-    
-  }
-  
-})
-
-##~~~~~~~~~~~~ Get data to use ~~~~~~~~~~#
-
-ms_features_list_newSample_toUse <- reactive({
-  if (!is.null(ms_features_newSample()) &
-      !is.null(input$IncludeSample)) {
-    values <-
-      ms_features_newSample()[ms_features_newSample()$sample %in% input$IncludeSample, ]
-    values$intensity <- 2 ^ (values$intensity)
-    
-    split(values, f = values$sample)
-  }
-})
-
-
-##~~~~~~~~~~~~ Save features list ~~~~~~~~~~#
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$SaveAnalysis
-             }
-             ,
-             handlerExpr = {
-               shinyFileSave(input,
-                             id = "SaveAnalysis",
-                             roots = volumes,
-                             session = session)
-               
-               
-               path_Save_Files_origine <-
-                 parseSavePath(volumes, input$SaveAnalysis)$datapath
-               
-               if (length(path_Save_Files_origine) > 0) {
-                 path_Save_Files <-
-                   strsplit(path_Save_Files_origine, split = "/")[[1]]
-                 directory_Save_Files <-
-                   paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
-                 
-                 if (length(ms_features_newSample_toSave()) > 0 &
-                     !is.null(ms_features_newSample()) &
-                     !is.null(input$IncludeSample)) {
-                   if (length(ms_features_newSample_toSave()) == 1) {
+                   if (length(massifListBefore) == 1) {
                      write.table(
-                       ms_features_newSample_toSave()[[1]],
+                       massifListBefore[[1]],
                        #file = path_Save_Files_origine,
                        file = paste0(c(
                          directory_Save_Files,
                          paste(
-                           names(ms_features_newSample_toSave())[1],
+                           names(massifListBefore)[1],
                            path_Save_Files[length(path_Save_Files)],
                            collapse = "",
                            sep = "-"
@@ -11725,17 +2662,15 @@ observeEvent(ignoreNULL = TRUE,
                      print("Save ok")
                    } else{
                      withProgress(message = 'Saving files...', value = 0, {
-                       for (i in 1:length(ms_features_newSample_toSave())) {
-                         incProgress(1 / length(ms_features_newSample_toSave()),
-                                     detail = paste(names(
-                                       ms_features_newSample_toSave()
-                                     )[i]))
+                       for (i in 1:length(massifListBefore)) {
+                         incProgress(1 / length(massifListBefore),
+                                     detail = paste(names(massifListBefore)[i]))
                          print(basename(paste0(
                            c(
                              directory_Save_Files,
                              paste(
                                #as.character(i),
-                               names(ms_features_newSample_toSave())[i],
+                               names(massifListBefore)[i],
                                path_Save_Files[length(path_Save_Files)],
                                collapse = "",
                                sep = "-"
@@ -11743,12 +2678,12 @@ observeEvent(ignoreNULL = TRUE,
                            ), collapse = "/"
                          )))
                          write.table(
-                           ms_features_newSample_toSave()[[i]],
+                           massifListBefore[[i]],
                            file = paste0(c(
                              directory_Save_Files,
                              paste(
                                #as.character(i),
-                               names(ms_features_newSample_toSave())[i],
+                               names(massifListBefore)[i],
                                path_Save_Files[length(path_Save_Files)],
                                collapse = "",
                                sep = "-"
@@ -11771,366 +2706,112 @@ observeEvent(ignoreNULL = TRUE,
                
              })
 
-
-##~~~~ Modal: RT distribution viewer (eye button) ~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-## Calcule une seule fois les données Before/After et une plage d'axes COMMUNE
-## aux deux graphiques, pour qu'ils soient alignés et comparables visuellement.
-modal_rt_data_newSample <- reactive({
-  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-  req(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)
-  req(RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection)
-  req(RvarsPeakDetectionNewSample$map_ref)
-  
-  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
-  
-  ref <- RvarsPeakDetectionNewSample$map_ref[2:4]
-  colnames(ref) <- c("mz", "rt", "maxo")
-  ref$maxo <- 2 ^ (ref$maxo)
-  
-  table.before <- RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]
-  table.before <- table.before[, c("mz", "rt", "maxo", "sample")]
-  resMatch.before <- matchMz(x = ref, table = table.before,
-                             ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
+#~~~~~~~~~~~~~ Saving massif list(after CE-time correction) ~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$PeakListAlignedNewSample
+             }
+             ,
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "PeakListAlignedNewSample",
+                             roots = volumes,
                              session = session)
-  data_before <- resMatch.before$MatchTable[
-    !is.na(resMatch.before$MatchTable$rt.2),
-    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
-  ]
-  
-  table.after <- RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[sample_sel]]
-  table.after <- table.after[, c("mz", "rt", "maxo", "sample")]
-  resMatch.after <- matchMz(x = ref, table = table.after,
-                            ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
-                            session = session)
-  data_after <- resMatch.after$MatchTable[
-    !is.na(resMatch.after$MatchTable$rt.2),
-    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
-  ]
-  
-  rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1],
-                range(data_after$rt.2)[1], range(data_after$rt.1)[1])
-  rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2],
-                range(data_after$rt.2)[2], range(data_after$rt.1)[2])
-  
-  list(data_before = data_before, data_after = data_after,
-       rt_min = rt_min, rt_max = rt_max)
-})
-
-output$modal_rt_dist_after_newSample <- renderPlot({
-  rt_data <- modal_rt_data_newSample()
-  data_after <- rt_data$data_after
-  rt_min <- rt_data$rt_min
-  rt_max <- rt_data$rt_max
-  
-  rt_max.x  <- max(data_after$rt.2) + 100
-  rt_max.y <- max(data_after$rt.1) + 100
-  
-  median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
-                                 y = seq(rt_min, rt_max, by = 50))
-  
-  ggplot(data_after, aes(x = rt.2, y = rt.1)) +
-    geom_point(size = 0.5) +
-    coord_cartesian(xlim = c(rt_min, rt_max), 
-                    ylim = c(rt_min, rt_max.y)) +
-    scale_x_continuous(n.breaks = 14) +
-    scale_y_continuous(n.breaks = 14) +
-    geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
-              lwd = 1, size = 1.5) +
-    ggtitle("After CE-time correction (Kernel Density)") +
-    labs(x = paste("CE-time (", data_after$sample.2[1], ")"),
-         y = "CE-time (Reference map)", color = "Legend") +
-    scale_color_manual(values = c("Median" = "green")) +
-    theme_ben() +
-    theme(
-      plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
-                                margin = margin(0, 0, 5, 0), hjust = 0.5),
-      plot.background = element_rect(fill = "aliceblue"),
-      legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
-      legend.text = element_text(size = rel(0.85), face = "bold.italic")
-    )
-})
-
-output$modal_rt_dist_before_newSample <- renderPlot({
-  rt_data <- modal_rt_data_newSample()
-  data_before <- rt_data$data_before
-  rt_min <- rt_data$rt_min
-  rt_max <- rt_data$rt_max
-  
-  # rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1])
-  # rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2])
-  rt_max.x  <- max(data_before$rt.2) + 100
-  rt_max.y <- max(data_before$rt.1) + 100
-  
-  median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
-                                 y = seq(rt_min, rt_max, by = 50))
-  
-  ggplot(data_before, aes(x = rt.2, y = rt.1)) +
-    geom_point(size = 0.5) +
-    coord_cartesian(xlim = c(rt_min, rt_max),
-                    ylim = c(rt_min, rt_max.y)) +
-    scale_x_continuous(n.breaks = 14) +
-    scale_y_continuous(n.breaks = 14) +
-    geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
-              lwd = 1, size = 1.5) +
-    ggtitle("Before CE-time correction") +
-    labs(x = paste("CE-time (", data_before$sample.2[1], ")"),
-         y = "CE-time (Reference map)", color = "Legend") +
-    scale_color_manual(values = c("Median" = "green")) +
-    theme_ben() +
-    theme(
-      plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
-                                margin = margin(0, 0, 5, 0), hjust = 0.5),
-      plot.background = element_rect(fill = "aliceblue"),
-      legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
-      legend.text = element_text(size = rel(0.85), face = "bold.italic")
-    )
-})
-
-
-##~~~~ Modal: RT distribution viewer (eye button) ~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-# output$modal_rt_dist_before_newSample <- renderPlot({
-#   sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-#   req(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)
-#   req(RvarsPeakDetectionNewSample$map_ref)
-#   
-#   source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
-#   
-#   ref <- RvarsPeakDetectionNewSample$map_ref[2:4]
-#   colnames(ref) <- c("mz", "rt", "maxo")
-#   ref$maxo <- 2 ^ (ref$maxo)
-#   
-#   table.before <- RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]
-#   table.before <- table.before[, c("mz", "rt", "maxo", "sample")]
-#   
-#   resMatch.before <- matchMz(x = ref, table = table.before,
-#                              ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
-#                              session = session)
-#   
-#   data_before <- resMatch.before$MatchTable[
-#     !is.na(resMatch.before$MatchTable$rt.2),
-#     c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
-#   ]
-#   
-#   rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1])
-#   rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2])
-#   rt_max.x  <- max(data_before$rt.2) + 100
-#   rt_max.y <- max(data_before$rt.1) + 100
-#   
-#   median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
-#                                  y = seq(rt_min, rt_max, by = 50))
-#   
-#   ggplot(data_before, aes(x = rt.2, y = rt.1)) +
-#     geom_point(size = 0.5) +
-#     coord_cartesian(xlim = c(rt_min, rt_max.x), 
-#                     ylim = c(rt_min, rt_max.y)) +
-#     scale_x_continuous(n.breaks = 14) +
-#     scale_y_continuous(n.breaks = 14) +
-#     geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
-#               lwd = 1, size = 1.5) +
-#     ggtitle("Before CE-time correction") +
-#     labs(x = paste("CE-time (", data_before$sample.2[1], ")"),
-#          y = "CE-time (Reference map)", color = "Legend") +
-#     scale_color_manual(values = c("Median" = "green")) +
-#     theme_ben() +
-#     theme(
-#       plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
-#                                 margin = margin(0, 0, 5, 0), hjust = 0.5),
-#       plot.background = element_rect(fill = "aliceblue"),
-#       legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
-#       legend.text = element_text(size = rel(0.85), face = "bold.italic")
-#     )
-# })
-# 
-# 
-# 
-# output$modal_rt_dist_after_newSample <- renderPlot({
-#   sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-#   req(RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection)
-#   req(RvarsPeakDetectionNewSample$map_ref)
-#   
-#   source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
-#   
-#   ref <- RvarsPeakDetectionNewSample$map_ref[2:4]
-#   colnames(ref) <- c("mz", "rt", "maxo")
-#   ref$maxo <- 2 ^ (ref$maxo)
-#   
-#   table.after <- RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection[[sample_sel]]
-#   table.after <- table.after[, c("mz", "rt", "maxo", "sample")]
-#   
-#   resMatch.after <- matchMz(x = ref, table = table.after,
-#                             ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
-#                             session = session)
-#   
-#   data_after <- resMatch.after$MatchTable[
-#     !is.na(resMatch.after$MatchTable$rt.2),
-#     c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
-#   ]
-#   
-#   rt_min <- min(range(data_after$rt.2)[1], range(data_after$rt.1)[1])
-#   rt_max <- max(range(data_after$rt.2)[2], range(data_after$rt.1)[2])
-#   
-#   median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
-#                                  y = seq(rt_min, rt_max, by = 50))
-#   
-#   ggplot(data_after, aes(x = rt.2, y = rt.1)) +
-#     geom_point(size = 0.5) +
-#     coord_cartesian(xlim = c(rt_min, rt_max), 
-#                     ylim = c(rt_min, rt_max)) +
-#     scale_x_continuous(n.breaks = 14) +
-#     scale_y_continuous(n.breaks = 14) +
-#     geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
-#               lwd = 1, size = 1.5) +
-#     ggtitle("After CE-time correction (Kernel Density)") +
-#     labs(x = paste("CE-time (", data_after$sample.2[1], ")"),
-#          y = "CE-time (Reference map)", color = "Legend") +
-#     scale_color_manual(values = c("Median" = "green")) +
-#     theme_ben() +
-#     theme(
-#       plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
-#                                 margin = margin(0, 0, 5, 0), hjust = 0.5),
-#       plot.background = element_rect(fill = "aliceblue"),
-#       legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
-#       legend.text = element_text(size = rel(0.85), face = "bold.italic")
-#     )
-# })
-
-
-
-observeEvent(input$btn_view_rt_dist_newSample, ignoreNULL = TRUE, {
-  req(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list)
-  
-  showModal(
-    modalDialog(
-      title = "RT distribution — CE-time Kernel Density correction",
-      size = "xl",
-      easyClose = TRUE,
-      footer = modalButton("Close"),
-      tags$style(".modal-dialog { max-height: 90%; height: 90%; width:50%; max-width: 50% }"),
-      fluidRow(
-        column(
-          12,
-          shinycssloaders::withSpinner(
-            plotOutput("modal_rt_dist_before_newSample",
-                       width = "100%", height = "400px"),
-            type = 1, size = 0.8
-          )
-        )
-      ),
-      fluidRow(
-        column(
-          12,
-          shinycssloaders::withSpinner(
-            plotOutput("modal_rt_dist_after_newSample",
-                       width = "100%", height = "400px"),
-            type = 1, size = 0.8
-          )
-        )
-      ),
-      uiOutput("modal_rt_params_info_newSample")
-      # fluidRow(
-      #   DT::DTOutput("showkernelDensityparam")
-      # )
-    )
-  )
-})
-
-# output$showkernelDensityparam =  renderDataTable({
-#   if(!null(RvarsPeakDetectionNewSample$kernelDensity_params_log)){
-#     RvarsPeakDetectionNewSample$kernelDensity_params_log[RvarsPeakDetectionNewSample$kernelDensity_params_log$Sample == input$SelectSample_KernelDensity_newSample, ]
-#   }
-# })
-
-output$modal_rt_params_info_newSample <- renderUI({
-  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-  log <- RvarsPeakDetectionNewSample$kernelDensity_params_log
-  if (is.null(log)) return(NULL)
-  row <- log[log$Sample == sample_sel, ]
-  if (nrow(row) == 0) return(NULL)
-  
-  tags$div(
-    style = paste0(
-      "background:#f0f4f8; border:1px solid #c8d8e8; border-radius:6px;",
-      "padding:10px 16px; margin-top:12px; font-size:0.9em;"
-    ),
-    tags$b("Parameters used for: ", style = "color:#760001;"),
-    tags$span(sample_sel),
-    tags$br(),
-    tags$span(tags$b("Kernel type: "), row$Kernel_Type),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Bandwidth (filter): "), row$Bandwidth_Filter),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Intensity filter: "), row$Intensity_Filter),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Min density: "), row$Min_Density),
-    tags$br(),
-    tags$span(tags$b("Kernel type: "), row$Kernel_Type),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model)
-  )
-})
-
-output$showKernel_param  =  renderUI({
-  
-  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
-  log <- RvarsPeakDetectionNewSample$kernelDensity_params_log
-  if (is.null(log)) return(NULL)
-  row <- log[log$Sample == sample_sel, ]
-  if (nrow(row) == 0) return(NULL)
-  
-  tags$div(
-    style = paste0(
-      "background:#f0f4f8; border:1px solid #c8d8e8; border-radius:6px;",
-      "padding:10px 16px; margin-top:12px; font-size:0.9em;"
-    ),
-    tags$b("Parameters used for: ", style = "color:#760001;"),
-    tags$span(sample_sel),
-    tags$br(),
-    tags$span(tags$b("Kernel type: "), row$Kernel_Type),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Bandwidth (filter): "), row$Bandwidth_Filter),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Intensity filter: "), row$Intensity_Filter),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Min density: "), row$Min_Density),
-    tags$br(),
-    tags$span(tags$b("Kernel type: "), row$Kernel_Type),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model)
-  )
-  
-})
-
-# observeEvent(input$btn_view_rt_dist_newSample, ignoreNULL = TRUE, {
-#   req(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter)
-#   
-#   showModal(
-#     modalDialog(
-#       title = "RT distribution — CE-time Kernel Density correction",
-#       size = "l",
-#       easyClose = TRUE,
-#       footer = modalButton("Close"),
-#       fluidRow(
-#         column(
-#           6,
-#           shinycssloaders::withSpinner(
-#             plotOutput("modal_rt_dist_before_newSample",
-#                        width = "100%", height = "400px"),
-#             type = 1, size = 0.8
-#           )
-#         ),
-#         column(
-#           6,
-#           shinycssloaders::withSpinner(
-#             plotOutput("modal_rt_dist_after_newSample",
-#                        width = "100%", height = "400px"),
-#             type = 1, size = 0.8
-#           )
-#         )
-#       )
-#     )
-#   )
-# })
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+               
+               
+               path_Save_Files_origine <-
+                 parseSavePath(volumes, input$PeakListAlignedNewSample)$datapath
+               
+               if (length(path_Save_Files_origine) > 0) {
+                 path_Save_Files <- strsplit(path_Save_Files_origine, split = "/")[[1]]
+                 directory_Save_Files <-
+                   paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
+                 
+                 if (!is.null(RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection)) {
+                   massifListAfter <-
+                     RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection
+                   
+                   for (i in 1:length(massifListAfter)) {
+                     reqColsNames <-
+                       c(
+                         'M+H',
+                         'M+H.min',
+                         'M+H.max',
+                         'CE-time',
+                         'CE-time.min',
+                         'CE-time.max',
+                         'integrated-intensity',
+                         'intensity',
+                         'sn',
+                         'sample'
+                       )
+                     
+                     colnames(massifListAfter[[i]])[c(1:10)] <- reqColsNames
+                   }
+                   
+                   
+                   if (length(massifListAfter) == 1) {
+                     write.table(
+                       massifListAfter[[1]],
+                       #file = path_Save_Files_origine,
+                       file = paste0(c(
+                         directory_Save_Files,
+                         paste(
+                           names(massifListAfter)[1],
+                           path_Save_Files[length(path_Save_Files)],
+                           collapse = "",
+                           sep = "-"
+                         )
+                       ), collapse = "/"),
+                       sep = ",",
+                       row.names = FALSE
+                     )
+                     print("Save ok")
+                   } else{
+                     withProgress(message = 'Saving files...', value = 0, {
+                       for (i in 1:length(massifListAfter)) {
+                         incProgress(1 / length(massifListAfter),
+                                     detail = paste(names(massifListAfter)[i]))
+                         print(basename(paste0(
+                           c(
+                             directory_Save_Files,
+                             paste(
+                               #as.character(i),
+                               names(massifListAfter)[i],
+                               path_Save_Files[length(path_Save_Files)],
+                               collapse = "",
+                               sep = "-"
+                             )
+                           ), collapse = "/"
+                         )))
+                         write.table(
+                           massifListAfter[[i]],
+                           file = paste0(c(
+                             directory_Save_Files,
+                             paste(
+                               #as.character(i),
+                               names(massifListAfter)[i],
+                               path_Save_Files[length(path_Save_Files)],
+                               collapse = "",
+                               sep = "-"
+                             )
+                           ), collapse = "/"),
+                           sep = ",",
+                           row.names = FALSE
+                         )
+                         print("Save ok")
+                       }
+                       
+                     })
+                     
+                   }
+                   
+                   
+                 }
+               }
+               
+               
+             })
 
 
