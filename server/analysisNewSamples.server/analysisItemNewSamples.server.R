@@ -87,7 +87,20 @@ output$runsDetectionSummary_newSample <- renderUI({
                   sprintf("%d run(s) détecté(s), dont %d vide(s) :",
                          total, length(empty_runs)))
       ),
-      tags$ul(style = "color:#a94442;", lapply(empty_runs, tags$li))
+      tags$ul(style = "color:#a94442;", lapply(empty_runs, tags$li)),
+      div(
+        style = "margin-bottom:10px;",
+        shinySaveButton(
+          id = "ExportEmptyRuns_newSample",
+          label = "Exporter la liste (Excel)",
+          title = "Save file as...",
+          filename = "Runs-vides",
+          filetype = list(Excel = "xlsx"),
+          viewtype = "icon",
+          icon = icon("file-excel"),
+          class = "btn-warning btn-sm"
+        )
+      )
     )
   } else {
     div(
@@ -97,6 +110,38 @@ output$runsDetectionSummary_newSample <- renderUI({
     )
   }
 })
+
+## Export Excel de la liste des runs vides détectés par le pré-check.
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$ExportEmptyRuns_newSample
+             },
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "ExportEmptyRuns_newSample",
+                             roots = volumes,
+                             session = session)
+
+               path_Save_File <- parseSavePath(volumes, input$ExportEmptyRuns_newSample)$datapath
+
+               if (length(path_Save_File) > 0) {
+                 empty_runs <- RvarsPeakDetectionNewSample$preCheck_empty_newSample
+                 if (is.null(empty_runs) || length(empty_runs) == 0) {
+                   showNotification("Aucun run vide à exporter.", type = "message", duration = 6)
+                   return()
+                 }
+
+                 if (!grepl("\\.xlsx$", path_Save_File, ignore.case = TRUE)) {
+                   path_Save_File <- paste0(path_Save_File, ".xlsx")
+                 }
+
+                 openxlsx::write.xlsx(
+                   data.frame(Run_vide = empty_runs, stringsAsFactors = FALSE),
+                   file = path_Save_File
+                 )
+                 showNotification("Liste des runs vides exportée.", type = "message", duration = 6)
+               }
+             })
 
 
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
