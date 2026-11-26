@@ -288,9 +288,9 @@ normalizeSamples <- function(X, # Matrix to normalized
     attr(Xn, "adj.r.squared")<-adj.r.squared
   }
   
-  if(!is.null(dim(Xn[,idxSampleNormalized]))){
-    w.metric<- mad(apply(Xn[,idxSampleNormalized],2,median,na.rm=TRUE),na.rm = TRUE);
-    w.metric.before <- mad(apply(X[,idxSampleNormalized],2,median,na.rm=TRUE),na.rm = TRUE)
+  if(!is.null(dim(Xn[,idxSampleNormalized, drop = FALSE]))){
+    w.metric<- mad(apply(Xn[,idxSampleNormalized, drop = FALSE],2,median,na.rm=TRUE),na.rm = TRUE);
+    w.metric.before <- mad(apply(X[,idxSampleNormalized, drop = FALSE],2,median,na.rm=TRUE),na.rm = TRUE)
     
     attr(Xn,"w.metric")<-w.metric
     names(iset.i)<-colnames(Xn)
@@ -736,7 +736,7 @@ normalizeSamples <- function(X, # Matrix to normalized
     # write.table(X[,idxSampleNormalized], file = "Matrix-abondance-Before-Validation.csv", sep = ",", row.names = FALSE)
     attr(Xn,"idX_normalizers")<-iset.i
     
-    X_save<-Xn[,idxSampleNormalized]
+    X_save<-Xn[,idxSampleNormalized, drop = FALSE]
     attr(X_save,"idX_normalizers")<-iset.i[idxSampleNormalized]
     # # Convert back to original form
     # if (!log.scaled && out.scale=="log2")
