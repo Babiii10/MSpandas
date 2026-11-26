@@ -1010,7 +1010,14 @@ observe({
   empty_runs <- character(0)
   for (item in items) {
     if (dir.exists(item)) {
-      if (length(list.files(item, recursive = TRUE, all.files = TRUE, no.. = TRUE)) == 0) {
+      # Un .d "vidé" peut contenir des fichiers listés (taille du dossier non
+      # nulle sur le disque) alors que CHACUN de ces fichiers fait 0 octet —
+      # length(list.files(...)) == 0 ne détecte donc pas ce cas. On vérifie
+      # qu'il existe au moins UN fichier de taille strictement positive.
+      inner_files <- list.files(item, recursive = TRUE, all.files = TRUE,
+                                no.. = TRUE, full.names = TRUE)
+      sizes <- suppressWarnings(file.size(inner_files))
+      if (length(inner_files) == 0 || !any(!is.na(sizes) & sizes > 0)) {
         empty_runs <- c(empty_runs, basename(item))
       }
     } else if (file.exists(item)) {
