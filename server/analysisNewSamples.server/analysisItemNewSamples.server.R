@@ -9355,11 +9355,17 @@ observeEvent(ignoreNULL = TRUE,
                    if (length(data_dens_filter.newSample()) != 0) {
                      if (!is.null(data_dens_filter.newSample()) &
                          nrow(data_dens_filter.newSample()) != 0 &
-                         nrow(RvarsPeakDetectionNewSample$Data_Plot.newSample) !=
+                         nrow(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter) !=
                          0) {
-                       p1 <- RvarsPeakDetectionNewSample$Data_Plot.newSample %>%
+                       # Graphique du haut : toujours la totalité des points appariés
+                       # (Data_Plot.newSample_to_filter), AVANT l'application du filtre
+                       # choisi (intensity / robust line). Il doit rester immobile quel
+                       # que soit le filtre sélectionné ou ses réglages — seul le
+                       # graphique du bas (data_dens_filter.newSample(), basé sur
+                       # Data_Plot.newSample déjà filtré) reflète le filtrage.
+                       p1 <- RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter %>%
                          ggplot() +
-                         aes(x = rt.2, y = rt.1) + 
+                         aes(x = rt.2, y = rt.1) +
                          geom_point(aes(color = maxo.2), size = 0.8) +
                          # scale_color_viridis_c(option = "H", direction = -1) +
                          scale_colour_continuous(
@@ -9372,54 +9378,54 @@ observeEvent(ignoreNULL = TRUE,
                          #scale_color_viridis_c(option = "inferno", direction = -1) +
                          scale_x_continuous(n.breaks = 14) +
                          scale_y_continuous(n.breaks = 14) +
-                         
+
                          coord_cartesian(xlim = c(min(
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
                            )[1],
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
                            )[1]
                          ),
                          max(
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
                            )[2],
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
                            )[2]
                          )),
-                         
+
                          ylim = c(min(
                                range(
-                                 RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
+                                 RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
                                )[1],
                                range(
-                                 RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
+                                 RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
                                )[1]
                          ),
                          min(
                              range(
-                               RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
+                               RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
                              )[2],
                              range(
-                               RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
+                               RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
                              )[2]
                          )+100)) +
-                         
-                         
+
+
                          xlab(
                            paste(
                              "CE-time (",
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$sample.2,
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$sample.2,
                              ")"
                            )
                          ) +
                          ylab("CE-time (reference sample)") +
                          #labs(colour ="log2 Intensity")+
                          theme_ben() +
-                         labs(colour = "log2 Intensity") 
-                       
+                         labs(colour = "log2 Intensity")
+
                        p2 <-
                          ggplot(data_dens_filter.newSample(), aes(x = rt.2, y = rt.1)) +
                          geom_point(aes(color = density), size = 0.5) +
