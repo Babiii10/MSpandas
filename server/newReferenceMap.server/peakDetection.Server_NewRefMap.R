@@ -982,11 +982,86 @@ observeEvent(
                                                              pattern =  "\\\\", replacement  = "/")
       # update the widget value
       updateDirectoryInput(session, 'directory_rawData_NewRefMap', value = req(RvarsPeakDetection$directory_rawData))
-    } 
-    
-    
+    }
+
+
   })
 
+
+## Vérification pré-lancement : nombre de runs détectés + dossiers de run
+## vides (ex: dossier .d présent mais sans aucun fichier dedans, ou .mzML de
+## taille 0) AVANT de lancer la peak detection — pour détecter le problème
+## tout de suite plutôt qu'après plusieurs minutes/heures de traitement
+## MSDIAL. Le bouton de lancement reste désactivé tant que le dossier n'a
+## pas été validé (0 run vide).
+observe({
+  raw_dir <- RvarsPeakDetection$directory_rawData
+  if (is.null(raw_dir) || length(raw_dir) != 1 || is.na(raw_dir) || !nzchar(raw_dir) ||
+      raw_dir == "Choose working directory" || !dir.exists(raw_dir)) {
+    RvarsPeakDetection$preCheck_total_NewRefMap <- NULL
+    RvarsPeakDetection$preCheck_empty_NewRefMap <- NULL
+    shinyjs::disable("runPeakPicking_NewRefMap")
+    return()
+  }
+
+  items <- list.files(raw_dir, full.names = TRUE, recursive = FALSE)
+  items <- items[grepl("\\.d$|\\.mzML$", basename(items), ignore.case = TRUE)]
+
+  empty_runs <- character(0)
+  for (item in items) {
+    if (dir.exists(item)) {
+      if (length(list.files(item, recursive = TRUE, all.files = TRUE, no.. = TRUE)) == 0) {
+        empty_runs <- c(empty_runs, basename(item))
+      }
+    } else if (file.exists(item)) {
+      sz <- file.size(item)
+      if (is.na(sz) || sz == 0) {
+        empty_runs <- c(empty_runs, basename(item))
+      }
+    }
+  }
+
+  RvarsPeakDetection$preCheck_total_NewRefMap <- length(items)
+  RvarsPeakDetection$preCheck_empty_NewRefMap <- empty_runs
+
+  if (length(items) > 0 && length(empty_runs) == 0) {
+    shinyjs::enable("runPeakPicking_NewRefMap")
+  } else {
+    shinyjs::disable("runPeakPicking_NewRefMap")
+  }
+})
+
+output$prePeakCheckMessage_NewRefMap <- renderUI({
+  total <- RvarsPeakDetection$preCheck_total_NewRefMap
+  empty_runs <- RvarsPeakDetection$preCheck_empty_NewRefMap
+  if (is.null(total)) return(NULL)
+
+  if (total == 0) {
+    return(div(
+      style = "margin-bottom:10px;",
+      tags$span(class = "label label-warning",
+                "Aucun run (.d/.mzML) détecté dans ce dossier.")
+    ))
+  }
+
+  if (length(empty_runs) > 0) {
+    tagList(
+      div(
+        style = "margin-bottom:10px;",
+        tags$span(class = "label label-danger",
+                  sprintf("%d run(s) détecté(s), dont %d vide(s) :",
+                         total, length(empty_runs)))
+      ),
+      tags$ul(style = "color:#a94442;", lapply(empty_runs, tags$li))
+    )
+  } else {
+    div(
+      style = "margin-bottom:10px;",
+      tags$span(class = "label label-success",
+                sprintf("%d run(s) détecté(s), tous valides.", total))
+    )
+  }
+})
 
 
 # Populate the "resume" dropdown dynamically.
@@ -1623,8 +1698,58 @@ observeEvent(
     updateRadioButtons(session = session,
                        inputId = "NewRefrenceMapStep",
                        selected = "2")
-    
+
   })
+
+
+##~~~~~~~~~~~~~~~~~~~~~~ Export nombre de pics détectés par run ~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+## Compte, pour chaque run, le nombre de pics mono-isotopiques finalement
+## produits (une ligne du tableau combiné = un pic) — un bilan simple pour
+## vérifier qu'aucun run n'est anormalement pauvre en pics après la peak
+## detection + déconvolution.
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$ExportPeaksPerRun_NewRefMap
+             },
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "ExportPeaksPerRun_NewRefMap",
+                             roots = volumes,
+                             session = session)
+
+               path_Save_Files_origine <-
+                 parseSavePath(volumes, input$ExportPeaksPerRun_NewRefMap)$datapath
+
+               if (length(path_Save_Files_origine) > 0) {
+                 peaks_all <- RvarsPeakDetection$peaks_MSDIAL_mono_iso_NewRefMap
+                 if (is.null(peaks_all) || !("sample" %in% colnames(peaks_all))) {
+                   showNotification("Aucun résultat de peak detection disponible.",
+                                    type = "error", duration = 8)
+                   return()
+                 }
+
+                 peaks_count <- as.data.frame(table(peaks_all$sample), stringsAsFactors = FALSE)
+                 colnames(peaks_count) <- c("Sample", "Nombre_pics")
+
+                 path_Save_Files <- strsplit(path_Save_Files_origine, split = "/")[[1]]
+                 directory_Save_Files <-
+                   paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
+
+                 write.table(
+                   peaks_count,
+                   file = paste0(c(
+                     directory_Save_Files,
+                     paste(path_Save_Files[length(path_Save_Files)],
+                           collapse = "", sep = "-")
+                   ), collapse = "/"),
+                   sep = ",",
+                   row.names = FALSE
+                 )
+                 showNotification("Nombre de pics par run exporté.", type = "message", duration = 6)
+               }
+             })
+
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  Reset all inputs ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
