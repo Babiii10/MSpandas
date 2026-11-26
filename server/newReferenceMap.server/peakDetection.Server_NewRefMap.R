@@ -1007,24 +1007,29 @@ observe({
   
   items <- list.files(raw_dir, full.names = TRUE, recursive = FALSE)
   items <- items[grepl("\\.d$|\\.mzML$", basename(items), ignore.case = TRUE)]
-  
+
+  # Seuil minimum de taille cumulée pour qu'un .d soit considéré comme
+  # contenant de vraies données d'acquisition (en octets). "Au moins un
+  # fichier non vide" ne suffit pas : si seul le fichier de données
+  # principal est vidé mais que de petits fichiers d'index/métadonnées
+  # restent, ce critère passe à tort. Un vrai run contient typiquement
+  # plusieurs Mo de données ; un .d vidé de son contenu réel ne dépasse
+  # généralement pas quelques dizaines de Ko au total.
+  min_d_folder_bytes <- 1 * 1024 * 1024  # 1 Mo
+
   empty_runs <- character(0)
   for (item in items) {
     if (dir.exists(item)) {
-      # if (length(list.files(item, recursive = TRUE, all.files = TRUE, no.. = TRUE)) == 0) {
-      # Un .d "vidé" peut contenir des fichiers listés (taille du dossier non
-      # nulle sur le disque) alors que CHACUN de ces fichiers fait 0 octet —
-      # length(list.files(...)) == 0 ne détecte donc pas ce cas. On vérifie
-      # qu'il existe au moins UN fichier de taille strictement positive.
       inner_files <- list.files(item, recursive = TRUE, all.files = TRUE,
                                 no.. = TRUE, full.names = TRUE)
       sizes <- suppressWarnings(file.size(inner_files))
-      if (length(inner_files) == 0 || !any(!is.na(sizes) & sizes > 0)) {
+      total_size <- sum(sizes[!is.na(sizes)])
+      if (length(inner_files) == 0 || total_size < min_d_folder_bytes) {
         empty_runs <- c(empty_runs, basename(item))
       }
     } else if (file.exists(item)) {
       sz <- file.size(item)
-      if (is.na(sz) || sz == 0) {
+      if (is.na(sz) || sz < min_d_folder_bytes) {
         empty_runs <- c(empty_runs, basename(item))
       }
     }
