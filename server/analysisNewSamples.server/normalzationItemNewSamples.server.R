@@ -2496,29 +2496,46 @@ observeEvent(ignoreNULL = TRUE,
                    bilan$Pourcentage_match <- NA
                  }
 
-                 nbr_norm <- attr(RvarsNormalizeNewsample$matrix_abondance_Normalize, "nbr_pep_normalizers")
-                 # Jointure par NOM abandonnée : colnames(Xn) <- colnames(X) <-
-                 # colnames(as.matrix(res_MatrixNewSample_toNormalize[,-(1:3)])), et
-                 # res_MatrixNewSample_toNormalize vient de res_newSample <-
-                 # cbind(map_ref[,1:3], matrix_new_samples) (matched_reference_map.lib.R)
-                 # — ce cbind() produit un data.frame, qui altère les noms de colonnes
-                 # non syntaxiques (espaces/tirets) via make.names(), donc names(nbr_norm)
-                 # ne correspond plus jamais exactement à "Sample" (resté lisible).
-                 # En revanche colnames(matrix_new_samples) <- unique(ms_features_MSDIAL$sample)
-                 # ET pct_match_ref$sample <- unique(ms_features_MSDIAL$sample) sont
-                 # construits à partir du MÊME appel, dans le MÊME ordre (même boucle) —
-                 # donc l'échantillon en position i de pct_match_df est garanti être le
-                 # même qu'en position i de nbr_norm, peu importe comment son nom a été
-                 # altéré entre-temps. On jumelle donc par POSITION, pas par nom.
-                 if (!is.null(nbr_norm) && !is.null(pct_match_df) &&
-                     length(nbr_norm) == nrow(pct_match_df)) {
-                   nbr_norm_df <- data.frame(
-                     Sample = as.character(pct_match_df$sample),
-                     Nombre_normalisateurs = unlist(nbr_norm, use.names = FALSE),
-                     stringsAsFactors = FALSE
-                   )
-                   bilan <- merge(bilan, nbr_norm_df, by = "Sample", all.x = TRUE)
-                   bilan$Normalisation_OK <- bilan$Nombre_normalisateurs >= req(input$min_iset)
+                 # attr(matrix_abondance_Normalize,"nbr_pep_normalizers") n'est pas
+                 # fiable (reste NULL dès qu'un seul échantillon passe le seuil, cf.
+                 # bug drop=TRUE dans normalizeSamples()). On ne touche pas au lib :
+                 # on reproduit directement le même calcul que celui qui alimente déjà
+                 # le graphique "Internal standards" (lib/.../normalizationNewsample.lib.R,
+                 # iset <- iset.ref[abs(X[iset.ref,i]-ref[iset.ref])<=cutrat] puis
+                 # compte des valeurs non-NA), à partir des seules données déjà en
+                 # reactiveValues — aucune dépendance à cet attribut.
+                 if (!is.null(RvarsNormalizeNewsample$matrix_abondance) &&
+                     !is.null(RvarsPeakDetectionNewSample$normalizers_ref) &&
+                     !is.null(RvarsPeakDetectionNewSample$map_ref) &&
+                     !is.null(pct_match_df)) {
+
+                   Xraw <- RvarsNormalizeNewsample$matrix_abondance
+                   if (max(Xraw, na.rm = TRUE) > 107) Xraw <- log2(Xraw)
+
+                   ref_vec <- RvarsPeakDetectionNewSample$map_ref$maxo
+                   names(ref_vec) <- RvarsPeakDetectionNewSample$map_ref$ID
+
+                   iset_ref <- as.character(req(RvarsPeakDetectionNewSample$normalizers_ref$ID))
+                   iset_ref <- intersect(iset_ref, rownames(Xraw))
+                   cutrat_val <- req(input$cutrat)
+
+                   nbr_norm_vec <- sapply(seq_len(ncol(Xraw)), function(i) {
+                     iset_i <- iset_ref[abs(Xraw[iset_ref, i] - ref_vec[iset_ref]) <= cutrat_val]
+                     sum(!is.na(Xraw[iset_i, i]))
+                   })
+
+                   if (length(nbr_norm_vec) == nrow(pct_match_df)) {
+                     nbr_norm_df <- data.frame(
+                       Sample = as.character(pct_match_df$sample),
+                       Nombre_normalisateurs = nbr_norm_vec,
+                       stringsAsFactors = FALSE
+                     )
+                     bilan <- merge(bilan, nbr_norm_df, by = "Sample", all.x = TRUE)
+                     bilan$Normalisation_OK <- bilan$Nombre_normalisateurs >= req(input$min_iset)
+                   } else {
+                     bilan$Nombre_normalisateurs <- NA
+                     bilan$Normalisation_OK <- NA
+                   }
                  } else {
                    bilan$Nombre_normalisateurs <- NA
                    bilan$Normalisation_OK <- NA
