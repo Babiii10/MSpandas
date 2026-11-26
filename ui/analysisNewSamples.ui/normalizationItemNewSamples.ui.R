@@ -421,7 +421,7 @@ This parameter is used to manage the outlier normalizers, that is, the normalize
                                            ))),
                            fluidRow(br()),
                            fluidRow(column(12,
-                                           
+
                                            div(
                                              class="pull-left",
                                              style="display:inline-block",
@@ -429,8 +429,8 @@ This parameter is used to manage the outlier normalizers, that is, the normalize
                                                              label = "Save matrix abundance normalized",
                                                              title = "Save file as...",
                                                              filename = "Matrix-abondance-normalized",
-                                                             
-                                                             
+
+
                                                              filetype = list(text = "csv"),
                                                              viewtype = "icon",
                                                              icon = icon("save", lib = "glyphicon"),
@@ -438,9 +438,24 @@ This parameter is used to manage the outlier normalizers, that is, the normalize
                                            ))),
                            fluidRow(br()),
                            fluidRow(column(12,
-                                           
-                                           
-                                           
+
+                                           div(
+                                             class="pull-left",
+                                             style="display:inline-block",
+                                             shinySaveButton(id =  "ExportRunSummary_newSample",
+                                                             label = "Export bilan par run",
+                                                             title = "Save file as...",
+                                                             filename = "Bilan-par-run",
+                                                             filetype = list(text = "csv"),
+                                                             viewtype = "icon",
+                                                             icon = icon("list-alt", lib = "glyphicon"),
+                                                             class="btn-primary")
+                                           ))),
+                           fluidRow(br()),
+                           fluidRow(column(12,
+
+
+
                                            div(
                                              class="pull-left",
                                              style="display:inline-block",
