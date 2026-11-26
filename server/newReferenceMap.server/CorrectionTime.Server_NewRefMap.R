@@ -4846,12 +4846,18 @@ observeEvent(ignoreNULL = TRUE,
                  RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$maxo.2 <-
                    log2(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$maxo.2)
                  
-                 ## Filter intensity
+                 ## Filter intensity (ou filtre robuste optionnel, voir ci-dessous)
                  observe({
                    if (!is.null(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter)) {
                      RvarsCorrectionTime$Data_Plot.after_xcms <-
-                       RvarsCorrectionTime$Data_Plot.after_xcms_to_filter %>%
-                       dplyr::filter(maxo.2 >= req(input$intensityFilter))
+                       filter_points_for_correction(
+                         RvarsCorrectionTime$Data_Plot.after_xcms_to_filter,
+                         use_robust = isTRUE(input$useRobustLineFilter),
+                         intensity_filter = req(input$intensityFilter),
+                         robust_threshold = input$robustLineThreshold,
+                         bandwidth_filter = req(input$bandwidth_Filter),
+                         grid_size = req(input$gridSize)
+                       )
                    }
                  })
                  
@@ -5012,6 +5018,67 @@ observeEvent(ignoreNULL = TRUE,
                
              })
 
+##~~~~~~~~~~~~~~~~~~~~ Robust line filter (alternative au filtre d'intensité) #
+## Suit la CRÊTE de densité 2D (déjà calculée pour le filtre de densité
+## existant) plutôt que d'ajuster une régression globale. Pour chaque
+## tranche verticale (valeur de rt.2), on prend le rt.1 où la densité kde2d
+## est maximale — ça trace une courbe locale, tranche par tranche, qui n'est
+## jamais tirée par une zone globalement plus dense qu'une autre. On garde
+## ensuite les points proches de cette crête (résidu < seuil x MAD).
+## Réplique exactement filter_newSample_points_for_correction côté ANS.
+filter_points_for_correction <- function(data_to_filter,
+                                         use_robust,
+                                         intensity_filter,
+                                         robust_threshold = 3,
+                                         bandwidth_filter = 20,
+                                         grid_size = 500) {
+  if (!isTRUE(use_robust)) {
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+
+  if (nrow(data_to_filter) < 10) {
+    message("--- Robust ridge filter : pas assez de points (<10), filtre d'intensité utilisé en repli ---")
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+
+  dens <- tryCatch(
+    MASS::kde2d(data_to_filter$rt.2, data_to_filter$rt.1,
+                h = bandwidth_filter, n = grid_size),
+    error = function(e) NULL
+  )
+  if (is.null(dens)) {
+    message("--- Robust ridge filter : échec du calcul de densité, filtre d'intensité utilisé en repli ---")
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+
+  ridge_y <- apply(dens$z, 1, function(col) {
+    if (all(col == 0)) return(NA_real_)
+    dens$y[which.max(col)]
+  })
+  ridge <- data.frame(x = dens$x, y = ridge_y)
+  ridge <- ridge[!is.na(ridge$y), ]
+  if (nrow(ridge) < 2) {
+    message("--- Robust ridge filter : crête de densité non calculable, filtre d'intensité utilisé en repli ---")
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+
+  predicted <- suppressWarnings(
+    stats::approx(ridge$x, ridge$y, xout = data_to_filter$rt.2, rule = 2)$y
+  )
+  residuals_val <- data_to_filter$rt.1 - predicted
+  mad_val <- stats::mad(residuals_val, na.rm = TRUE)
+
+  if (!is.finite(mad_val) || mad_val == 0) {
+    message("--- Robust ridge filter : MAD nul/non calculable, filtre d'intensité utilisé en repli ---")
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+
+  threshold <- suppressWarnings(as.numeric(robust_threshold)) * mad_val
+  keep <- !is.na(residuals_val) & abs(residuals_val) <= threshold
+  data_to_filter[keep, ]
+}
+
+
 ##~~~~~~~~~~~~~~~~~~~~ Fit model kernel density estimation ~~~~~~~~~~~~~~~~~#
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 observeEvent(ignoreNULL = TRUE,
@@ -5100,6 +5167,8 @@ observeEvent(ignoreNULL = TRUE,
                                Bandwidth_Filter = input$bandwidth_Filter,
                                Intensity_Filter = input$intensityFilter,
                                Min_Density      = input$minDensity,
+                               Use_Robust_Filter   = isTRUE(input$useRobustLineFilter),
+                               Robust_Threshold    = if (isTRUE(input$useRobustLineFilter)) input$robustLineThreshold else NA_real_,
                                stringsAsFactors = FALSE
                              )
                              existing_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
@@ -5825,6 +5894,8 @@ apply_kernel_density_correction <- function(sample_sel,
                                             bandwidth_filter,
                                             intensity_filter,
                                             min_density,
+                                            use_robust = FALSE,
+                                            robust_threshold = 3,
                                             grid_size = 500) {
 
   if (is.null(RvarsCorrectionTime$peakListAligned) ||
@@ -5849,7 +5920,14 @@ apply_kernel_density_correction <- function(sample_sel,
 
   data_to_filter$maxo.2 <- log2(data_to_filter$maxo.2)
 
-  data_filtered <- data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter)
+  data_filtered <- filter_points_for_correction(
+    data_to_filter,
+    use_robust = isTRUE(use_robust),
+    intensity_filter = intensity_filter,
+    robust_threshold = robust_threshold,
+    bandwidth_filter = bandwidth_filter,
+    grid_size = grid_size
+  )
   if (nrow(data_filtered) == 0)
     return(list(success = FALSE, reason = sprintf(
       "filtre d'intensité trop restrictif (log2 intensité max disponible : %.2f, seuil demandé : %.2f)",
@@ -5898,6 +5976,8 @@ apply_kernel_density_correction <- function(sample_sel,
     Bandwidth_Filter = bandwidth_filter,
     Intensity_Filter = intensity_filter,
     Min_Density      = min_density,
+    Use_Robust_Filter   = isTRUE(use_robust),
+    Robust_Threshold    = if (isTRUE(use_robust)) robust_threshold else NA_real_,
     stringsAsFactors = FALSE
   )
   existing_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
@@ -5945,6 +6025,9 @@ observeEvent(input$applyBatchKernelParams, ignoreNULL = TRUE, {
   intfilter_col <- col_names[grepl("^Int.?filter$", col_names, ignore.case = TRUE)][1]
   minden_col <- col_names[grepl("^min.?den", col_names, ignore.case = TRUE)][1]
   corrkernel_col <- col_names[grepl("^Corr.?Kernel$", col_names, ignore.case = TRUE)][1]
+  # Colonnes optionnelles : absentes du fichier -> filtre robuste désactivé (comportement inchangé)
+  userobust_col <- col_names[grepl("^Use.?Robust.?Filter$", col_names, ignore.case = TRUE)][1]
+  robustthresh_col <- col_names[grepl("^Robust.?Threshold$", col_names, ignore.case = TRUE)][1]
 
   missing_cols <- c("Datafile", "Bandwith", "Int filter", "min den", "Corr Kernel")[
     is.na(c(datafile_col, bandwith_col, intfilter_col, minden_col, corrkernel_col))
@@ -5969,6 +6052,14 @@ observeEvent(input$applyBatchKernelParams, ignoreNULL = TRUE, {
       int_filter <- suppressWarnings(as.numeric(df[[intfilter_col]][i]))
       min_dens   <- suppressWarnings(as.numeric(df[[minden_col]][i]))
       bw_model   <- suppressWarnings(as.numeric(df[[corrkernel_col]][i]))
+      use_robust_raw <- if (!is.na(userobust_col)) trimws(as.character(df[[userobust_col]][i])) else NA_character_
+      use_robust_val <- !is.na(use_robust_raw) && tolower(use_robust_raw) %in% c("true", "1", "yes", "oui")
+      robust_thresh_val <- if (!is.na(robustthresh_col)) {
+        suppressWarnings(as.numeric(df[[robustthresh_col]][i]))
+      } else {
+        NA_real_
+      }
+      if (use_robust_val && is.na(robust_thresh_val)) robust_thresh_val <- 3
 
       if (!nzchar(sample_raw) || is.na(bw_filter) || is.na(int_filter) ||
           is.na(min_dens) || is.na(bw_model)) {
@@ -5988,7 +6079,9 @@ observeEvent(input$applyBatchKernelParams, ignoreNULL = TRUE, {
         bandwidth_model  = bw_model,
         bandwidth_filter = bw_filter,
         intensity_filter = int_filter,
-        min_density      = min_dens
+        min_density      = min_dens,
+        use_robust       = use_robust_val,
+        robust_threshold = robust_thresh_val
       )
 
       results <- rbind(results, data.frame(
