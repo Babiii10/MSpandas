@@ -2454,15 +2454,20 @@ observeEvent(ignoreNULL = TRUE,
 
                  nbr_norm <- attr(RvarsNormalizeNewsample$matrix_abondance_Normalize, "nbr_pep_normalizers")
                  if (!is.null(nbr_norm)) {
-                   bilan <- merge(
-                     bilan,
-                     data.frame(
-                       Sample = names(nbr_norm),
-                       Nombre_normalisateurs = unlist(nbr_norm),
-                       stringsAsFactors = FALSE
-                     ),
-                     by = "Sample", all.x = TRUE
+                   # colnames(Xn) <- colnames(X) <- colnames(as.matrix(...)) passe par
+                   # make.names() (espaces/tirets remplacés par des points) : les noms
+                   # d'échantillon dans names(nbr_norm) ne correspondent donc plus
+                   # exactement à "Sample" (qui garde le nom lisible d'origine, lui
+                   # jamais utilisé comme nom de colonne). On joint sur une clé
+                   # normalisée des deux côtés, en gardant "Sample" lisible en sortie.
+                   nbr_norm_df <- data.frame(
+                     Sample_key = make.names(names(nbr_norm)),
+                     Nombre_normalisateurs = unlist(nbr_norm),
+                     stringsAsFactors = FALSE
                    )
+                   bilan$Sample_key <- make.names(bilan$Sample)
+                   bilan <- merge(bilan, nbr_norm_df, by = "Sample_key", all.x = TRUE)
+                   bilan$Sample_key <- NULL
                    bilan$Normalisation_OK <- bilan$Nombre_normalisateurs >= req(input$min_iset)
                  } else {
                    bilan$Nombre_normalisateurs <- NA
