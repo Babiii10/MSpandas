@@ -1,4 +1,105 @@
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Input Files ~~~~~~~~~~~~~~~~~~~~~~~~~###
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+directoryInput <- reactiveValues(directory = getwd())
+
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$directory
+             },
+             handlerExpr = {
+               if (input$directory > 0) {
+                 # condition prevents handler execution on initial app launch
+                 directoryInput$directory = choose.dir(default = readDirectoryInput(session, 'directory'))
+                 directoryInput$directory = str_replace_all(directoryInput$directory,
+                                                            pattern =  "\\\\",
+                                                            replacement  = "/")
+                 updateDirectoryInput(session, 'directory', value = directoryInput$directory)
+               }
+             })
+
+
+## Vérification pré-lancement : nombre de runs détectés + runs vides, AVANT
+## de lancer la peak detection. Même stratégie que côté NRM (seuil de
+## taille cumulée des fichiers à l'intérieur du .d, pas juste "au moins un
+## fichier non vide" — un .d vidé de son fichier de données principal peut
+## conserver de petits fichiers de métadonnées/index qui font échouer ce
+## critère plus faible). ANS ne génère pas de .mzML (MSDIAL lit les .d
+## directement), donc pas de vérification msconvert ici, juste la taille.
+## Le bouton Execute reste désactivé tant qu'au moins un run est vide.
+observe({
+  raw_dir <- directoryInput$directory
+  if (is.null(raw_dir) || length(raw_dir) != 1 || is.na(raw_dir) || !nzchar(raw_dir) ||
+      raw_dir == "Choose working directory" || !dir.exists(raw_dir)) {
+    RvarsPeakDetectionNewSample$preCheck_total_newSample <- NULL
+    RvarsPeakDetectionNewSample$preCheck_empty_newSample <- NULL
+    shinyjs::disable("runPeakPicking")
+    return()
+  }
+
+  items <- list.files(raw_dir, full.names = TRUE, recursive = FALSE)
+  items <- items[grepl("\\.d$|\\.mzML$", basename(items), ignore.case = TRUE)]
+
+  min_d_folder_bytes <- 1 * 1024 * 1024  # 1 Mo, même seuil que NRM
+
+  empty_runs <- character(0)
+  for (item in items) {
+    if (dir.exists(item)) {
+      inner_files <- list.files(item, recursive = TRUE, all.files = TRUE,
+                                no.. = TRUE, full.names = TRUE)
+      sizes <- suppressWarnings(file.size(inner_files))
+      total_size <- sum(sizes[!is.na(sizes)])
+      if (length(inner_files) == 0 || total_size < min_d_folder_bytes) {
+        empty_runs <- c(empty_runs, basename(item))
+      }
+    } else if (file.exists(item)) {
+      sz <- file.size(item)
+      if (is.na(sz) || sz < min_d_folder_bytes) {
+        empty_runs <- c(empty_runs, basename(item))
+      }
+    }
+  }
+
+  RvarsPeakDetectionNewSample$preCheck_total_newSample <- length(items)
+  RvarsPeakDetectionNewSample$preCheck_empty_newSample <- empty_runs
+
+  if (length(items) > 0 && length(empty_runs) == 0) {
+    shinyjs::enable("runPeakPicking")
+  } else {
+    shinyjs::disable("runPeakPicking")
+  }
+})
+
+output$runsDetectionSummary_newSample <- renderUI({
+  total <- RvarsPeakDetectionNewSample$preCheck_total_newSample
+  empty_runs <- RvarsPeakDetectionNewSample$preCheck_empty_newSample
+
+  if (is.null(total) || total == 0) {
+    return(tags$p(style = "font-style:italic;",
+                  "Aucun fichier .d/.mzML détecté dans ce dossier."))
+  }
+
+  if (length(empty_runs) > 0) {
+    tagList(
+      div(
+        style = "margin-bottom:10px;",
+        tags$span(class = "label label-danger",
+                  sprintf("%d run(s) détecté(s), dont %d vide(s) :",
+                         total, length(empty_runs)))
+      ),
+      tags$ul(style = "color:#a94442;", lapply(empty_runs, tags$li))
+    )
+  } else {
+    div(
+      style = "margin-bottom:10px;",
+      tags$span(class = "label label-success",
+                sprintf("%d run(s) détecté(s), tous valides.", total))
+    )
+  }
+})
+
+
+###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 ###~~~~~~~~~~~~~~~~~~~~~~ Configure some buttons ~~~~~~~~~~~~~~~~~~~~~~~~~###
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 
