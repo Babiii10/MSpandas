@@ -2403,6 +2403,91 @@ observeEvent(ignoreNULL = TRUE,
              })
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Export bilan par run ~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+## Table combinée, une ligne par échantillon : nombre de features, pourcentage
+## de match avec la carte de référence, nombre de normalisateurs utilisés, et
+## si l'échantillon a été normalisé ou non (même seuil que normalizeSamples() :
+## nbr_pep_normalizers >= min.iset). Ces 3 derniers calculs existent déjà en
+## interne (pct_match_ref, attr(...,"nbr_pep_normalizers")) mais n'étaient
+## jusqu'ici jamais exportés.
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$ExportRunSummary_newSample
+             },
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "ExportRunSummary_newSample",
+                             roots = volumes,
+                             session = session)
+
+               path_Save_Files_origine <-
+                 parseSavePath(volumes, input$ExportRunSummary_newSample)$datapath
+
+               if (length(path_Save_Files_origine) > 0) {
+                 if (is.null(RvarsPeakDetectionNewSample$FeaturesList_newSample)) {
+                   showNotification("Aucune feature list disponible.", type = "error", duration = 8)
+                   return()
+                 }
+
+                 n_features <- sapply(RvarsPeakDetectionNewSample$FeaturesList_newSample, nrow)
+                 bilan <- data.frame(
+                   Sample = names(n_features),
+                   Nombre_features = unname(n_features),
+                   stringsAsFactors = FALSE
+                 )
+
+                 pct_match_df <- RvarsMatchNewsample$res_match_ref$pct_match_ref
+                 if (!is.null(pct_match_df)) {
+                   bilan <- merge(
+                     bilan,
+                     data.frame(
+                       Sample = as.character(pct_match_df$sample),
+                       Pourcentage_match = pct_match_df$percent_matched,
+                       stringsAsFactors = FALSE
+                     ),
+                     by = "Sample", all.x = TRUE
+                   )
+                 } else {
+                   bilan$Pourcentage_match <- NA
+                 }
+
+                 nbr_norm <- attr(RvarsNormalizeNewsample$matrix_abondance_Normalize, "nbr_pep_normalizers")
+                 if (!is.null(nbr_norm)) {
+                   bilan <- merge(
+                     bilan,
+                     data.frame(
+                       Sample = names(nbr_norm),
+                       Nombre_normalisateurs = unlist(nbr_norm),
+                       stringsAsFactors = FALSE
+                     ),
+                     by = "Sample", all.x = TRUE
+                   )
+                   bilan$Normalisation_OK <- bilan$Nombre_normalisateurs >= req(input$min_iset)
+                 } else {
+                   bilan$Nombre_normalisateurs <- NA
+                   bilan$Normalisation_OK <- NA
+                 }
+
+                 path_Save_Files <- strsplit(path_Save_Files_origine, split = "/")[[1]]
+                 directory_Save_Files <-
+                   paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
+
+                 write.table(
+                   bilan,
+                   file = paste0(c(
+                     directory_Save_Files,
+                     paste(path_Save_Files[length(path_Save_Files)],
+                           collapse = "", sep = "-")
+                   ), collapse = "/"),
+                   sep = ",",
+                   row.names = FALSE
+                 )
+                 showNotification("Bilan par run exporté.", type = "message", duration = 6)
+               }
+             })
+
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Saving parameters ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 output$ExportParam <- downloadHandler(
