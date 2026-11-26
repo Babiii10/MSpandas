@@ -2497,21 +2497,27 @@ observeEvent(ignoreNULL = TRUE,
                  }
 
                  nbr_norm <- attr(RvarsNormalizeNewsample$matrix_abondance_Normalize, "nbr_pep_normalizers")
-                 if (!is.null(nbr_norm)) {
-                   # colnames(Xn) <- colnames(X) <- colnames(as.matrix(...)) passe par
-                   # make.names() (espaces/tirets remplacés par des points) : les noms
-                   # d'échantillon dans names(nbr_norm) ne correspondent donc plus
-                   # exactement à "Sample" (qui garde le nom lisible d'origine, lui
-                   # jamais utilisé comme nom de colonne). On joint sur une clé
-                   # normalisée des deux côtés, en gardant "Sample" lisible en sortie.
+                 # Jointure par NOM abandonnée : colnames(Xn) <- colnames(X) <-
+                 # colnames(as.matrix(res_MatrixNewSample_toNormalize[,-(1:3)])), et
+                 # res_MatrixNewSample_toNormalize vient de res_newSample <-
+                 # cbind(map_ref[,1:3], matrix_new_samples) (matched_reference_map.lib.R)
+                 # — ce cbind() produit un data.frame, qui altère les noms de colonnes
+                 # non syntaxiques (espaces/tirets) via make.names(), donc names(nbr_norm)
+                 # ne correspond plus jamais exactement à "Sample" (resté lisible).
+                 # En revanche colnames(matrix_new_samples) <- unique(ms_features_MSDIAL$sample)
+                 # ET pct_match_ref$sample <- unique(ms_features_MSDIAL$sample) sont
+                 # construits à partir du MÊME appel, dans le MÊME ordre (même boucle) —
+                 # donc l'échantillon en position i de pct_match_df est garanti être le
+                 # même qu'en position i de nbr_norm, peu importe comment son nom a été
+                 # altéré entre-temps. On jumelle donc par POSITION, pas par nom.
+                 if (!is.null(nbr_norm) && !is.null(pct_match_df) &&
+                     length(nbr_norm) == nrow(pct_match_df)) {
                    nbr_norm_df <- data.frame(
-                     Sample_key = make.names(names(nbr_norm)),
-                     Nombre_normalisateurs = unlist(nbr_norm),
+                     Sample = as.character(pct_match_df$sample),
+                     Nombre_normalisateurs = unlist(nbr_norm, use.names = FALSE),
                      stringsAsFactors = FALSE
                    )
-                   bilan$Sample_key <- make.names(bilan$Sample)
-                   bilan <- merge(bilan, nbr_norm_df, by = "Sample_key", all.x = TRUE)
-                   bilan$Sample_key <- NULL
+                   bilan <- merge(bilan, nbr_norm_df, by = "Sample", all.x = TRUE)
                    bilan$Normalisation_OK <- bilan$Nombre_normalisateurs >= req(input$min_iset)
                  } else {
                    bilan$Nombre_normalisateurs <- NA
