@@ -9306,32 +9306,6 @@ observeEvent(ignoreNULL = TRUE,
 
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~~~~~~~~~ Filter intensity / robust line filter (global, pas par échantillon) #
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-## Déplacé hors de l'observeEvent(SelectSample_KernelDensity) ci-dessous :
-## défini à l'intérieur, ce bloc était recréé (empilé, jamais arrêté) à
-## chaque changement d'échantillon, ce qui rendait sa réactivité aux
-## paramètres (Intensity filter, Min density, bandwidth) imprévisible. Il ne
-## dépend que de reactiveValues (Data_Plot.newSample_to_filter) et
-## d'input$, donc il n'a pas besoin d'être à l'intérieur de cet
-## observeEvent pour réagir correctement à la sélection d'échantillon :
-## Data_Plot.newSample_to_filter est déjà mis à jour par sélection là-bas.
-observe({
-  if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter)) {
-    RvarsPeakDetectionNewSample$Data_Plot.newSample <-
-      filter_newSample_points_for_correction(
-        RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter,
-        use_robust = isTRUE(input$useRobustLineFilter_newSample),
-        intensity_filter = req(input$intensityFilter_newSample),
-        robust_threshold = input$robustLineThreshold_newSample,
-        bandwidth_filter = req(input$bandwidth_Filter_newSample),
-        grid_size = req(input$gridSize_newSample)
-      )
-  }
-})
-
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 ##~~~~~~~~~~~~ Kernel density filter when choosing samples ~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 observeEvent(ignoreNULL = TRUE,
@@ -9382,8 +9356,26 @@ observeEvent(ignoreNULL = TRUE,
                  ##Log2 intensity sample to align
                  RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$maxo.2 <-
                    log2(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$maxo.2)
-
-
+                 
+                 
+                 
+                 ## Filter intensity (ou filtre robuste optionnel, voir ci-dessous)
+                 observe({
+                   if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter)) {
+                     RvarsPeakDetectionNewSample$Data_Plot.newSample <-
+                       # RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter %>%
+                       # dplyr::filter(maxo.2 >= req(input$intensityFilter_newSample))
+                     filter_newSample_points_for_correction(
+                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter,
+                       use_robust = isTRUE(input$useRobustLineFilter_newSample),
+                       intensity_filter = req(input$intensityFilter_newSample),
+                       robust_threshold = input$robustLineThreshold_newSample,
+                       bandwidth_filter = req(input$bandwidth_Filter_newSample),
+                       grid_size = req(input$gridSize_newSample)
+                     )
+                   }
+                 })
+                 
                  ## Median line
                  if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample)) {
                    median_line.newSample <-
