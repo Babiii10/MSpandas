@@ -40,7 +40,7 @@ observe({
   items <- list.files(raw_dir, full.names = TRUE, recursive = FALSE)
   items <- items[grepl("\\.d$|\\.mzML$", basename(items), ignore.case = TRUE)]
   
-  min_d_folder_bytes <- 1 * 1024 * 1024  # 1 Mo, même seuil que NRM
+  min_d_folder_bytes <- 1 * 1024 * 1024  # 1 Mo
   
   empty_runs <- character(0)
   for (item in items) {
@@ -70,46 +70,46 @@ observe({
   }
 })
 
-output$runsDetectionSummary_newSample <- renderUI({
-  total <- RvarsPeakDetectionNewSample$preCheck_total_newSample
-  empty_runs <- RvarsPeakDetectionNewSample$preCheck_empty_newSample
-  
-  if (is.null(total) || total == 0) {
-    return(tags$p(style = "font-style:italic;",
-                  "Aucun fichier .d/.mzML détecté dans ce dossier."))
-  }
-  
-  if (length(empty_runs) > 0) {
-    tagList(
-      div(
-        style = "margin-bottom:10px;",
-        tags$span(class = "label label-danger",
-                  sprintf("%d run(s) détecté(s), dont %d vide(s) :",
-                          total, length(empty_runs)))
-      ),
-      tags$ul(style = "color:#a94442;", lapply(empty_runs, tags$li)),
-      div(
-        style = "margin-bottom:10px;",
-        shinySaveButton(
-          id = "ExportEmptyRuns_newSample",
-          label = "Exporter la liste (Excel)",
-          title = "Save file as...",
-          filename = "Runs-vides",
-          filetype = list(Excel = "xlsx"),
-          viewtype = "icon",
-          icon = icon("file-excel"),
-          class = "btn-warning btn-sm"
-        )
-      )
-    )
-  } else {
-    div(
-      style = "margin-bottom:10px;",
-      tags$span(class = "label label-success",
-                sprintf("%d run(s) détecté(s), tous valides.", total))
-    )
-  }
-})
+# output$runsDetectionSummary_newSample <- renderUI({
+#   total <- RvarsPeakDetectionNewSample$preCheck_total_newSample
+#   empty_runs <- RvarsPeakDetectionNewSample$preCheck_empty_newSample
+#   
+#   if (is.null(total) || total == 0) {
+#     return(tags$p(style = "font-style:italic;",
+#                   "Aucun fichier .d/.mzML détecté dans ce dossier."))
+#   }
+#   
+#   if (length(empty_runs) > 0) {
+#     tagList(
+#       div(
+#         style = "margin-bottom:10px;",
+#         tags$span(class = "label label-danger",
+#                   sprintf("%d run(s) détecté(s), dont %d vide(s) :",
+#                           total, length(empty_runs)))
+#       ),
+#       tags$ul(style = "color:#a94442;", lapply(empty_runs, tags$li)),
+#       div(
+#         style = "margin-bottom:10px;",
+#         shinySaveButton(
+#           id = "ExportEmptyRuns_newSample",
+#           label = "Exporter la liste (Excel)",
+#           title = "Save file as...",
+#           filename = "Runs-vides",
+#           filetype = list(Excel = "xlsx"),
+#           viewtype = "icon",
+#           icon = icon("file-excel"),
+#           class = "btn-warning btn-sm"
+#         )
+#       )
+#     )
+#   } else {
+#     div(
+#       style = "margin-bottom:10px;",
+#       tags$span(class = "label label-success",
+#                 sprintf("%d run(s) détecté(s), tous valides.", total))
+#     )
+#   }
+# })
 
 
 ## Export Excel de la liste des runs vides détectés par le pré-check.
@@ -5682,29 +5682,29 @@ observeEvent(ignoreNULL = TRUE,
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Input Files ~~~~~~~~~~~~~~~~~~~~~~~~~###
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-directoryInput <- reactiveValues(directory = getwd())
-
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$directory
-             },
-             handlerExpr = {
-               if (input$directory > 0) {
-                 # condition prevents handler execution on initial app launch
-                 
-                 # launch the directory selection dialog with initial path read from the widget
-                 directoryInput$directory = choose.dir(default = readDirectoryInput(session, 'directory'))
-                 directoryInput$directory = str_replace_all(directoryInput$directory,
-                                                            pattern =  "\\\\",
-                                                            replacement  = "/")
-                 
-                 # update the widget value
-                 updateDirectoryInput(session, 'directory', value = directoryInput$directory)
-                 
-                 
-                 
-               }
-             })
+# directoryInput <- reactiveValues(directory = getwd())
+# 
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$directory
+#              },
+#              handlerExpr = {
+#                if (input$directory > 0) {
+#                  # condition prevents handler execution on initial app launch
+#                  
+#                  # launch the directory selection dialog with initial path read from the widget
+#                  directoryInput$directory = choose.dir(default = readDirectoryInput(session, 'directory'))
+#                  directoryInput$directory = str_replace_all(directoryInput$directory,
+#                                                             pattern =  "\\\\",
+#                                                             replacement  = "/")
+#                  
+#                  # update the widget value
+#                  updateDirectoryInput(session, 'directory', value = directoryInput$directory)
+#                  
+#                  
+#                  
+#                }
+#              })
 
 
 ## Peuple dynamiquement la liste déroulante "Resume" : tous les sous-dossiers
@@ -5745,9 +5745,62 @@ output$ui_existingProjects_newSample <- renderUI({
 ## dossier source, combien ont déjà un CSV (projet repris) ou une entrée
 ## dans le cache inter-session (donc seraient ignorés), combien restent à
 ## convertir si on lance le traitement maintenant.
+# output$runsDetectionSummary_newSample <- renderUI({
+#   raw_dir <- directoryInput$directory
+#   req(raw_dir, nzchar(raw_dir), raw_dir != "Choose working directory")
+#   
+#   all_inputs <- list.files(raw_dir, pattern = "\\.d$|\\.mzML$",
+#                            full.names = FALSE, ignore.case = TRUE)
+#   if (length(all_inputs) == 0) {
+#     return(tags$p(style = "font-style:italic;",
+#                   "Aucun fichier .d/.mzML détecté dans ce dossier."))
+#   }
+#   input_stems <- tolower(sub("\\.(d|mzML)$", "", all_inputs, ignore.case = TRUE))
+#   
+#   csv_stems <- character(0)
+#   if (isTRUE(input$resumeMode_newSample == "resume") &&
+#       !is.null(input$selectedProject_newSample) &&
+#       nzchar(input$selectedProject_newSample)) {
+#     massif_dir <- file.path(raw_dir, input$selectedProject_newSample, "Massif-List")
+#     if (dir.exists(massif_dir)) {
+#       csv_stems <- tolower(sub("\\.csv$", "",
+#                                list.files(massif_dir, pattern = "\\.csv$",
+#                                           full.names = FALSE, ignore.case = TRUE),
+#                                ignore.case = TRUE))
+#     }
+#   }
+#   
+#   cache_stems <- character(0)
+#   cache_path <- file.path(raw_dir, ".msdial_processed_cache.txt")
+#   if (file.exists(cache_path)) {
+#     cached <- tolower(trimws(readLines(cache_path, warn = FALSE)))
+#     cache_stems <- sub("\\.(d|mzML)$", "", cached[nzchar(cached)], ignore.case = TRUE)
+#   }
+#   
+#   done_stems <- unique(c(csv_stems, cache_stems))
+#   n_total <- length(input_stems)
+#   n_done  <- sum(input_stems %in% done_stems)
+#   n_todo  <- n_total - n_done
+#   
+#   div(
+#     class = "well well-sm",
+#     style = "margin-top:10px;",
+#     tags$b(sprintf("%d run(s) détecté(s)", n_total)),
+#     tags$br(),
+#     sprintf("%d déjà converti(s), %d à convertir", n_done, n_todo)
+#   )
+# })
+
+
+## Résumé réactif avant "Execute" : combine l'info resume (déjà converti /
+## à convertir) ET l'alerte runs vides (pré-check). Une seule définition de
+## cette sortie dans tout le fichier -- sinon la dernière écrase la première.
 output$runsDetectionSummary_newSample <- renderUI({
   raw_dir <- directoryInput$directory
-  req(raw_dir, nzchar(raw_dir), raw_dir != "Choose working directory")
+  if (is.null(raw_dir) || length(raw_dir) != 1 || is.na(raw_dir) || !nzchar(raw_dir) ||
+      raw_dir == "Choose working directory" || !dir.exists(raw_dir)) {
+    return(NULL)
+  }
   
   all_inputs <- list.files(raw_dir, pattern = "\\.d$|\\.mzML$",
                            full.names = FALSE, ignore.case = TRUE)
@@ -5782,15 +5835,47 @@ output$runsDetectionSummary_newSample <- renderUI({
   n_done  <- sum(input_stems %in% done_stems)
   n_todo  <- n_total - n_done
   
-  div(
+  resume_panel <- div(
     class = "well well-sm",
     style = "margin-top:10px;",
     tags$b(sprintf("%d run(s) détecté(s)", n_total)),
     tags$br(),
     sprintf("%d déjà converti(s), %d à convertir", n_done, n_todo)
   )
+  
+  empty_runs <- RvarsPeakDetectionNewSample$preCheck_empty_newSample
+  empty_panel <- if (!is.null(empty_runs) && length(empty_runs) > 0) {
+    tagList(
+      div(style = "margin-bottom:10px; margin-top:10px;",
+          tags$span(class = "label label-danger",
+                    sprintf("%d run(s) vide(s) détecté(s) :", length(empty_runs)))),
+      tags$ul(style = "color:#a94442;", lapply(empty_runs, tags$li)),
+      div(style = "margin-bottom:10px;",
+          shinySaveButton(
+            id = "ExportEmptyRuns_newSample", label = "Exporter la liste (Excel)",
+            title = "Save file as...", filename = "Runs-vides",
+            filetype = list(Excel = "xlsx"), viewtype = "icon",
+            icon = icon("file-excel"), class = "btn-warning btn-sm"))
+    )
+  } else {
+    div(style = "margin-top:10px;",
+        tags$span(class = "label label-success", "Tous les runs sont valides."))
+  }
+  
+  tagList(resume_panel, empty_panel)
 })
 
+
+
+# output$debug_runsDetection_newSample <- renderPrint({
+#   raw_dir <- directoryInput$directory
+#   cat("raw_dir:", raw_dir, "\n")
+#   cat("class:", class(raw_dir), "length:", length(raw_dir), "\n")
+#   cat("is.na:", is.na(raw_dir), "\n")
+#   cat("nzchar:", nzchar(raw_dir), "\n")
+#   cat("== Choose working directory:", identical(raw_dir, "Choose working directory"), "\n")
+#   cat("dir.exists:", dir.exists(raw_dir), "\n")
+# })
 
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 ###~~~~~~~~~~~~~~~~~~~~~~~~~ Default for some inputs ~~~~~~~~~~~~~~~~~~~~~~~###
@@ -6709,14 +6794,14 @@ output$defectiveRunsPanel_newSample <- renderUI({
   tagList(
     div(style = "margin-top:10px;",
         tags$span(class = "label label-info",
-                  sprintf("%d/%d run(s) transformé(s) avec succès",
+                  sprintf("%d/%d run(s) successfully processed",
                           summary_info$success, summary_info$total))
     ),
     if (!is.null(defective) && length(defective) > 0) {
       div(style = "margin-top:5px;",
           tags$span(class = "label label-warning",
-                    sprintf("%d run(s) non traité(s) (msdial vide/défectueux)", length(defective))),
-          actionButton("viewDefectiveRuns_newSample", "Voir la liste",
+                    sprintf("%d Unprocessed run(s) (empty or defective msdial)", length(defective))),
+          actionButton("viewDefectiveRuns_newSample", "View the list",
                        class = "btn-xs btn-warning", style = "margin-left:8px;")
       )
     }
@@ -6730,9 +6815,9 @@ observeEvent(input$viewDefectiveRuns_newSample, {
   defective_items <- lapply(defective, function(f) {
     stem <- tolower(sub("\\.(d|mzML)$", "", f, ignore.case = TRUE))
     reason <- if (!is.null(empty_stems) && stem %in% empty_stems) {
-      " — Run vide (MSDIAL n'a rien détecté)"
+      " — Empty run (MSDIAL did not detect anything)"
     } else {
-      " — Non traité (raison inconnue)"
+      " — Untreated (reason unknown)"
     }
     tags$li(paste0(f, reason))
   })
@@ -9087,6 +9172,44 @@ observeEvent(input$viewBatchCutOffResults_newSample, ignoreNULL = TRUE, {
 })
 
 
+## Export Excel des bornes CE-time (Min/Max/Unit) actuellement définies pour
+## chaque run — au même format de colonnes que l'import, pour pouvoir être
+## réimporté tel quel (aller-retour édition dans Excel facilité).
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$ExportCutOffValues_newSample
+             },
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "ExportCutOffValues_newSample",
+                             roots = volumes,
+                             session = session)
+               
+               path_Save_File <- parseSavePath(volumes, input$ExportCutOffValues_newSample)$datapath
+               
+               if (length(path_Save_File) > 0) {
+                 cutting_table <- RvarsPeakDetectionNewSample$samplesCuttingTable_newSample
+                 if (is.null(cutting_table) || nrow(cutting_table) == 0) {
+                   showNotification("Aucune donnée de découpage à exporter.", type = "message", duration = 6)
+                   return()
+                 }
+                 
+                 export_df <- data.frame(
+                   Sample = rownames(cutting_table),
+                   Min    = cutting_table$rt_min_cut_newSample,
+                   Max    = cutting_table$rt_max_cut_newSample,
+                   Unit   = cutting_table$Unit,
+                   stringsAsFactors = FALSE
+                 )
+                 
+                 if (!grepl("\\.xlsx$", path_Save_File, ignore.case = TRUE)) {
+                   path_Save_File <- paste0(path_Save_File, ".xlsx")
+                 }
+                 
+                 openxlsx::write.xlsx(export_df, file = path_Save_File, rowNames = FALSE)
+                 showNotification("Bornes CE-time exportées.", type = "message", duration = 6)
+               }
+})
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save cutting samples (end of Step 2) ~~~~~~~~~~~~~~~~~~~~~~~~~#*
 ## Port fidèle de la logique "SaveCuttingSample" côté NRM : le bouton est
