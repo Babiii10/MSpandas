@@ -297,13 +297,16 @@ Load the directory containing the files to be analyzed."))
                            )
                          ),
                          
+                         uiOutput("prePeakCheckMessage_NewRefMap"),
+
                          div(
                            class="pull-left",
                            style="display:inline-block; margin-right:2rem;",
-                           actionButton(inputId="runPeakPicking_NewRefMap",
-                                        label="Run peak detction",
-                                        class="btn-primary",
-                                        icon=icon("rocket"))),
+                           disabled(
+                             actionButton(inputId="runPeakPicking_NewRefMap",
+                                          label="Valider et lancer la peak detection",
+                                          class="btn-primary",
+                                          icon=icon("rocket")))),
                          uiOutput("defectiveRunsPanel_NewRefMap"),
                          hidden(
                            div(
@@ -324,6 +327,19 @@ Load the directory containing the files to be analyzed."))
                                             label="View results",
                                             class="btn-primary",
                                             icon=icon("eye"))
+                             ),
+
+                             div(
+                               class="pull-right",
+                               style="display:inline-block; margin-right:10px;",
+                               shinySaveButton(id = "ExportPeaksPerRun_NewRefMap",
+                                               label = "Export nombre de pics par run",
+                                               title = "Save file as...",
+                                               filename = "Peaks-per-run",
+                                               filetype = list(text = "csv"),
+                                               viewtype = "icon",
+                                               icon = icon("list-alt", lib = "glyphicon"),
+                                               class = "btn-primary")
                              )
                            )
                          )
