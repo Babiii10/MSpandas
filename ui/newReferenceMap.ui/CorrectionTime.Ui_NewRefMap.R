@@ -126,61 +126,7 @@ SampleCutting_NewRefMap_Ui <- function() {
                   )
                 ))
               )
-
-            ),
-            div(
-              class = "well well-sm",
-              h4("Batch import/export cut-off:"),
-              fileInput(
-                inputId = "batchCutOffFile",
-                label = "Excel file (Sample, Min, Max, Unit [optional])",
-                accept = c(".xlsx", ".xls")
-              ),
-              fluidRow(
-                column(
-                  6,
-                  div(
-                    class = "text-center",
-                    actionButton(
-                      inputId = "applyBatchCutOff",
-                      label = "Apply batch cut-off",
-                      icon = icon("bolt"),
-                      class = "btn-primary"
-                    )
-                  )
-                ),
-                column(
-                  6,
-                  div(
-                    class = "text-center",
-                    actionButton(
-                      inputId = "viewBatchCutOffResults",
-                      label = "View results",
-                      icon = icon("table"),
-                      class = "btn-default"
-                    )
-                  )
-                )
-              ),
-              fluidRow(
-                column(
-                  12,
-                  div(
-                    class = "text-center",
-                    style = "margin-top:8px;",
-                    shinySaveButton(
-                      id = "ExportCutOffValues",
-                      label = "Export current CE-time Min/Max (Excel)",
-                      title = "Save file as...",
-                      filename = "CE-time-MinMax",
-                      filetype = list(Excel = "xlsx"),
-                      viewtype = "icon",
-                      icon = icon("file-excel"),
-                      class = "btn-success"
-                    )
-                  )
-                )
-              )
+              
             ),
             hr(),
             fluidRow(
