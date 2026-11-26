@@ -302,10 +302,23 @@ The files must contain columns: 'M+H', 'CE-time', 'intensity', 'sample', 'iso.ma
                                    tabPanel(
                                      fluidRow(br()),
                                      title="Percentage match",
-                                     
+
                                      shinycssloaders::withSpinner(DTOutput("percent_matchViewer"), type = 1, size = 0.8,
-                                                                  id = "Idpercent_matchViewer")
+                                                                  id = "Idpercent_matchViewer"),
                                      #DTOutput("percent_matchViewer")
+                                     fluidRow(br()),
+                                     div(
+                                       class = "pull-left",
+                                       style = "display:inline-block",
+                                       shinySaveButton(id = "ExportPercentMatch_newSample",
+                                                       label = "Export table",
+                                                       title = "Save file as...",
+                                                       filename = "Percentage-match",
+                                                       filetype = list(text = "csv"),
+                                                       viewtype = "icon",
+                                                       icon = icon("save", lib = "glyphicon"),
+                                                       class = "btn-primary")
+                                     )
                                    ),
                                    ### Matchedtable
                                    tabPanel(

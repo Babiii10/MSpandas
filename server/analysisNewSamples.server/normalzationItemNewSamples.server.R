@@ -2403,6 +2403,50 @@ observeEvent(ignoreNULL = TRUE,
              })
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Export percentage match table ~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+## Export direct de la table affichée dans l'onglet "Percentage match"
+## (sample, percent_matched, number_match), telle quelle.
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$ExportPercentMatch_newSample
+             },
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "ExportPercentMatch_newSample",
+                             roots = volumes,
+                             session = session)
+
+               path_Save_Files_origine <-
+                 parseSavePath(volumes, input$ExportPercentMatch_newSample)$datapath
+
+               if (length(path_Save_Files_origine) > 0) {
+                 pct_match_df <- RvarsMatchNewsample$res_match_ref$pct_match_ref
+                 if (is.null(pct_match_df)) {
+                   showNotification("Aucune table de pourcentage de match disponible.",
+                                    type = "error", duration = 8)
+                   return()
+                 }
+
+                 path_Save_Files <- strsplit(path_Save_Files_origine, split = "/")[[1]]
+                 directory_Save_Files <-
+                   paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
+
+                 write.table(
+                   pct_match_df,
+                   file = paste0(c(
+                     directory_Save_Files,
+                     paste(path_Save_Files[length(path_Save_Files)],
+                           collapse = "", sep = "-")
+                   ), collapse = "/"),
+                   sep = ",",
+                   row.names = FALSE
+                 )
+                 showNotification("Table de pourcentage de match exportée.", type = "message", duration = 6)
+               }
+             })
+
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Export bilan par run ~~~~~~~~~~~~~~~~~~~~~~~~#
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ## Table combinée, une ligne par échantillon : nombre de features, pourcentage
