@@ -9360,12 +9360,18 @@ observeEvent(ignoreNULL = TRUE,
                  
                  
                  
-                 ## Filter intensity
+                 ## Filter intensity (ou filtre robuste optionnel, voir ci-dessous)
                  observe({
                    if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter)) {
                      RvarsPeakDetectionNewSample$Data_Plot.newSample <-
-                       RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter %>%
-                       dplyr::filter(maxo.2 >= req(input$intensityFilter_newSample))
+                       filter_newSample_points_for_correction(
+                         RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter,
+                         use_robust = isTRUE(input$useRobustLineFilter_newSample),
+                         intensity_filter = req(input$intensityFilter_newSample),
+                         robust_threshold = input$robustLineThreshold_newSample,
+                         bandwidth_filter = req(input$bandwidth_Filter_newSample),
+                         grid_size = req(input$gridSize_newSample)
+                       )
                    }
                  })
                  
@@ -9602,6 +9608,82 @@ observeEvent(ignoreNULL = TRUE,
                }
 
              })
+
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+##~~~~~~~~~~~~~~~~~~~~ Robust line filter (alternative au filtre d'intensité) #
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+## Le filtre d'intensité retire les points sous un seuil, sans tenir compte
+## de leur cohérence avec la tendance réelle (rt.1 ~ rt.2). Une première
+## tentative avec une régression robuste classique (loess family="symmetric")
+## n'a pas donné de meilleur résultat : ces méthodes supposent que les
+## aberrants sont MINORITAIRES, hypothèse qui ne tient pas ici (un amas de
+## bruit peut être localement aussi dense, voire plus dense, que la vraie
+## diagonale de correspondance) — la tendance ajustée restait biaisée par ce
+## bruit.
+##
+## Alternative : suivre la CRÊTE de densité 2D (déjà calculée pour le filtre
+## de densité existant) plutôt que d'ajuster une régression globale. Pour
+## chaque tranche verticale (valeur de rt.2), on prend le rt.1 où la densité
+## kde2d est maximale — ça trace une courbe locale, tranche par tranche, qui
+## n'est jamais tirée par une zone globalement plus dense qu'une autre (le
+## problème identifié avec le filtre de densité global). On garde ensuite
+## les points proches de cette crête (résidu < seuil × MAD), comme avant.
+filter_newSample_points_for_correction <- function(data_to_filter,
+                                                   use_robust,
+                                                   intensity_filter,
+                                                   robust_threshold = 3,
+                                                   bandwidth_filter = 20,
+                                                   grid_size = 500) {
+  if (!isTRUE(use_robust)) {
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+
+  if (nrow(data_to_filter) < 10) {
+    message("--- Robust ridge filter : pas assez de points (<10), filtre d'intensité utilisé en repli ---")
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+
+  dens <- tryCatch(
+    MASS::kde2d(data_to_filter$rt.2, data_to_filter$rt.1,
+               h = bandwidth_filter, n = grid_size),
+    error = function(e) NULL
+  )
+  if (is.null(dens)) {
+    message("--- Robust ridge filter : échec du calcul de densité, filtre d'intensité utilisé en repli ---")
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+
+  # Crête de densité : pour chaque tranche en x (rt.2), le y (rt.1) où la
+  # densité locale est maximale. Robuste à une zone globalement plus dense
+  # qu'une autre, car le "gagnant" est déterminé tranche par tranche, pas
+  # sur l'ensemble du graphique.
+  ridge_y <- apply(dens$z, 1, function(col) {
+    if (all(col == 0)) return(NA_real_)
+    dens$y[which.max(col)]
+  })
+  ridge <- data.frame(x = dens$x, y = ridge_y)
+  ridge <- ridge[!is.na(ridge$y), ]
+  if (nrow(ridge) < 2) {
+    message("--- Robust ridge filter : crête de densité non calculable, filtre d'intensité utilisé en repli ---")
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+
+  predicted <- suppressWarnings(
+    stats::approx(ridge$x, ridge$y, xout = data_to_filter$rt.2, rule = 2)$y
+  )
+  residuals_val <- data_to_filter$rt.1 - predicted
+  mad_val <- stats::mad(residuals_val, na.rm = TRUE)
+
+  if (!is.finite(mad_val) || mad_val == 0) {
+    message("--- Robust ridge filter : MAD nul/non calculable, filtre d'intensité utilisé en repli ---")
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+
+  threshold <- suppressWarnings(as.numeric(robust_threshold)) * mad_val
+  keep <- !is.na(residuals_val) & abs(residuals_val) <= threshold
+  data_to_filter[keep, ]
+}
 
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
