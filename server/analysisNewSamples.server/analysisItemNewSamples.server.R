@@ -10128,8 +10128,11 @@ observeEvent(ignoreNULL = TRUE,
                                Bandwidth_Filter = input$bandwidth_Filter_newSample,
                                Intensity_Filter = input$intensityFilter_newSample,
                                Min_Density      = input$minDensity_newSample,
+                               Use_Robust_Filter = isTRUE(input$useRobustLineFilter_newSample),
+                               Robust_Threshold  = if (isTRUE(input$useRobustLineFilter_newSample)) input$robustLineThreshold_newSample else NA_real_,
                                stringsAsFactors = FALSE
                              )
+                             
                              
                              cat("affichage de new_row")
                              print(new_row)
@@ -10951,6 +10954,8 @@ apply_kernel_density_correction_newSample <- function(sample_sel,
                                                       bandwidth_filter,
                                                       intensity_filter,
                                                       min_density,
+                                                      use_robust = FALSE,
+                                                      robust_threshold = 3,
                                                       grid_size = 500) {
   
   if (is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list[[sample_sel]]) ||
@@ -10978,9 +10983,16 @@ apply_kernel_density_correction_newSample <- function(sample_sel,
   
   data_to_filter$maxo.2 <- log2(data_to_filter$maxo.2)
   
-  data_filtered <- data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter)
+  data_filtered <- filter_newSample_points_for_correction(
+    data_to_filter,
+    use_robust = isTRUE(use_robust),
+    intensity_filter = intensity_filter,
+    robust_threshold = robust_threshold,
+    bandwidth_filter = bandwidth_filter,
+    grid_size = grid_size
+  )
   if (nrow(data_filtered) == 0)
-    return(list(success = FALSE, reason = "filtre d'intensité trop restrictif"))
+    return(list(success = FALSE, reason = "filtre d'intensité/robuste trop restrictif"))
   
   dens <- MASS::kde2d(data_filtered$rt.2, data_filtered$rt.1,
                       h = bandwidth_filter, n = grid_size)
@@ -11017,7 +11029,7 @@ apply_kernel_density_correction_newSample <- function(sample_sel,
     )
   
   new_row <- data.frame(
-    Project          =input$projectName,
+    Project          = input$projectName,
     Reference_Run    = basename(isolate(RvarsPeakDetectionNewSample$run_ref_path)),
     Sample           = sample_sel,
     Kernel_Type      = kernel_type,
@@ -11025,6 +11037,8 @@ apply_kernel_density_correction_newSample <- function(sample_sel,
     Bandwidth_Filter = bandwidth_filter,
     Intensity_Filter = intensity_filter,
     Min_Density      = min_density,
+    Use_Robust_Filter = isTRUE(use_robust),
+    Robust_Threshold  = if (isTRUE(use_robust)) robust_threshold else NA_real_,
     stringsAsFactors = FALSE
   )
   existing_log <- isolate(RvarsPeakDetectionNewSample$kernelDensity_params_log)
@@ -11070,6 +11084,8 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
   intfilter_col <- col_names[grepl(pattern = "^Intensity_Filter", col_names, ignore.case = TRUE)][1]
   minden_col <- col_names[grepl(pattern = "Min_Density", col_names, ignore.case = TRUE)][1]
   corrkernel_col <- col_names[grepl(pattern = "Bandwidth_Model", col_names, ignore.case = TRUE)][1]
+  userobust_col <- col_names[grepl(pattern = "^Use.?Robust.?Filter$", col_names, ignore.case = TRUE)][1]
+  robustthresh_col <- col_names[grepl(pattern = "^Robust.?Threshold$", col_names, ignore.case = TRUE)][1]
   cat("datafile_col :  ", datafile_col , '\n')
   cat("bandwith_col :  ", bandwith_col , '\n')
   cat("intfilter_col :  ", intfilter_col , '\n')
@@ -11108,6 +11124,15 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
       min_dens   <- suppressWarnings(as.numeric(df[[minden_col]][i]))
       bw_model   <- suppressWarnings(as.numeric(df[[corrkernel_col]][i]))
       
+      use_robust_raw <- if (!is.na(userobust_col)) trimws(as.character(df[[userobust_col]][i])) else NA_character_
+      use_robust_val <- !is.na(use_robust_raw) && tolower(use_robust_raw) %in% c("true", "1", "yes", "oui")
+      robust_thresh_val <- if (!is.na(robustthresh_col)) {
+        suppressWarnings(as.numeric(df[[robustthresh_col]][i]))
+      } else {
+        NA_real_
+      }
+      if (use_robust_val && is.na(robust_thresh_val)) robust_thresh_val <- 3
+      
       cat("bw_filter : ", bw_filter  , "\n")
       cat("int_filter : ", int_filter  , "\n")
       cat('sample_raw  :  ', sample_raw ,"\n")
@@ -11135,7 +11160,9 @@ observeEvent(input$applyBatchKernelParams_newSample, ignoreNULL = TRUE, {
         bandwidth_model  = as.numeric(bw_model),
         bandwidth_filter = as.numeric(bw_filter),
         intensity_filter = as.numeric(int_filter),
-        min_density      = as.numeric(min_dens)
+        min_density      = as.numeric(min_dens),
+        use_robust       = use_robust_val,
+        robust_threshold = robust_thresh_val
       )
       
       results <- rbind(results, data.frame(
