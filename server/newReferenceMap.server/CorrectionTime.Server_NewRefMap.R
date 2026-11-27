@@ -13313,8 +13313,16 @@ observeEvent(input$Confirm_validateCETimeCorrection, ignoreNULL = TRUE, {
     ## Export kernel density parameters to Excel
     params_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
     if (!is.null(params_log) && nrow(params_log) > 0) {
-      export_dir <- tryCatch(directoryInput$directory, error = function(e) tempdir())
-      if (length(export_dir) == 0 || !nzchar(export_dir)) export_dir <- tempdir()
+      raw_dir <- tryCatch(RvarsPeakDetection$directory_rawData, error = function(e) NULL)
+      export_dir <- if (!is.null(raw_dir) && length(raw_dir) == 1 && nzchar(raw_dir)) {
+        proj_dir <- tryCatch(
+          file.path(raw_dir, isolate(RvarsPeakDetection$Project_NameNewRefMap)),
+          error = function(e) raw_dir
+        )
+        if (length(proj_dir) == 0 || !dir.exists(proj_dir)) raw_dir else proj_dir
+      } else {
+        tempdir()
+      }
       xlsx_path <- file.path(export_dir, "KernelDensity_Correction_Parameters.xlsx")
       tryCatch({
         openxlsx::write.xlsx(params_log, file = xlsx_path, rowNames = FALSE)
