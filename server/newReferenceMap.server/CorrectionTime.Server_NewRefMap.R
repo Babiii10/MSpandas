@@ -714,7 +714,7 @@
 #                 req(input$UnitTime_sampleCutting),
 #                 ")"
 #               )) +
-#               coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#               coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
 #                               ylim = rangesZoomSample_selectedCutting$y,
 #                               expand = TRUE) +
 #               ggtitle(paste(
@@ -916,7 +916,7 @@
 #                            scale_color_viridis_c(option = "inferno", direction = -1) +
 #                            ylab("Mass (M+H) (Da)") +
 #                            xlab(paste("CE-time (", req(input$UnitTime_sampleCutting), ")")) +
-#                            coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#                            coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
 #                                            ylim = rangesZoomSample_selectedCutting$y,
 #                                            expand = TRUE) +
 #                            ggtitle(paste(
@@ -1078,7 +1078,7 @@
 #                            scale_color_viridis_c(option = "inferno", direction = -1) +
 #                            ylab("Mass (M+H) (Da)") +
 #                            xlab(paste("CE-time (", req(input$UnitTime_sampleCutting), ")")) +
-#                            coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#                            coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
 #                                            ylim = rangesZoomSample_selectedCutting$y,
 #                                            expand = TRUE) +
 #                            ggtitle(paste(
@@ -1240,7 +1240,7 @@
 #                            scale_color_viridis_c(option = "inferno", direction = -1) +
 #                            ylab("Mass (M+H) (Da)") +
 #                            xlab(paste("CE-time (", req(input$UnitTime_sampleCutting), ")")) +
-#                            coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#                            coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
 #                                            ylim = rangesZoomSample_selectedCutting$y,
 #                                            expand = TRUE) +
 #                            ggtitle(paste(
@@ -1476,7 +1476,7 @@
 #                                req(input$UnitTime_sampleCutting),
 #                                ")"
 #                              )) +
-#                              coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#                              coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
 #                                              ylim = rangesZoomSample_selectedCutting$y,
 #                                              expand = TRUE) +
 #                              ggtitle(paste(
@@ -1648,7 +1648,7 @@
 #                                req(input$UnitTime_sampleCutting),
 #                                ")"
 #                              )) +
-#                              coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#                              coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
 #                                              ylim = rangesZoomSample_selectedCutting$y,
 #                                              expand = TRUE) +
 #                              ggtitle(paste(
@@ -1817,7 +1817,7 @@
 #                                req(input$UnitTime_sampleCutting),
 #                                ")"
 #                              )) +
-#                              coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#                              coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
 #                                              ylim = rangesZoomSample_selectedCutting$y,
 #                                              expand = TRUE) +
 #                              ggtitle(paste(
@@ -2339,7 +2339,7 @@
 #       scale_color_viridis_c(option = "inferno", direction = -1) +
 #       ylab("Mass (M+H) (Da)") +
 #       xlab(paste("CE-time (Second)")) +
-#       #coord_cartesian(xlim = rangesZoomSample_selectedCutting$x, ylim = rangesZoomSample_selectedCutting$y, expand = TRUE)+
+#       #coord_cartesian(xlim = get_cutting_xlim_NewRefMap(), ylim = rangesZoomSample_selectedCutting$y, expand = TRUE)+
 #       ggtitle(paste(
 #         "Reference sample :",
 #         input$SelectRefrenceSample_option1,
@@ -2437,7 +2437,7 @@
 #                        scale_color_viridis_c(option = "inferno", direction = -1) +
 #                        ylab("Mass (M+H) (Da)") +
 #                        xlab(paste("CE-time (Second)")) +
-#                        #coord_cartesian(xlim = rangesZoomSample_selectedCutting$x, ylim = rangesZoomSample_selectedCutting$y, expand = TRUE)+
+#                        #coord_cartesian(xlim = get_cutting_xlim_NewRefMap(), ylim = rangesZoomSample_selectedCutting$y, expand = TRUE)+
 #                        ggtitle(
 #                          paste(
 #                            "Reference sample :",
@@ -7322,13 +7322,25 @@ observeEvent({
   if (!is.null(brush)) {
     rangesZoomSample_selectedCutting$x <- c(brush$xmin, brush$xmax)
     rangesZoomSample_selectedCutting$y <- c(brush$ymin, brush$ymax)
-    
+
   } else {
     ## reset coord_cartesian
     rangesZoomSample_selectedCutting$x <- NULL
     rangesZoomSample_selectedCutting$y <- NULL
   }
 })
+
+## Par défaut (pas de zoom actif), démarre l'axe CE-time à 0 plutôt que de
+## laisser ggplot auto-scaler depuis min(rt) : sinon le début du run (avant
+## le premier pic) est invisible selon les données. Le zoom (brush + double-
+## clic) reste prioritaire une fois activé par l'utilisateur.
+get_cutting_xlim_NewRefMap <- function() {
+  if (is.null(rangesZoomSample_selectedCutting$x)) {
+    c(0, NA_real_)
+  } else {
+    rangesZoomSample_selectedCutting$x
+  }
+}
 
 
 observeEvent(ignoreNULL = TRUE,
@@ -7388,7 +7400,7 @@ observe({
                 req(input$UnitTime_sampleCutting),
                 ")"
               )) +
-              coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+              coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
                               ylim = rangesZoomSample_selectedCutting$y,
                               expand = TRUE) +
               ggtitle(paste(
@@ -7590,7 +7602,7 @@ observeEvent(ignoreNULL = TRUE,
                            scale_color_viridis_c(option = "inferno", direction = -1) +
                            ylab("Mass (M+H) (Da)") +
                            xlab(paste("CE-time (", req(input$UnitTime_sampleCutting), ")")) +
-                           coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+                           coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
                                            ylim = rangesZoomSample_selectedCutting$y,
                                            expand = TRUE) +
                            ggtitle(paste(
@@ -7752,7 +7764,7 @@ observeEvent(ignoreNULL = TRUE,
                            scale_color_viridis_c(option = "inferno", direction = -1) +
                            ylab("Mass (M+H) (Da)") +
                            xlab(paste("CE-time (", req(input$UnitTime_sampleCutting), ")")) +
-                           coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+                           coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
                                            ylim = rangesZoomSample_selectedCutting$y,
                                            expand = TRUE) +
                            ggtitle(paste(
@@ -7914,7 +7926,7 @@ observeEvent(ignoreNULL = TRUE,
                            scale_color_viridis_c(option = "inferno", direction = -1) +
                            ylab("Mass (M+H) (Da)") +
                            xlab(paste("CE-time (", req(input$UnitTime_sampleCutting), ")")) +
-                           coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+                           coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
                                            ylim = rangesZoomSample_selectedCutting$y,
                                            expand = TRUE) +
                            ggtitle(paste(
@@ -8150,7 +8162,7 @@ observeEvent(ignoreNULL = TRUE,
                                req(input$UnitTime_sampleCutting),
                                ")"
                              )) +
-                             coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+                             coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
                                              ylim = rangesZoomSample_selectedCutting$y,
                                              expand = TRUE) +
                              ggtitle(paste(
@@ -8322,7 +8334,7 @@ observeEvent(ignoreNULL = TRUE,
                                req(input$UnitTime_sampleCutting),
                                ")"
                              )) +
-                             coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+                             coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
                                              ylim = rangesZoomSample_selectedCutting$y,
                                              expand = TRUE) +
                              ggtitle(paste(
@@ -8491,7 +8503,7 @@ observeEvent(ignoreNULL = TRUE,
                                req(input$UnitTime_sampleCutting),
                                ")"
                              )) +
-                             coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+                             coord_cartesian(xlim = get_cutting_xlim_NewRefMap(),
                                              ylim = rangesZoomSample_selectedCutting$y,
                                              expand = TRUE) +
                              ggtitle(paste(
@@ -9013,7 +9025,7 @@ output$ReferenceSample_option1_Plot <- renderPlot({
       scale_color_viridis_c(option = "inferno", direction = -1) +
       ylab("Mass (M+H) (Da)") +
       xlab(paste("CE-time (Second)")) +
-      #coord_cartesian(xlim = rangesZoomSample_selectedCutting$x, ylim = rangesZoomSample_selectedCutting$y, expand = TRUE)+
+      #coord_cartesian(xlim = get_cutting_xlim_NewRefMap(), ylim = rangesZoomSample_selectedCutting$y, expand = TRUE)+
       ggtitle(paste(
         "Reference sample :",
         input$SelectRefrenceSample_option1,
@@ -9111,7 +9123,7 @@ observeEvent(ignoreNULL = TRUE,
                        scale_color_viridis_c(option = "inferno", direction = -1) +
                        ylab("Mass (M+H) (Da)") +
                        xlab(paste("CE-time (Second)")) +
-                       #coord_cartesian(xlim = rangesZoomSample_selectedCutting$x, ylim = rangesZoomSample_selectedCutting$y, expand = TRUE)+
+                       #coord_cartesian(xlim = get_cutting_xlim_NewRefMap(), ylim = rangesZoomSample_selectedCutting$y, expand = TRUE)+
                        ggtitle(
                          paste(
                            "Reference sample :",
