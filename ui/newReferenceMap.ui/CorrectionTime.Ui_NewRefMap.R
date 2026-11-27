@@ -126,7 +126,7 @@ SampleCutting_NewRefMap_Ui <- function() {
                   )
                 ))
               )
-
+              
             ),
             div(
               class = "well well-sm",
@@ -181,6 +181,7 @@ SampleCutting_NewRefMap_Ui <- function() {
                   )
                 )
               )
+              
             ),
             hr(),
             fluidRow(
@@ -454,6 +455,20 @@ ReferenceSample_Ui <- function() {
               icon("question-circle",
                    class = "myIcoInfo")
             )),
+            
+            div(
+              # shinyjs::disable(
+                shinySaveButton(
+                  id = "saveMZMLfilenames",
+                  label = "save mzML filenames.",
+                  title = "save data as excel",
+                  filename = 'mzmlFilename',
+                  filetype = list(Excel  = "xlsx"),
+                  icon = icon("file-excel"),
+                  class = "btn-info"
+                )
+              # )
+            ) ,
             fileInput(
               inputId = "UploadSampleClass",
               label = "Upload sample-class relationship file.",
@@ -956,7 +971,7 @@ CorrectionTime_KernelDensity_Ui <- function() {
             "bandwidth_Filter",
             "Bandwidth",
             min = 1,
-            max = 500,
+            max = 100,
             value = 20
           ),
           fluidRow(
@@ -978,7 +993,8 @@ CorrectionTime_KernelDensity_Ui <- function() {
                 inputId = "intensityFilter",
                 label = "Intensity filter",
                 min = 0,
-                value = 0
+                value = 0, 
+                step = 0.25
               )
               
             ),
@@ -993,10 +1009,11 @@ CorrectionTime_KernelDensity_Ui <- function() {
                 value = 0.15
               )
             )
+            
           ),
-
+          
           hr(),
-
+          
           awesomeCheckbox(
             inputId = "useRobustLineFilter",
             label = "Use robust line filter instead of Intensity filter",
@@ -1013,7 +1030,7 @@ CorrectionTime_KernelDensity_Ui <- function() {
               value = 3
             )
           )
-
+          
         ),
         
         ##~~~~~~~~~~~~~~~~~~ Parameters for correction model with kernel density ~~~~~~~~~~~~#
@@ -1037,40 +1054,107 @@ CorrectionTime_KernelDensity_Ui <- function() {
             "bandwidth_Model",
             "Bandwidth:",
             min = 1,
-            max = 1000,
+            max = 300,
             value = 100
           ),
-          fluidRow(column(
-            6,
-            div(
-              class = "pull-left",
-              style = "display:inline-block",
-
-              actionButton(
-                inputId = "fitModel",
-                label = "Adjust CE-time",
-                icon = icon("rocket"),
-                class = "btn-primary"
+          fluidRow(
+            column(
+              6,
+              div(
+                class = "pull-left",
+                style = "display:inline-block",
+                
+                actionButton(
+                  inputId = "fitModel",
+                  label = "Adjust CE-time",
+                  icon = icon("rocket"),
+                  class = "btn-primary"
+                ),
+                br(),
+                br(),
+                br(nrow=2),
+                actionButton(
+                  inputId = "validateCETimeCorrection" , # "valideAllKernel",
+                  label = "Finish",
+                  icon = icon("rocket"),
+                  class = "btn-primary"
+                )
+                
               )
-
-            )
+              #,
+              
+              # bouton de validation next step
+              # br(),
+              # br(),
+              # br(nrow=2),
+              # div(
+              #   class = "pull-left",
+              #   style = "display:inline-block",
+              #   
+              #   actionButton(
+              #     inputId = "valideAllKernel",
+              #     label = "Finish",
+              #     icon = icon("rocket"),
+              #     class = "btn-primary"
+              #   )
+              #   
+              # )
           ),
           column(
             6,
             div(
               class = "pull-right",
               style = "display:inline-block",
-
+              
               actionButton(
                 inputId = "resetFitModel",
                 label = "Reset",
                 icon = icon("undo"),
                 class = "btn-primary"
+              ),
+              
+              br(),
+              br(),
+              br(nrow=2),
+              
+              disabled(
+                shinySaveButton(
+                  id =  "SaveKernelAjust",
+                  label = "Save to",
+                  title = "Save file as...",
+                  filename = "Correction CE-Time - xcms and kernel density",
+                  filetype = list(text = "csv"),
+                  viewtype = "icon",
+                  icon = icon("save", lib = "glyphicon"),
+                  class = "btn-primary"
+                )
               )
-
+              
+              
             )
-          )),
-
+            # ,
+            # br(),
+            # br(),
+            # br(nrow=2),
+            # div(
+            #   class = "pull-right",
+            #   style = "display:inline-block",
+            #   disabled(
+            #     shinySaveButton(
+            #       id =  "SaveKernelAjust",
+            #       label = "Save to",
+            #       title = "Save file as...",
+            #       filename = "Correction CE-Time - xcms and kernel density",
+            #       filetype = list(text = "csv"),
+            #       viewtype = "icon",
+            #       icon = icon("save", lib = "glyphicon"),
+            #       class = "btn-primary"
+            #     )
+            #   )
+            # )
+          )
+          ),
+          
           fluidRow(
             column(
               12,
@@ -1085,34 +1169,33 @@ CorrectionTime_KernelDensity_Ui <- function() {
                 )
               )
             )
-          )
-
-
-        ),
-
-        ##~~~~~~~~~~~~~~~~~~ Batch import of known kernel density parameters ~~~~~~~~~~~~#
-        ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-        div(
-          class = "well well-sm",
-          h4("Batch import kernel density parameters:"),
-          fileInput(
-            inputId = "batchKernelParamsFile",
-            label = "Excel file (Datafile, Bandwith, Int filter, min den, Corr Kernel)",
-            accept = c(".xlsx", ".xls")
           ),
-          fluidRow(
-            column(
-              6,
-              div(
-                class = "text-center",
-                actionButton(
-                  inputId = "applyBatchKernelParams",
-                  label = "Apply batch corrections",
-                  icon = icon("bolt"),
-                  class = "btn-primary"
-                )
-              )
+          br(),
+          
+          #~~~~~~~~~~~~~~~~~~ Batch import of known kernel density parameters ~~~~~~~~~~~~#
+          ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+          div(
+            class = "well well-sm",
+            h4("Batch import kernel density parameters:"),
+            fileInput(
+              inputId = "batchKernelParamsFile",
+              label = "Excel file (Datafile, Bandwith, Int filter, min den, Corr Kernel)",
+              accept = c(".xlsx", ".xls")
             ),
+            fluidRow(
+              column(
+                6,
+                div(
+                  class = "text-center",
+                  actionButton(
+                    inputId = "applyBatchKernelParams",
+                    label = "Apply batch corrections",
+                    icon = icon("bolt"),
+                    class = "btn-primary"
+                  )
+                )
+              ),
+              
             column(
               6,
               div(
@@ -1125,68 +1208,13 @@ CorrectionTime_KernelDensity_Ui <- function() {
                 )
               )
             )
-          )
-        ),
-
-        # Download button for corrected CE-time data
-        fluidRow(column(12, br())),
-        fluidRow(column(
-          12,
-          div(
-            class = "well well-sm",
-            style = "background-color: #e8f5e9;",
-            h4("Export corrected data", style = "color: #2e7d32;"),
-            p("Download the CE-time corrected peak list after validation.", style = "font-size: 13px;"),
-
-            # Validation button - enabled when all samples are corrected
-            div(
-              class = "pull-left",
-              style = "display:inline-block; margin-right: 15px;",
-              disabled(
-                actionButton(
-                  inputId = "validateCETimeCorrection",
-                  label = "All Adjustments Complete - Step 5 Done",
-                  class = "btn-warning",
-                  icon = icon("check-circle"),
-                  style = "font-weight: bold;"
-                )
-              )
-            ),
-
-            # Excel export button
-            div(
-              class = "pull-left",
-              style = "display:inline-block; margin-right: 10px;",
-              shinySaveButton(
-                id = "SaveCETimeCorrected",
-                label = "Save as Excel",
-                title = "Save CE-time corrected data as Excel...",
-                filename = "CE_time_corrected_peaks",
-                filetype = list(Excel = "xlsx"),
-                viewtype = "icon",
-                icon = icon("file-excel"),
-                class = "btn-success"
-              )
-            ),
-
-            # CSV export button
-            div(
-              class = "pull-left",
-              style = "display:inline-block",
-              shinySaveButton(
-                id = "SaveCETimeCorrectedCSV",
-                label = "Save as CSV",
-                title = "Save CE-time corrected data as CSV...",
-                filename = "CE_time_corrected_peaks",
-                filetype = list(CSV = "csv"),
-                viewtype = "icon",
-                icon = icon("file-csv"),
-                class = "btn-info"
-              )
             )
           )
-        )),
-
+          
+          
+          
+        ),
+        
         fluidRow(column(
           6,
           div(
@@ -1198,7 +1226,7 @@ CorrectionTime_KernelDensity_Ui <- function() {
               class = "btn-primary",
               icon = icon("arrow-left")
             )
-
+            
           )
         ),
         column(
@@ -1206,15 +1234,15 @@ CorrectionTime_KernelDensity_Ui <- function() {
           div(
             class = "pull-right",
             style = "display:inline-block",
-
+            
             actionButton(
               inputId = "CorrectionKernelDensityNexPage",
               label = "Next",
               class = "btn-primary",
               icon = icon("arrow-right")
             )
-
-
+            
+            
           )
         ))
         
