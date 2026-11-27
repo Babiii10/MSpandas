@@ -6834,6 +6834,54 @@ observeEvent(input$viewDefectiveRuns_newSample, {
   ))
 })
 
+#~~~~~~~~~~~~~~~~~~~~~~ Export nombre de pics détectés par run ~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+## Compte, pour chaque run, le nombre de pics mono-isotopiques finalement
+## produits (une ligne du tableau combiné = un pic) — un bilan simple pour
+## vérifier qu'aucun run n'est anormalement pauvre en pics après la peak
+## detection + déconvolution. Réplique exactement la fonctionnalité NRM
+## (ExportPeaksPerRun_NewRefMap).
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$ExportPeaksPerRun_newSample
+             },
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "ExportPeaksPerRun_newSample",
+                             roots = volumes,
+                             session = session)
+
+               path_Save_Files_origine <-
+                 parseSavePath(volumes, input$ExportPeaksPerRun_newSample)$datapath
+
+               if (length(path_Save_Files_origine) > 0) {
+                 peaks_all <- RvarsPeakDetectionNewSample$peaks_MSDIAL_mono_iso_newSample
+                 if (is.null(peaks_all) || !("sample" %in% colnames(peaks_all))) {
+                   showNotification("Aucun résultat de peak detection disponible.",
+                                    type = "error", duration = 8)
+                   return()
+                 }
+
+                 peaks_count <- as.data.frame(table(peaks_all$sample), stringsAsFactors = FALSE)
+                 colnames(peaks_count) <- c("Sample", "Nombre_pics")
+
+                 path_Save_Files <- strsplit(path_Save_Files_origine, split = "/")[[1]]
+                 directory_Save_Files <-
+                   paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
+
+                 write.table(
+                   peaks_count,
+                   file = paste0(c(
+                     directory_Save_Files,
+                     paste(path_Save_Files[length(path_Save_Files)], collapse = "", sep = "-")
+                   ), collapse = "/"),
+                   sep = ",",
+                   row.names = FALSE
+                 )
+                 showNotification("Nombre de pics par run exporté.", type = "message", duration = 6)
+               }
+             })
+
 
 ########################################################################
 # Reset the timebar for later
