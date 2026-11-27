@@ -7037,19 +7037,22 @@ observeEvent(input$btn_view_rt_dist, ignoreNULL = TRUE, {
   showModal(
     modalDialog(
       title = "RT distribution — CE-time Kernel Density correction",
-      size = "l",
+      size = "xl",
       easyClose = TRUE,
       footer = modalButton("Close"),
+      tags$style(".modal-dialog { max-height: 90%; height: 90%; width:50%; max-width: 50% }"),
       fluidRow(
         column(
-          6,
+          12,
           shinycssloaders::withSpinner(
             plotOutput("modal_rt_dist_before", width = "100%", height = "400px"),
             type = 1, size = 0.8
           )
-        ),
+        )
+      ),
+      fluidRow(
         column(
-          6,
+          12,
           shinycssloaders::withSpinner(
             plotOutput("modal_rt_dist_after", width = "100%", height = "400px"),
             type = 1, size = 0.8
