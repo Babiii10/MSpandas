@@ -973,8 +973,15 @@ observeEvent(
                         file = file.path(RvarsInternalStandard$Output_NewRefMaps,"peaklistBefore.csv"),
                         sep = ",", row.names = FALSE)
             
-            write.table(RvarsCorrectionTime$peakListAligned_KernelDensity, 
-                        file = file.path(RvarsInternalStandard$Output_NewRefMaps,"peaklistAligned.csv"), 
+            peakListAligned_for_export <- RvarsCorrectionTime$peakListAligned_KernelDensity
+            if (!is.null(RvarsCorrectionTime$excluded_runs) &&
+                length(RvarsCorrectionTime$excluded_runs) > 0 &&
+                "sample" %in% colnames(peakListAligned_for_export)) {
+              peakListAligned_for_export <-
+                peakListAligned_for_export[!(peakListAligned_for_export$sample %in% RvarsCorrectionTime$excluded_runs), ]
+            }
+            write.table(peakListAligned_for_export,
+                        file = file.path(RvarsInternalStandard$Output_NewRefMaps,"peaklistAligned.csv"),
                         sep = ",", row.names = FALSE)
             
             write.table(RvarsInternalStandard$normalizers_ref, 

@@ -11340,6 +11340,16 @@ observeEvent(ignoreNULL = TRUE,
                  RvarsCorrectionTime$previous_model_curve <- NULL
                }
 
+               ## Reflète l'état d'exclusion du run nouvellement sélectionné sur
+               ## la checkbox, sans déclencher à nouveau l'observer de la checkbox
+               ## (updateAwesomeCheckbox ne fait que mettre à jour l'affichage).
+               updateAwesomeCheckbox(
+                 session = session,
+                 inputId = "excludeRun_KernelDensity",
+                 value = isTRUE(input$SelectSample_KernelDensity %in%
+                                 isolate(RvarsCorrectionTime$excluded_runs))
+               )
+
                if (!is.null(input$SelectSample_KernelDensity) &
                    !is.null(RvarsCorrectionTime$peakListAligned) &
                    !is.null(RvarsCorrectionTime$ref_sample_samplePeaks)) {
@@ -11585,8 +11595,34 @@ observeEvent(ignoreNULL = TRUE,
                  
                  
                }
-               
+
              })
+
+##~~~~~~~~~~~~~~~~~~~~ Exclude run from analysis ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+## Un run qui ne peut pas être aligné correctement (modèle kernel density
+## instable/dégradé) peut être exclu de la suite de l'analyse sans supprimer
+## ses données : il est simplement filtré au moment de la génération de la
+## carte de référence et des exports, et tracé dans le bilan Excel final.
+observeEvent(input$excludeRun_KernelDensity, ignoreNULL = TRUE, {
+  sample_sel <- req(input$SelectSample_KernelDensity)
+  current <- isolate(RvarsCorrectionTime$excluded_runs)
+  if (isTRUE(input$excludeRun_KernelDensity)) {
+    RvarsCorrectionTime$excluded_runs <- union(current, sample_sel)
+  } else {
+    RvarsCorrectionTime$excluded_runs <- setdiff(current, sample_sel)
+  }
+})
+
+output$excludedRunsSummary_KernelDensity <- renderUI({
+  excluded <- RvarsCorrectionTime$excluded_runs
+  if (is.null(excluded) || length(excluded) == 0) return(NULL)
+  tagList(
+    div(style = "margin-top:10px;",
+        tags$span(class = "label label-danger",
+                  sprintf("%d run(s) exclu(s) de l'analyse :", length(excluded)))),
+    tags$ul(style = "color:#a94442;", lapply(excluded, tags$li))
+  )
+})
 
 ##~~~~~~~~~~~~~~~~~~~~ Fit model kernel density estimation ~~~~~~~~~~~~~~~~~#
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -13387,9 +13423,11 @@ observeEvent(input$Confirm_validateCETimeCorrection, ignoreNULL = TRUE, {
   if (isTRUE(input$Confirm_validateCETimeCorrection)) {
     shinyjs::enable(id = "SaveKernelAjust")
 
-    ## Export kernel density parameters to Excel
+    ## Export kernel density parameters (+ runs exclus) to Excel
     params_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
-    if (!is.null(params_log) && nrow(params_log) > 0) {
+    excluded_runs <- isolate(RvarsCorrectionTime$excluded_runs)
+    if ((!is.null(params_log) && nrow(params_log) > 0) ||
+        (!is.null(excluded_runs) && length(excluded_runs) > 0)) {
       raw_dir <- tryCatch(RvarsPeakDetection$directory_rawData, error = function(e) NULL)
       export_dir <- if (!is.null(raw_dir) && length(raw_dir) == 1 && nzchar(raw_dir)) {
         proj_dir <- tryCatch(
@@ -13402,7 +13440,22 @@ observeEvent(input$Confirm_validateCETimeCorrection, ignoreNULL = TRUE, {
       }
       xlsx_path <- file.path(export_dir, "KernelDensity_Correction_Parameters.xlsx")
       tryCatch({
-        openxlsx::write.xlsx(params_log, file = xlsx_path, rowNames = FALSE)
+        wb <- openxlsx::createWorkbook()
+        if (!is.null(params_log) && nrow(params_log) > 0) {
+          openxlsx::addWorksheet(wb, "Parameters")
+          openxlsx::writeData(wb, "Parameters", params_log, rowNames = FALSE)
+        }
+        if (!is.null(excluded_runs) && length(excluded_runs) > 0) {
+          openxlsx::addWorksheet(wb, "Excluded_Runs")
+          openxlsx::writeData(
+            wb, "Excluded_Runs",
+            data.frame(Sample = excluded_runs,
+                      Reason = "Cannot be aligned (excluded manually)",
+                      stringsAsFactors = FALSE),
+            rowNames = FALSE
+          )
+        }
+        openxlsx::saveWorkbook(wb, xlsx_path, overwrite = TRUE)
         showNotification(paste("Parameters saved:", xlsx_path),
                          type = "message", duration = 6)
       }, error = function(e) {
@@ -13441,6 +13494,11 @@ observeEvent(ignoreNULL = TRUE,
 
                    tryCatch({
                      corrected_data <- RvarsCorrectionTime$peakListAligned_KernelDensity
+                     excluded_runs <- RvarsCorrectionTime$excluded_runs
+                     if (!is.null(excluded_runs) && length(excluded_runs) > 0 &&
+                         "sample" %in% colnames(corrected_data)) {
+                       corrected_data <- corrected_data[!(corrected_data$sample %in% excluded_runs), ]
+                     }
 
                      if (!grepl("\\.csv$", path_Save_File, ignore.case = TRUE)) {
                        path_Save_File <- paste0(path_Save_File, ".csv")

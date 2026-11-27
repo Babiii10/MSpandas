@@ -701,6 +701,16 @@ observeEvent(ignoreNULL = TRUE,
                  Massif_List_ToGroup <-
                    RvarsCorrectionTime$peakListAligned_KernelDensity
 
+                 ## Retire les runs explicitement exclus (Step 5 : "Exclude this
+                 ## run from the analysis") avant le regroupement en features —
+                 ## ils ne doivent pas être pris en compte pour la suite.
+                 excluded_runs <- RvarsCorrectionTime$excluded_runs
+                 if (!is.null(excluded_runs) && length(excluded_runs) > 0 &&
+                     "sample" %in% colnames(Massif_List_ToGroup)) {
+                   Massif_List_ToGroup <-
+                     Massif_List_ToGroup[!(Massif_List_ToGroup$sample %in% excluded_runs), ]
+                 }
+
                  ## Combine with validated additional data if available
                  additionalData <- getValidatedAdditionalData()
 
