@@ -11651,8 +11651,8 @@ observeEvent(ignoreNULL = TRUE,
                                Bandwidth_Filter = input$bandwidth_Filter,
                                Intensity_Filter = input$intensityFilter,
                                Min_Density      = input$minDensity,
-                               use_robust = FALSE,
-                               robust_threshold = 3,
+                               Use_Robust_Filter = isTRUE(input$useRobustLineFilter),
+                               Robust_Threshold  = if (isTRUE(input$useRobustLineFilter)) input$robustLineThreshold else NA_real_,
                                stringsAsFactors = FALSE
                              )
                              existing_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
@@ -13253,7 +13253,16 @@ output$modal_rt_params_info <- renderUI({
     tags$span(" | ", style = "color:#aaa;"),
     tags$span(tags$b("Intensity filter: "), row$Intensity_Filter),
     tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Min density: "), row$Min_Density)
+    tags$span(tags$b("Min density: "), row$Min_Density),
+    tags$br(),
+    tags$span(
+      tags$b("Robust filter: "),
+      if (isTRUE(row$Use_Robust_Filter)) {
+        paste0("Yes (threshold: ", row$Robust_Threshold, " x MAD)")
+      } else {
+        "No (intensity filter)"
+      }
+    )
   )
 })
 
