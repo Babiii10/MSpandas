@@ -961,6 +961,16 @@ CorrectionTime_KernelDensity_Ui <- function() {
                 width = "100%"
               )
             ))),
+        fluidRow(column(
+          10,
+          awesomeCheckbox(
+            inputId = "excludeRun_KernelDensity",
+            label = "Exclude this run from the analysis (cannot be aligned)",
+            value = FALSE,
+            status = "danger"
+          ),
+          uiOutput("excludedRunsSummary_KernelDensity")
+        )),
         ##~~~~~~~~~~~~~~~~~~ Parameters for filter density kernel ~~~~~~~~~~~~#
         ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
         ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#

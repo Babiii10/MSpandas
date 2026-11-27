@@ -702,6 +702,16 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
                 width = "100%"
               )
             ))),
+        fluidRow(column(
+          10,
+          awesomeCheckbox(
+            inputId = "excludeRun_KernelDensity_newSample",
+            label = "Exclude this run from the analysis (cannot be aligned)",
+            value = FALSE,
+            status = "danger"
+          ),
+          uiOutput("excludedRunsSummary_KernelDensity_newSample")
+        )),
         ##~~~~~~~~~~~~~~~~~~ Parameters for filter density kernel ~~~~~~~~~~~~#
         ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
         ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#

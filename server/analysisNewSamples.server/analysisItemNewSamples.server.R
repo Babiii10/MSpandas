@@ -5474,9 +5474,11 @@ observeEvent(ignoreNULL = TRUE,
                if (input$Comfirm_FinishedCEtimeCorrection == TRUE) {
                  enable("GroupingButtonIDNewSample")
                  
-                 ## Export kernel density parameters to Excel
+                 ## Export kernel density parameters (+ runs exclus) to Excel
                  params_log <- isolate(RvarsPeakDetectionNewSample$kernelDensity_params_log)
-                 if (!is.null(params_log) && nrow(params_log) > 0 &&
+                 excluded_runs_newSample <- isolate(RvarsPeakDetectionNewSample$excluded_runs_newSample)
+                 if (((!is.null(params_log) && nrow(params_log) > 0) ||
+                      (!is.null(excluded_runs_newSample) && length(excluded_runs_newSample) > 0)) &&
                      length(directoryInput$directory) > 0 &&
                      nzchar(directoryInput$directory)) {
                    proj_dir <- tryCatch(
@@ -5492,7 +5494,22 @@ observeEvent(ignoreNULL = TRUE,
                    xlsx_path <- file.path(proj_dir,
                                           "KernelDensity_Correction_Parameters.xlsx")
                    tryCatch({
-                     openxlsx::write.xlsx(params_log, file = xlsx_path, rowNames = FALSE)
+                     wb <- openxlsx::createWorkbook()
+                     if (!is.null(params_log) && nrow(params_log) > 0) {
+                       openxlsx::addWorksheet(wb, "Parameters")
+                       openxlsx::writeData(wb, "Parameters", params_log, rowNames = FALSE)
+                     }
+                     if (!is.null(excluded_runs_newSample) && length(excluded_runs_newSample) > 0) {
+                       openxlsx::addWorksheet(wb, "Excluded_Runs")
+                       openxlsx::writeData(
+                         wb, "Excluded_Runs",
+                         data.frame(Sample = excluded_runs_newSample,
+                                   Reason = "Cannot be aligned (excluded manually)",
+                                   stringsAsFactors = FALSE),
+                         rowNames = FALSE
+                       )
+                     }
+                     openxlsx::saveWorkbook(wb, xlsx_path, overwrite = TRUE)
                      showNotification(
                        paste("Parameters saved:", xlsx_path),
                        type = "message",
@@ -5506,7 +5523,7 @@ observeEvent(ignoreNULL = TRUE,
                      )
                    })
                  }
-                 
+
                }
              })
 
@@ -9638,6 +9655,15 @@ observeEvent(ignoreNULL = TRUE,
                  RvarsPeakDetectionNewSample$previous_model_curve_newSample <- NULL
                }
 
+               ## Reflète l'état d'exclusion du run nouvellement sélectionné sur
+               ## la checkbox, sans redéclencher son propre observer.
+               updateAwesomeCheckbox(
+                 session = session,
+                 inputId = "excludeRun_KernelDensity_newSample",
+                 value = isTRUE(input$SelectSample_KernelDensity_newSample %in%
+                                 isolate(RvarsPeakDetectionNewSample$excluded_runs_newSample))
+               )
+
                if (!is.null(input$SelectSample_KernelDensity_newSample) &
                    !is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list) &
                    !is.null(RvarsPeakDetectionNewSample$map_ref)) {
@@ -10082,6 +10108,32 @@ filter_newSample_points_for_correction <- function(data_to_filter,
   keep <- !is.na(residuals_val) & abs(residuals_val) <= threshold
   data_to_filter[keep, ]
 }
+
+##~~~~~~~~~~~~~~~~~~~~ Exclude run from analysis ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+## Un run qui ne peut pas être aligné correctement (modèle kernel density
+## instable/dégradé) peut être exclu de la suite de l'analyse sans supprimer
+## ses données : il est simplement filtré au moment du regroupement en
+## features et des exports, et tracé dans le bilan Excel final.
+observeEvent(input$excludeRun_KernelDensity_newSample, ignoreNULL = TRUE, {
+  sample_sel <- req(input$SelectSample_KernelDensity_newSample)
+  current <- isolate(RvarsPeakDetectionNewSample$excluded_runs_newSample)
+  if (isTRUE(input$excludeRun_KernelDensity_newSample)) {
+    RvarsPeakDetectionNewSample$excluded_runs_newSample <- union(current, sample_sel)
+  } else {
+    RvarsPeakDetectionNewSample$excluded_runs_newSample <- setdiff(current, sample_sel)
+  }
+})
+
+output$excludedRunsSummary_KernelDensity_newSample <- renderUI({
+  excluded <- RvarsPeakDetectionNewSample$excluded_runs_newSample
+  if (is.null(excluded) || length(excluded) == 0) return(NULL)
+  tagList(
+    div(style = "margin-top:10px;",
+        tags$span(class = "label label-danger",
+                  sprintf("%d run(s) exclu(s) de l'analyse :", length(excluded)))),
+    tags$ul(style = "color:#a94442;", lapply(excluded, tags$li))
+  )
+})
 
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
@@ -11384,10 +11436,19 @@ observeEvent(ignoreNULL = TRUE,
                    incProgress(1 / 4, detail = "starting")
                    
                    ## Change names of columns
-                   
+
                    Massif_List_ToGroup <-
                      RvarsPeakDetectionNewSample$peaks_newSample_list_KernelDensityCorrection
-                   
+
+                   ## Retire les runs explicitement exclus (Step 3 : "Exclude this
+                   ## run from the analysis") avant le regroupement en features —
+                   ## ils ne doivent pas être pris en compte pour la suite.
+                   excluded_runs_newSample <- RvarsPeakDetectionNewSample$excluded_runs_newSample
+                   if (!is.null(excluded_runs_newSample) && length(excluded_runs_newSample) > 0) {
+                     Massif_List_ToGroup <-
+                       Massif_List_ToGroup[!(names(Massif_List_ToGroup) %in% excluded_runs_newSample)]
+                   }
+
                    for (i in 1:length(Massif_List_ToGroup)) {
                      colSelect <-
                        c(
