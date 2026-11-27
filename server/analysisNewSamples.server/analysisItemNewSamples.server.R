@@ -10444,11 +10444,21 @@ observeEvent(ignoreNULL = TRUE,
                                      color = "Legend"
                                    ) +
 
-                                   scale_color_manual(values = c(
-                                     "Model" = "blue",
-                                     "Previous model" = "red",
-                                     "Median" = "green"
-                                   )) +
+                                   scale_color_manual(
+                                     values = c(
+                                       "Model" = "blue",
+                                       "Previous model" = "red",
+                                       "Median" = "green"
+                                     ),
+                                     ## Libellé sur 2 lignes : sinon la légende plus large
+                                     ## que celle du graphe "Kernel Density" juste en-dessous
+                                     ## rétrécit la zone de tracé et désaligne les axes X.
+                                     labels = c(
+                                       "Model" = "Model",
+                                       "Previous model" = "Previous\nmodel",
+                                       "Median" = "Median"
+                                     )
+                                   ) +
                                    
                                    
                                    theme_ben() +
