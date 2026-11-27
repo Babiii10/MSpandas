@@ -827,7 +827,7 @@ analysisTabPanelNewSamplesAlignementGrouping <- function() {
                   inputId = "btn_view_rt_dist_newSample",
                   label = "View RT distribution",
                   icon = icon("eye"),
-                  class = "btn-primary"
+                  class = "btn-default"
                 )
               )
             )
