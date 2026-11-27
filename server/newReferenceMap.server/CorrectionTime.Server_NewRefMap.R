@@ -1,3 +1,6677 @@
+# 
+# 
+# ##" Initialize reactive values
+# RvarsCorrectionTime <- allReactiveVarsNewRefMap$CorrectionTime
+# 
+# 
+# ## ~~~~~~~~~~~~Control some buttons ~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ### Return to view peak detection
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$ReturnToPeakViewer
+#              }
+#              ,
+#              handlerExpr = {
+#                updateRadioButtons(session = session,
+#                                   inputId = "NewRefrenceMapStep",
+#                                   selected = "2")
+#                updateNavbarPage(session = session,
+#                                 inputId = "analysisNavbar",
+#                                 selected = "Peak detection")
+#                
+#              })
+# 
+# ### Go to select reference sample
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$GoToSelectRefranceSample
+#              }
+#              ,
+#              handlerExpr = {
+#                updateRadioButtons(session = session,
+#                                   inputId = "CorrectionTimeStep",
+#                                   selected = "2")
+#                
+#                
+#              })
+# 
+# ### Return to retention time filtering
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$ReturnToFilteringSample
+#              }
+#              ,
+#              handlerExpr = {
+#                updateRadioButtons(session = session,
+#                                   inputId = "CorrectionTimeStep",
+#                                   selected = "1")
+#                # updateNavbarPage(
+#                #   session = session,
+#                #   inputId = "analysisNavbar",
+#                #   selected = "Peak detection"
+#                # )
+#                
+#              })
+# 
+# ### Got to correction time xcms
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$RefrenceSampleNextPage
+#              }
+#              ,
+#              handlerExpr = {
+#                updateRadioButtons(session = session,
+#                                   inputId = "CorrectionTimeStep",
+#                                   selected = "3")
+#              })
+# 
+# 
+# ## Return to XCMS correction
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$ReturToCorrectionXCMS
+#              }
+#              ,
+#              handlerExpr = {
+#                updateRadioButtons(session = session,
+#                                   inputId = "CorrectionTimeStep",
+#                                   selected = "2")
+#              })
+# 
+# ## Go to correction with Kernel Density
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$CorrectionXCMSNexPage
+#              }
+#              ,
+#              handlerExpr = {
+#                updateRadioButtons(session = session,
+#                                   inputId = "CorrectionTimeStep",
+#                                   selected = "4")
+#              })
+# ## Return to Correction time viewer
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$ReturToViewCorrectionXCMS
+#              }
+#              ,
+#              handlerExpr = {
+#                updateRadioButtons(session = session,
+#                                   inputId = "CorrectionTimeStep",
+#                                   selected = "3")
+#              })
+# 
+# ## Go to Generate reference Map
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$CorrectionKernelDensityNexPage
+#              }
+#              ,
+#              handlerExpr = {
+#                updateNavbarPage(session = session,
+#                                 inputId = "analysisNavbar",
+#                                 selected = "Generate the reference map")
+#                
+#              })
+# 
+# 
+# 
+# 
+# 
+# ### Reset some input when changing input "IncludeSample_NewRefMap"
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$IncludeSample_NewRefMap
+#              }
+#              , {
+#                #~~~~~~~~~~~~~~ cut sample reset ~~~~~~~~~~~~~~~~~~~~~~~#
+#                enable("RetentionTimeFiltering_id")
+#                hide("id_ResetCuttingRun")
+#                shinyjs::show("id_validCuttingRun")
+#                disable("SaveCuttingSample")
+#                shinyjs::reset("rt_min_cut")
+#                shinyjs::reset("rt_max_cut")
+#                disable("GoToSelectRefranceSample")
+#                disable("id_SelectRefrenceSamplePanel")
+#                
+#                
+#                if (!is.null(names(peaks_mono_iso_toUsed_NewRefMap()))) {
+#                  RvarsCorrectionTime$samplesCuttingTable <-
+#                    data.frame(
+#                      row.names = names(peaks_mono_iso_toUsed_NewRefMap()),
+#                      rt_min_cut = rep(NA, length(peaks_mono_iso_toUsed_NewRefMap())),
+#                      rt_max_cut = rep(NA, length(peaks_mono_iso_toUsed_NewRefMap())),
+#                      Unit = rep("Second", length(peaks_mono_iso_toUsed_NewRefMap()))
+#                    )
+#                }
+#                
+#                updateAwesomeRadio(session = session,
+#                                   inputId = "UnitTime_sampleCutting",
+#                                   selected = "Second")
+#                RvarsCorrectionTime$Second_Cutting <- TRUE
+#                
+#                ##~~~~~~~~~~~~~~~~~~ reset reference sample~~~~~~~~~~~~~~~~~~~~~~#
+#                hide("resetRefrenceSample")
+#                shinyjs::show("ConfirmRefrenceSample")
+#                
+#                shinyjs::show("id_plotRefrenceSample")
+#                enable("id_SelectRefrenceSamplePanel")
+#                disable("id_Panel_runCorrectionTime")
+#                hide("id_Panel_runCorrectionTime")
+#                hide("id_PanelDamplesInfo")
+#                hide("id_PanelParametersGenerateMap")
+#                hide("id_runProcess")
+#                
+#                hide("Id_SampleOffset")
+#                hide("IDoffsetSamplePlot_div")
+#                
+#                disable("RefrenceSampleNextPage")
+#                
+#                shinyjs::show("id_PanelcutOff_sample_NewRefMap")
+#                if (input$SelectRefrenceSample == 2) {
+#                  disable("ConfirmRefrenceSample")
+#                }
+#                
+#                
+#              })
+# 
+# observe({
+#   if (is.null(input$IncludeSample_NewRefMap)) {
+#     #~~~~~~~~~~~~~~ cut sample reset ~~~~~~~~~~~~~~~~~~~~~~~#
+#     enable("RetentionTimeFiltering_id")
+#     hide("id_ResetCuttingRun")
+#     shinyjs::show("id_validCuttingRun")
+#     disable("SaveCuttingSample")
+#     shinyjs::reset("rt_min_cut")
+#     shinyjs::reset("rt_max_cut")
+#     disable("GoToSelectRefranceSample")
+#     disable("id_SelectRefrenceSamplePanel")
+#     
+#     
+#     if (!is.null(names(peaks_mono_iso_toUsed_NewRefMap()))) {
+#       RvarsCorrectionTime$samplesCuttingTable <-
+#         data.frame(
+#           row.names = names(peaks_mono_iso_toUsed_NewRefMap()),
+#           rt_min_cut = rep(NA, length(
+#             peaks_mono_iso_toUsed_NewRefMap()
+#           )),
+#           rt_max_cut = rep(NA, length(
+#             peaks_mono_iso_toUsed_NewRefMap()
+#           )),
+#           Unit = rep("Second", length(
+#             peaks_mono_iso_toUsed_NewRefMap()
+#           ))
+#         )
+#     }
+#     
+#     updateAwesomeRadio(session = session,
+#                        inputId = "UnitTime_sampleCutting",
+#                        selected = "Second")
+#     RvarsCorrectionTime$Second_Cutting <- TRUE
+#     
+#     ##~~~~~~~~~~~~~~~~~~ reset reference sample~~~~~~~~~~~~~~~~~~~~~~#
+#     hide("resetRefrenceSample")
+#     shinyjs::show("ConfirmRefrenceSample")
+#     
+#     shinyjs::show("id_plotRefrenceSample")
+#     enable("id_SelectRefrenceSamplePanel")
+#     disable("id_Panel_runCorrectionTime")
+#     hide("id_Panel_runCorrectionTime")
+#     hide("id_PanelDamplesInfo")
+#     hide("id_PanelParametersGenerateMap")
+#     hide("id_runProcess")
+#     
+#     hide("Id_SampleOffset")
+#     hide("IDoffsetSamplePlot_div")
+#     
+#     shinyjs::show("id_PanelcutOff_sample_NewRefMap")
+#     
+#     if (length(input$SelectRefrenceSample) != 0) {
+#       if (input$SelectRefrenceSample == 2) {
+#         disable("ConfirmRefrenceSample")
+#       }
+#     }
+#     
+#   }
+# })
+# 
+# 
+# 
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Samples filter Server~~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~ Upload samples to cut ~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$massif_list_NewRefMap
+#              }
+#              , {
+#                files <- input$massif_list_NewRefMap
+#                ext <- tools::file_ext(files$datapath)
+#                reqCols <-
+#                  c(
+#                    'M.H',
+#                    'M.H.min',
+#                    'M.H.max',
+#                    'CE.time',
+#                    'CE.time.min',
+#                    'CE.time.max',
+#                    'integrated.intensity',
+#                    'intensity',
+#                    'sn',
+#                    'sample',
+#                    'iso.mass',
+#                    'iso.mass.link',
+#                    'mz_PeaksIsotopics_Group',
+#                    'rt_PeaksIsotopics_Group',
+#                    'Height_PeaksIsotopics_Group',
+#                    "Adduct"
+#                  )
+#                
+#                reqColsUsed <- c(
+#                  'mz',
+#                  'mzmin',
+#                  'mzmax',
+#                  'rt',
+#                  'rtmin',
+#                  'rtmax',
+#                  'into',
+#                  'maxo',
+#                  'sn',
+#                  'sample',
+#                  'iso.mass',
+#                  'iso.mass.link',
+#                  'mz_PeaksIsotopics_Group',
+#                  'rt_PeaksIsotopics_Group',
+#                  'Height_PeaksIsotopics_Group',
+#                  "Adduct"
+#                )
+#                
+#                reqColsMess <-
+#                  " 'M+H', 'M+H.min', 'M+H.max', 'CE-time', 'CE-time.min', 'CE-time.max',
+#                    'integrated-intensity', 'intensity', 'sn', 'sample'
+#                    'iso.mass','iso.mass.link','mz_PeaksIsotopics_Group',
+#                'rt_PeaksIsotopics_Group','Height_PeaksIsotopics_Group', 'Adduct'"
+#                
+#                if (length(ext) > 1) {
+#                  if (all.equal(ext, rep("csv", length(ext))) != TRUE) {
+#                    message("Please upload a csv file...!")
+#                    
+#                    sendSweetAlert(
+#                      session = session,
+#                      title = "Warning !",
+#                      text = "Please upload a csv file !",
+#                      type = "warning",
+#                      width = "80%"
+#                    )
+#                  } else {
+#                    a <- lapply(input$massif_list_NewRefMap$datapath, read.csv)
+#                    tryCatch({
+#                      a <- do.call("rbind", a)
+#                    },
+#                    error = function(e) {
+#                      message("Please upload a csv file...!")
+#                      
+#                      sendSweetAlert(
+#                        session = session,
+#                        title = "Warning !",
+#                        text = paste(
+#                          "Required columns :",
+#                          reqColsMess,
+#                          "not found in files.",
+#                          sep = " "
+#                        ),
+#                        type = "warning",
+#                        width = "80%"
+#                      )
+#                    })
+#                    
+#                    if (!all(reqCols %in% colnames(a))) {
+#                      message("Please upload a csv file...!")
+#                      
+#                      sendSweetAlert(
+#                        session = session,
+#                        title = "Warning !",
+#                        text = paste(
+#                          "Required columns :",
+#                          reqColsMess,
+#                          "not found in files.",
+#                          sep = " "
+#                        ),
+#                        type = "warning",
+#                        width = "80%"
+#                      )
+#                    } else {
+#                      a <- a[, reqCols]
+#                      colnames(a) <- reqColsUsed
+#                      RvarsPeakDetection$peaks_MSDIAL_mono_iso_NewRefMap <-
+#                        a
+#                      
+#                      # Lunch the Reset button
+#                      enable("RetentionTimeFiltering_id")
+#                      hide("id_ResetCuttingRun")
+#                      shinyjs::show("id_validCuttingRun")
+#                      disable("SaveCuttingSample")
+#                      shinyjs::reset("rt_min_cut")
+#                      shinyjs::reset("rt_max_cut")
+#                      disable("GoToSelectRefranceSample")
+#                      disable("id_SelectRefrenceSamplePanel")
+#                      
+#                      
+#                      if (!is.null(names(peaks_mono_iso_toUsed_NewRefMap()))) {
+#                        RvarsCorrectionTime$samplesCuttingTable <-
+#                          data.frame(
+#                            row.names = names(peaks_mono_iso_toUsed_NewRefMap()),
+#                            rt_min_cut = rep(NA, length(
+#                              peaks_mono_iso_toUsed_NewRefMap()
+#                            )),
+#                            rt_max_cut = rep(NA, length(
+#                              peaks_mono_iso_toUsed_NewRefMap()
+#                            )),
+#                            Unit = rep(
+#                              "Second",
+#                              length(peaks_mono_iso_toUsed_NewRefMap())
+#                            )
+#                          )
+#                      }
+#                      
+#                      updateAwesomeRadio(session = session,
+#                                         inputId = "UnitTime_sampleCutting",
+#                                         selected = "Second")
+#                      RvarsPeakDetection$Second <- TRUE
+#                      
+#                      RvarsCorrectionTime$Ref_Mdian_samplePeaks <-
+#                        NULL
+#                      
+#                      shinyjs::show("Id_resetAll_NewRefMap_PeakDetectionView")
+#                    }
+#                    
+#                  }
+#                } else {
+#                  if (ext != "csv") {
+#                    message("Please upload a csv file...!")
+#                    
+#                    sendSweetAlert(
+#                      session = session,
+#                      title = "Warning !",
+#                      text = "Please upload a csv file !",
+#                      type = "warning",
+#                      width = "80%"
+#                    )
+#                  } else {
+#                    a <- lapply(input$massif_list_NewRefMap$datapath, read.csv)
+#                    tryCatch({
+#                      a <- do.call("rbind", a)
+#                    },
+#                    error = function(e) {
+#                      message("Please upload a csv file...!")
+#                      
+#                      
+#                      sendSweetAlert(
+#                        session = session,
+#                        title = "Warning !",
+#                        text = paste(
+#                          "Required columns :",
+#                          reqColsMess,
+#                          "not found in files.",
+#                          sep = " "
+#                        ),
+#                        type = "warning",
+#                        width = "80%"
+#                      )
+#                    })
+#                    
+#                    if (!all(reqCols %in% colnames(a))) {
+#                      message("Please upload a csv file...!")
+#                      
+#                      sendSweetAlert(
+#                        session = session,
+#                        title = "Warning !",
+#                        text = paste(
+#                          "Required columns :",
+#                          reqColsMess,
+#                          "not found in files.",
+#                          sep = " "
+#                        ),
+#                        type = "warning",
+#                        width = "80%"
+#                      )
+#                    } else {
+#                      a <- a[, reqCols]
+#                      colnames(a) <- reqColsUsed
+#                      RvarsPeakDetection$peaks_MSDIAL_mono_iso_NewRefMap <-
+#                        a
+#                      
+#                      # Lunch the Reset button
+#                      enable("RetentionTimeFiltering_id")
+#                      hide("id_ResetCuttingRun")
+#                      shinyjs::show("id_validCuttingRun")
+#                      disable("SaveCuttingSample")
+#                      shinyjs::reset("rt_min_cut")
+#                      shinyjs::reset("rt_max_cut")
+#                      disable("GoToSelectRefranceSample")
+#                      disable("id_SelectRefrenceSamplePanel")
+#                      
+#                      
+#                      if (!is.null(names(peaks_mono_iso_toUsed_NewRefMap()))) {
+#                        RvarsCorrectionTime$samplesCuttingTable <-
+#                          data.frame(
+#                            row.names = names(peaks_mono_iso_toUsed_NewRefMap()),
+#                            rt_min_cut = rep(NA, length(
+#                              peaks_mono_iso_toUsed_NewRefMap()
+#                            )),
+#                            rt_max_cut = rep(NA, length(
+#                              peaks_mono_iso_toUsed_NewRefMap()
+#                            )),
+#                            Unit = rep(
+#                              "Second",
+#                              length(peaks_mono_iso_toUsed_NewRefMap())
+#                            )
+#                          )
+#                      }
+#                      
+#                      updateAwesomeRadio(session = session,
+#                                         inputId = "UnitTime_sampleCutting",
+#                                         selected = "Second")
+#                      RvarsPeakDetection$Second <- TRUE
+#                      
+#                      RvarsCorrectionTime$Ref_Mdian_samplePeaks <-
+#                        NULL
+#                      
+#                      shinyjs::show("Id_resetAll_NewRefMap_PeakDetectionView")
+#                    }
+#                  }
+#                }
+#                
+#                
+#              })
+# 
+# 
+# # Features table
+# observe({
+#   if (!is.null(names(peaks_mono_iso_toUsed_NewRefMap()))) {
+#     RvarsCorrectionTime$samplesCuttingTable <-
+#       data.frame(
+#         row.names = names(peaks_mono_iso_toUsed_NewRefMap()),
+#         rt_min_cut = rep(NA, length(peaks_mono_iso_toUsed_NewRefMap())),
+#         rt_max_cut = rep(NA, length(peaks_mono_iso_toUsed_NewRefMap())),
+#         Unit = rep("Second", length(peaks_mono_iso_toUsed_NewRefMap()))
+#       )
+#     
+#     
+#     
+#     updatePickerInput(
+#       session = session,
+#       inputId = "sample_selectedCutting",
+#       choices = names(peaks_mono_iso_toUsed_NewRefMap())
+#     )
+#     
+#     
+#   } else{
+#     updatePickerInput(
+#       session = session,
+#       inputId = "sample_selectedCutting",
+#       choices = character(0),
+#       selected = character(0)
+#     )
+#     
+#     RvarsCorrectionTime$samplesCuttingTable <- NULL
+#   }
+# })
+# 
+# 
+# ## used for the plot
+# 
+# sample_cutting <- reactive({
+#   sample_cutting_rv <-
+#     req(peaks_mono_iso_toUsed_NewRefMap()[input$sample_selectedCutting][[1]])
+#   colnames(sample_cutting_rv)[c(1, 4, 8)] <-
+#     c("M.H", "CE.time", "intensity")
+#   sample_cutting_rv$intensity <- log2(sample_cutting_rv$intensity)
+#   sample_cutting_rv
+#   
+# })
+# 
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~ CE-time conversion for plot ~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$sample_selectedCutting
+#              },
+#              handlerExpr = {
+#                RvarsCorrectionTime$sample_cutting_viewer_ConvertTime <-
+#                  req(peaks_mono_iso_toUsed_NewRefMap()[input$sample_selectedCutting][[1]])
+#                colnames(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)[c(1, 4, 8)] <-
+#                  c("M.H", "CE.time", "intensity")
+#                RvarsCorrectionTime$sample_cutting_viewer_ConvertTime$intensity <-
+#                  log2(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime$intensity)
+#                
+#                
+#                
+#                #Because les data viennent initialement en second
+#                RvarsCorrectionTime$Second_Cutting <- TRUE
+#                if (input$UnitTime_sampleCutting == "Minute") {
+#                  #RvarsCorrectionTime$peaks_mono_iso_NewRefMap_toPlot_ConvertTime<-peaks_mono_iso_NewRefMap_toPlot()
+#                  print(
+#                    paste(
+#                      "Convert to min",
+#                      input$UnitTime_sampleCutting == "Minute" &
+#                        RvarsCorrectionTime$Second_Cutting == TRUE
+#                    )
+#                  )
+#                  if (input$UnitTime_sampleCutting == "Minute" &
+#                      RvarsCorrectionTime$Second_Cutting == TRUE) {
+#                    if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                      RvarsCorrectionTime$sample_cutting_viewer_ConvertTime$CE.time <-
+#                        req(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime$CE.time) / 60
+#                      RvarsCorrectionTime$Second_Cutting <- FALSE
+#                    }
+#                  }
+#                }
+#                
+#                if (!is.null(RvarsCorrectionTime$samplesCuttingTable)) {
+#                  RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting, 3] <-
+#                    input$UnitTime_sampleCutting
+#                  
+#                }
+#              })
+# 
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$UnitTime_sampleCutting
+#              },
+#              handlerExpr = {
+#                print(
+#                  paste(
+#                    "Convert to min",
+#                    input$UnitTime_sampleCutting == "Minute" &
+#                      RvarsCorrectionTime$Second_Cutting == TRUE
+#                  )
+#                )
+#                if (isolate(input$UnitTime_sampleCutting) == "Minute" &
+#                    RvarsCorrectionTime$Second_Cutting == TRUE) {
+#                  if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                    RvarsCorrectionTime$sample_cutting_viewer_ConvertTime$CE.time <-
+#                      req(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime$CE.time) /
+#                      60
+#                    RvarsCorrectionTime$Second_Cutting <- FALSE
+#                  }
+#                }
+#                
+#                print(
+#                  paste(
+#                    "Covert to Second",
+#                    input$UnitTime_sampleCutting == "Second" &
+#                      RvarsCorrectionTime$Second_Cutting == FALSE
+#                  )
+#                )
+#                if (isolate(input$UnitTime_sampleCutting) == "Second" &
+#                    RvarsCorrectionTime$Second_Cutting == FALSE) {
+#                  if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                    RvarsCorrectionTime$sample_cutting_viewer_ConvertTime$CE.time <-
+#                      req(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime$CE.time) *
+#                      60
+#                    RvarsCorrectionTime$Second_Cutting <- TRUE
+#                  }
+#                }
+#                
+#                if (input$UnitTime_sampleCutting == "Second" &
+#                    RvarsCorrectionTime$Second_Cutting == TRUE) {
+#                  RvarsCorrectionTime$sample_cutting_viewer_ConvertTime <-
+#                    req(sample_cutting())
+#                }
+#                
+#                if (!is.null(RvarsCorrectionTime$samplesCuttingTable)) {
+#                  RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting, 3] <-
+#                    input$UnitTime_sampleCutting
+#                  
+#                }
+#                
+#                
+#              })
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~ Cut samples and Plot ~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# rangesZoomSample_selectedCutting <-
+#   reactiveValues(x = NULL, y = NULL)
+# 
+# # When a double-click happens, check if there's a brush on the plot.
+# # If so, zoom to the brush bounds; if not, reset the zoom.
+# observeEvent({
+#   input$sample_selectedCutting_dblclick
+# }, {
+#   brush <- input$sample_selectedCutting_brush
+#   if (!is.null(brush)) {
+#     rangesZoomSample_selectedCutting$x <- c(brush$xmin, brush$xmax)
+#     rangesZoomSample_selectedCutting$y <- c(brush$ymin, brush$ymax)
+#     
+#   } else {
+#     ## reset coord_cartesian
+#     rangesZoomSample_selectedCutting$x <- NULL
+#     rangesZoomSample_selectedCutting$y <- NULL
+#   }
+# })
+# 
+# 
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$sample_selectedCutting
+#              },
+#              handlerExpr = {
+#                updateNumericInput(
+#                  session = session,
+#                  inputId = "rt_min_cut",
+#                  value = RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_min_cut
+#                )
+#                
+#                updateNumericInput(
+#                  session = session,
+#                  inputId = "rt_max_cut",
+#                  value = RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_max_cut
+#                )
+#                
+#                
+#              })
+# 
+# 
+# observe({
+#   if (!is.null(input$sample_selectedCutting)) {
+#     if (!is.null(peaks_mono_iso_toUsed_NewRefMap()[input$sample_selectedCutting][[1]])) {
+#       if (is.na(RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_min_cut) &
+#           is.na(RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_max_cut)) {
+#         print("Sample selected not cutted")
+#         if (!is.null(RvarsCorrectionTime$samplesCuttingTable)) {
+#           RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting, 1:2] <-
+#             c(NA, NA)
+#           
+#         }
+#         
+#         
+#         
+#         
+#         output$sample_selectedCutting_Plot <- renderPlot({
+#           if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#             shinyjs::show("UnitTime_sampleCutting_id")
+#             shinyjs::show("mousepositionSampleCutting")
+#             
+#             RvarsCorrectionTime$sample_cutting_viewer_ConvertTime %>%
+#               ggplot() +
+#               aes(x = CE.time,
+#                   y = M.H,
+#                   colour = intensity) +
+#               #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
+#               geom_point(size = 1) +
+#               # geom_vline(xintercept = 3229, lwd = 1.5, color = "blue", linetype = "dashed")+
+#               # geom_vline(xintercept = 750, lwd = 1.5, color = "blue", linetype = "dashed")+
+#               scale_color_viridis_c(option = "inferno", direction = -1) +
+#               ylab("Mass (M+H) (Da)") +
+#               xlab(paste(
+#                 "CE-time (",
+#                 req(input$UnitTime_sampleCutting),
+#                 ")"
+#               )) +
+#               coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#                               ylim = rangesZoomSample_selectedCutting$y,
+#                               expand = TRUE) +
+#               ggtitle(paste(
+#                 "Sample selected :",
+#                 input$sample_selectedCutting,
+#                 "\n"
+#               )) +
+#               
+#               scale_x_continuous(n.breaks = 14) +
+#               #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
+#               
+#               
+#               #facet_grid(vars(sample), vars())+
+#               #option_graphe.3
+#               theme_ben() +
+#               labs(colour = "log2 Intensity") +
+#               theme(
+#                 plot.title = element_text(
+#                   size = rel(0.9),
+#                   face = "bold",
+#                   color = "#760001",
+#                   margin = margin(0, 0, 5, 0),
+#                   hjust = 0.5
+#                 ),
+#                 plot.subtitle = element_text(hjust = 0.5),
+#                 plot.background = element_rect(fill = "aliceblue")
+#               )
+#             
+#           }
+#           
+#           
+#           
+#         })
+#         
+#         ## Mouse position
+#         # output$sample_selectedCutting_Plot_info <- renderText({
+#         #   paste0("Mouse position : ",
+#         #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
+#         #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
+#         # })
+#         
+#         output$sample_selectedCutting_Plot_info <- renderText({
+#           paste0(
+#             "Mouse position : ",
+#             xy_str(
+#               input$sample_selectedCutting_hover,
+#               "CE-time",
+#               "M+H"
+#             ),
+#             "Click: ",
+#             xy_str(
+#               input$sample_selectedCutting_click,
+#               "CE-time",
+#               "M+H"
+#             )
+#           )
+#           # paste0("Mouse position : ",
+#           #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
+#           #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
+#         })
+#         
+#         ## Bulle info
+#         
+#         #### info-bulle
+#         output$sample_selectedCutting_hover_info <- renderUI({
+#           hover <- req(input$sample_selectedCutting_hover)
+#           
+#           if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#             point <-
+#               nearPoints(
+#                 req(
+#                   RvarsCorrectionTime$sample_cutting_viewer_ConvertTime
+#                 ),
+#                 hover,
+#                 threshold = 5,
+#                 maxpoints = 1,
+#                 addDist = TRUE
+#               )
+#             if (nrow(point) == 0)
+#               return(NULL)
+#             
+#             # calculate point position INSIDE the image as percent of total dimensions
+#             # from left (horizontal) and from top (vertical)
+#             left_pct <-
+#               (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+#             top_pct <-
+#               (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+#             
+#             # calculate distance from left and bottom side of the picture in pixels
+#             left_px <-
+#               hover$range$left + left_pct * (hover$range$right - hover$range$left)
+#             top_px <-
+#               hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+#             
+#             # create style property fot tooltip
+#             # background color is set so tooltip is a bit transparent
+#             # z-index is set so we are sure are tooltip will be on top
+#             style <-
+#               paste0(
+#                 "position:absolute; z-index:100; background-color: #760001; color:white;",
+#                 "left:",
+#                 left_px + 2,
+#                 "px; top:",
+#                 top_px + 2,
+#                 "px;"
+#               )
+#             
+#             # actual tooltip created as wellPanel
+#             div(class = "well well-sm",
+#                 style = style,
+#                 p(HTML(
+#                   paste0(
+#                     "<span class='bullText'> M+H: </span>",
+#                     round(point$M.H, 4),
+#                     "<br/>",
+#                     "<span class='bullText'> CE-time: </span>",
+#                     round(point$CE.time, 2),
+#                     "<br/>",
+#                     
+#                     "<span class='bullText'> log2 Intensity: </span>",
+#                     round(point$intensity, 2),
+#                     "<br/>",
+#                     "<span class='bullText'> Intensity: </span>",
+#                     round(2 ^ (point$intensity), 0),
+#                     "<br/>"
+#                   )
+#                 )))
+#           }
+#           
+#           
+#           
+#           
+#           
+#         })
+#         
+#       }
+#     } else {
+#       output$sample_selectedCutting_Plot <- renderPlot({
+#         
+#       })
+#       output$sample_selectedCutting_Plot_info <- renderText({
+#         
+#       })
+#       output$sample_selectedCutting_hover_info <- renderUI({
+#         
+#       })
+#       hide("UnitTime_sampleCutting_id")
+#     }
+#   } else {
+#     output$sample_selectedCutting_Plot <- renderPlot({
+#       
+#     })
+#   }
+#   
+#   
+# })
+# 
+# ###~~~~~~~~~~~~~~~~~~ button cut~~~~~~~~~~~~~~~~~~#
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$cutOff
+#              },
+#              handlerExpr = {
+#                if (!is.null(peaks_mono_iso_toUsed_NewRefMap()[input$sample_selectedCutting][[1]])) {
+#                  if (!is.na(input$rt_min_cut) & !is.na(input$rt_max_cut)) {
+#                    print("cutoff")
+#                    output$sample_selectedCutting_Plot <-
+#                      renderPlot({
+#                        if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                          shinyjs::show("UnitTime_sampleCutting_id")
+#                          shinyjs::show("mousepositionSampleCutting")
+#                          
+#                          RvarsCorrectionTime$sample_cutting_viewer_ConvertTime %>%
+#                            ggplot() +
+#                            aes(x = CE.time,
+#                                y = M.H,
+#                                colour = intensity) +
+#                            #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
+#                            geom_point(size = 1) +
+#                            geom_vline(
+#                              xintercept = isolate(input$rt_min_cut),
+#                              color = "gray",
+#                              linetype = "dashed"
+#                            ) +
+#                            geom_vline(
+#                              xintercept = isolate(input$rt_max_cut),
+#                              color = "gray",
+#                              linetype = "dashed"
+#                            ) +
+#                            ggplot2::annotate(
+#                              "rect",
+#                              xmin = c(0, isolate(input$rt_max_cut)),
+#                              xmax = c(isolate(input$rt_min_cut), Inf),
+#                              ymin = -Inf ,
+#                              ymax = Inf,
+#                              alpha = 0.5,
+#                              fill = "gray"
+#                            ) +
+#                            scale_color_viridis_c(option = "inferno", direction = -1) +
+#                            ylab("Mass (M+H) (Da)") +
+#                            xlab(paste("CE-time (", req(input$UnitTime_sampleCutting), ")")) +
+#                            coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#                                            ylim = rangesZoomSample_selectedCutting$y,
+#                                            expand = TRUE) +
+#                            ggtitle(paste(
+#                              "Sample selected :",
+#                              input$sample_selectedCutting,
+#                              "\n"
+#                            )) +
+#                            
+#                            scale_x_continuous(n.breaks = 14) +
+#                            #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
+#                            
+#                            
+#                            #facet_grid(vars(sample), vars())+
+#                            #option_graphe.3
+#                            theme_ben() +
+#                            labs(colour = "log2 Intensity") +
+#                            theme(
+#                              plot.title = element_text(
+#                                size = rel(0.9),
+#                                face = "bold",
+#                                color = "#760001",
+#                                margin = margin(0, 0, 5, 0),
+#                                hjust = 0.5
+#                              ),
+#                              plot.subtitle = element_text(hjust = 0.5),
+#                              plot.background = element_rect(fill = "aliceblue")
+#                            )
+#                        }
+#                        
+#                      })
+#                    
+#                    ## Mouse position
+#                    # output$sample_selectedCutting_Plot_info <- renderText({
+#                    #   paste0("Mouse position : ",
+#                    #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
+#                    #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
+#                    # })
+#                    
+#                    output$sample_selectedCutting_Plot_info <-
+#                      renderText({
+#                        paste0(
+#                          "Mouse position: ",
+#                          xy_str(input$sample_selectedCutting_hover, "CE-time", "M+H"),
+#                          "Click: ",
+#                          xy_str(input$sample_selectedCutting_click, "CE-time", "M+H")
+#                        )
+#                        # paste0("Mouse position : ",
+#                        #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
+#                        #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
+#                      })
+#                    
+#                    ## Bulle info
+#                    
+#                    #### info-bulle
+#                    output$sample_selectedCutting_hover_info <-
+#                      renderUI({
+#                        hover <- req(input$sample_selectedCutting_hover)
+#                        
+#                        if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                          point <-
+#                            nearPoints(
+#                              req(
+#                                RvarsCorrectionTime$sample_cutting_viewer_ConvertTime
+#                              ),
+#                              hover,
+#                              threshold = 5,
+#                              maxpoints = 1,
+#                              addDist = TRUE
+#                            )
+#                          if (nrow(point) == 0)
+#                            return(NULL)
+#                          
+#                          # calculate point position INSIDE the image as percent of total dimensions
+#                          # from left (horizontal) and from top (vertical)
+#                          left_pct <-
+#                            (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+#                          top_pct <-
+#                            (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+#                          
+#                          # calculate distance from left and bottom side of the picture in pixels
+#                          left_px <-
+#                            hover$range$left + left_pct * (hover$range$right - hover$range$left)
+#                          top_px <-
+#                            hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+#                          
+#                          # create style property fot tooltip
+#                          # background color is set so tooltip is a bit transparent
+#                          # z-index is set so we are sure are tooltip will be on top
+#                          style <-
+#                            paste0(
+#                              "position:absolute; z-index:100; background-color: #760001; color:white;",
+#                              "left:",
+#                              left_px + 2,
+#                              "px; top:",
+#                              top_px + 2,
+#                              "px;"
+#                            )
+#                          
+#                          # actual tooltip created as wellPanel
+#                          div(class = "well well-sm",
+#                              style = style,
+#                              p(HTML(
+#                                paste0(
+#                                  "<span class='bullText'> M+H: </span>",
+#                                  round(point$M.H, 4),
+#                                  "<br/>",
+#                                  "<span class='bullText'> CE-time: </span>",
+#                                  round(point$CE.time, 2),
+#                                  "<br/>",
+#                                  
+#                                  "<span class='bullText'> log2 Intensity: </span>",
+#                                  round(point$intensity, 2),
+#                                  "<br/>",
+#                                  "<span class='bullText'> Intensity: </span>",
+#                                  round(2 ^ (point$intensity), 0),
+#                                  "<br/>"
+#                                )
+#                              )))
+#                        }
+#                        
+#                      })
+#                    
+#                    if (!is.null(RvarsCorrectionTime$samplesCuttingTable)) {
+#                      RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting, 1:2] <-
+#                        c(isolate(input$rt_min_cut),
+#                          isolate(input$rt_max_cut))
+#                    }
+#                    
+#                  } else if (!is.na(input$rt_min_cut) &
+#                             is.na(input$rt_max_cut)) {
+#                    print("cutoff")
+#                    output$sample_selectedCutting_Plot <-
+#                      renderPlot({
+#                        if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                          shinyjs::show("UnitTime_sampleCutting_id")
+#                          shinyjs::show("mousepositionSampleCutting")
+#                          
+#                          RvarsCorrectionTime$sample_cutting_viewer_ConvertTime %>%
+#                            ggplot() +
+#                            aes(x = CE.time,
+#                                y = M.H,
+#                                colour = intensity) +
+#                            #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
+#                            geom_point(size = 1) +
+#                            geom_vline(
+#                              xintercept = isolate(input$rt_min_cut),
+#                              color = "gray",
+#                              linetype = "dashed"
+#                            ) +
+#                            ggplot2::annotate(
+#                              "rect",
+#                              xmin = 0,
+#                              xmax = isolate(input$rt_min_cut),
+#                              ymin = -Inf ,
+#                              ymax = Inf,
+#                              alpha = 0.5,
+#                              fill = "gray"
+#                            ) +
+#                            scale_color_viridis_c(option = "inferno", direction = -1) +
+#                            ylab("Mass (M+H) (Da)") +
+#                            xlab(paste("CE-time (", req(input$UnitTime_sampleCutting), ")")) +
+#                            coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#                                            ylim = rangesZoomSample_selectedCutting$y,
+#                                            expand = TRUE) +
+#                            ggtitle(paste(
+#                              "Sample selected :",
+#                              input$sample_selectedCutting,
+#                              "\n"
+#                            )) +
+#                            
+#                            scale_x_continuous(n.breaks = 14) +
+#                            #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
+#                            
+#                            
+#                            #facet_grid(vars(sample), vars())+
+#                            #option_graphe.3
+#                            theme_ben() +
+#                            labs(colour = "log2 Intensity") +
+#                            theme(
+#                              plot.title = element_text(
+#                                size = rel(0.9),
+#                                face = "bold",
+#                                color = "#760001",
+#                                margin = margin(0, 0, 5, 0),
+#                                hjust = 0.5
+#                              ),
+#                              plot.subtitle = element_text(hjust = 0.5),
+#                              plot.background = element_rect(fill = "aliceblue")
+#                            )
+#                          
+#                        }
+#                      })
+#                    
+#                    ## Mouse position
+#                    # output$sample_selectedCutting_Plot_info <- renderText({
+#                    #   paste0("Mouse position : ",
+#                    #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
+#                    #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
+#                    # })
+#                    
+#                    output$sample_selectedCutting_Plot_info <-
+#                      renderText({
+#                        paste0(
+#                          "Mouse position: ",
+#                          xy_str(input$sample_selectedCutting_hover, "CE-time", "M+H"),
+#                          "Click: ",
+#                          xy_str(input$sample_selectedCutting_click, "CE-time", "M+H")
+#                        )
+#                        # paste0("Mouse position : ",
+#                        #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
+#                        #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
+#                      })
+#                    
+#                    ## Bulle info
+#                    
+#                    #### info-bulle
+#                    output$sample_selectedCutting_hover_info <-
+#                      renderUI({
+#                        hover <- req(input$sample_selectedCutting_hover)
+#                        
+#                        if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                          point <-
+#                            nearPoints(
+#                              req(
+#                                RvarsCorrectionTime$sample_cutting_viewer_ConvertTime
+#                              ),
+#                              hover,
+#                              threshold = 5,
+#                              maxpoints = 1,
+#                              addDist = TRUE
+#                            )
+#                          if (nrow(point) == 0)
+#                            return(NULL)
+#                          
+#                          # calculate point position INSIDE the image as percent of total dimensions
+#                          # from left (horizontal) and from top (vertical)
+#                          left_pct <-
+#                            (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+#                          top_pct <-
+#                            (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+#                          
+#                          # calculate distance from left and bottom side of the picture in pixels
+#                          left_px <-
+#                            hover$range$left + left_pct * (hover$range$right - hover$range$left)
+#                          top_px <-
+#                            hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+#                          
+#                          # create style property fot tooltip
+#                          # background color is set so tooltip is a bit transparent
+#                          # z-index is set so we are sure are tooltip will be on top
+#                          style <-
+#                            paste0(
+#                              "position:absolute; z-index:100; background-color: #760001; color:white;",
+#                              "left:",
+#                              left_px + 2,
+#                              "px; top:",
+#                              top_px + 2,
+#                              "px;"
+#                            )
+#                          
+#                          # actual tooltip created as wellPanel
+#                          div(class = "well well-sm",
+#                              style = style,
+#                              p(HTML(
+#                                paste0(
+#                                  "<span class='bullText'> M+H: </span>",
+#                                  round(point$M.H, 4),
+#                                  "<br/>",
+#                                  "<span class='bullText'> CE-time: </span>",
+#                                  round(point$CE.time, 2),
+#                                  "<br/>",
+#                                  
+#                                  "<span class='bullText'> log2 Intensity: </span>",
+#                                  round(point$intensity, 2),
+#                                  "<br/>",
+#                                  "<span class='bullText'> Intensity: </span>",
+#                                  round(2 ^ (point$intensity), 0),
+#                                  "<br/>"
+#                                )
+#                              )))
+#                        }
+#                        
+#                      })
+#                    
+#                    if (!is.null(RvarsCorrectionTime$samplesCuttingTable)) {
+#                      RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting, 1:2] <-
+#                        c(isolate(input$rt_min_cut), NA)
+#                    }
+#                    
+#                    
+#                  } else if (is.na(input$rt_min_cut) &
+#                             !is.na(input$rt_max_cut)) {
+#                    print("cutoff")
+#                    output$sample_selectedCutting_Plot <-
+#                      renderPlot({
+#                        if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                          shinyjs::show("UnitTime_sampleCutting_id")
+#                          shinyjs::show("mousepositionSampleCutting")
+#                          
+#                          RvarsCorrectionTime$sample_cutting_viewer_ConvertTime %>%
+#                            ggplot() +
+#                            aes(x = CE.time,
+#                                y = M.H,
+#                                colour = intensity) +
+#                            #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
+#                            geom_point(size = 1) +
+#                            geom_vline(
+#                              xintercept = isolate(input$rt_max_cut),
+#                              color = "gray",
+#                              linetype = "dashed"
+#                            ) +
+#                            ggplot2::annotate(
+#                              "rect",
+#                              xmin = isolate(input$rt_max_cut),
+#                              xmax = Inf,
+#                              ymin = -Inf ,
+#                              ymax = Inf,
+#                              alpha = 0.5,
+#                              fill = "gray"
+#                            ) +
+#                            scale_color_viridis_c(option = "inferno", direction = -1) +
+#                            ylab("Mass (M+H) (Da)") +
+#                            xlab(paste("CE-time (", req(input$UnitTime_sampleCutting), ")")) +
+#                            coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#                                            ylim = rangesZoomSample_selectedCutting$y,
+#                                            expand = TRUE) +
+#                            ggtitle(paste(
+#                              "Sample selected :",
+#                              input$sample_selectedCutting,
+#                              "\n"
+#                            )) +
+#                            
+#                            scale_x_continuous(n.breaks = 14) +
+#                            #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
+#                            
+#                            
+#                            #facet_grid(vars(sample), vars())+
+#                            #option_graphe.3
+#                            theme_ben() +
+#                            labs(colour = "log2 Intensity") +
+#                            theme(
+#                              plot.title = element_text(
+#                                size = rel(0.9),
+#                                face = "bold",
+#                                color = "#760001",
+#                                margin = margin(0, 0, 5, 0),
+#                                hjust = 0.5
+#                              ),
+#                              plot.subtitle = element_text(hjust = 0.5),
+#                              plot.background = element_rect(fill = "aliceblue")
+#                            )
+#                        }
+#                      })
+#                    
+#                    ## Mouse position
+#                    # output$sample_selectedCutting_Plot_info <- renderText({
+#                    #   paste0("Mouse position : ",
+#                    #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
+#                    #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
+#                    # })
+#                    
+#                    output$sample_selectedCutting_Plot_info <-
+#                      renderText({
+#                        paste0(
+#                          "Mouse position: ",
+#                          xy_str(input$sample_selectedCutting_hover, "CE-time", "M+H"),
+#                          "Click: ",
+#                          xy_str(input$sample_selectedCutting_click, "CE-time", "M+H")
+#                        )
+#                        # paste0("Mouse position : ",
+#                        #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
+#                        #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
+#                      })
+#                    
+#                    ## Bulle info
+#                    
+#                    #### info-bulle
+#                    output$sample_selectedCutting_hover_info <-
+#                      renderUI({
+#                        hover <- req(input$sample_selectedCutting_hover)
+#                        
+#                        if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                          point <-
+#                            nearPoints(
+#                              req(
+#                                RvarsCorrectionTime$sample_cutting_viewer_ConvertTime
+#                              ),
+#                              hover,
+#                              threshold = 5,
+#                              maxpoints = 1,
+#                              addDist = TRUE
+#                            )
+#                          if (nrow(point) == 0)
+#                            return(NULL)
+#                          
+#                          # calculate point position INSIDE the image as percent of total dimensions
+#                          # from left (horizontal) and from top (vertical)
+#                          left_pct <-
+#                            (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+#                          top_pct <-
+#                            (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+#                          
+#                          # calculate distance from left and bottom side of the picture in pixels
+#                          left_px <-
+#                            hover$range$left + left_pct * (hover$range$right - hover$range$left)
+#                          top_px <-
+#                            hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+#                          
+#                          # create style property fot tooltip
+#                          # background color is set so tooltip is a bit transparent
+#                          # z-index is set so we are sure are tooltip will be on top
+#                          style <-
+#                            paste0(
+#                              "position:absolute; z-index:100; background-color: #760001; color:white;",
+#                              "left:",
+#                              left_px + 2,
+#                              "px; top:",
+#                              top_px + 2,
+#                              "px;"
+#                            )
+#                          
+#                          # actual tooltip created as wellPanel
+#                          div(class = "well well-sm",
+#                              style = style,
+#                              p(HTML(
+#                                paste0(
+#                                  "<span class='bullText'> M+H: </span>",
+#                                  round(point$M.H, 4),
+#                                  "<br/>",
+#                                  "<span class='bullText'> CE-time: </span>",
+#                                  round(point$CE.time, 2),
+#                                  "<br/>",
+#                                  
+#                                  "<span class='bullText'> log2 Intensity: </span>",
+#                                  round(point$intensity, 2),
+#                                  "<br/>",
+#                                  "<span class='bullText'> Intensity: </span>",
+#                                  round(2 ^ (point$intensity), 0),
+#                                  "<br/>"
+#                                )
+#                              )))
+#                        }
+#                      })
+#                    
+#                    if (!is.null(RvarsCorrectionTime$samplesCuttingTable)) {
+#                      RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting, 1:2] <-
+#                        c(NA, isolate(input$rt_max_cut))
+#                    }
+#                    
+#                    
+#                  } else  if (is.na(input$rt_min_cut) &
+#                              is.na(input$rt_max_cut)) {
+#                    if (!is.null(RvarsCorrectionTime$samplesCuttingTable)) {
+#                      RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting, 1:2] <-
+#                        c(NA, NA)
+#                      
+#                    }
+#                  }
+#                  
+#                } else {
+#                  output$sample_selectedCutting_Plot <- renderPlot({
+#                    
+#                  })
+#                  output$sample_selectedCutting_Plot_info <-
+#                    renderText({
+#                      
+#                    })
+#                  output$sample_selectedCutting_hover_info <-
+#                    renderUI({
+#                      
+#                    })
+#                  hide("UnitTime_sampleCutting_id")
+#                }
+#                
+#              })
+# 
+# ###~~~~~~~~~~~~Keep cut sample when choice a new sample~~~~~~~~~~~~~~~#
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$sample_selectedCutting
+#              },
+#              handlerExpr = {
+#                updateNumericInput(
+#                  session = session,
+#                  inputId = "rt_min_cut",
+#                  value = as.numeric(RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_min_cut)
+#                )
+#                
+#                updateNumericInput(
+#                  session = session,
+#                  inputId = "rt_max_cut",
+#                  value = as.numeric(RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_max_cut)
+#                )
+#              })
+# 
+# 
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$sample_selectedCutting
+#              },
+#              handlerExpr = {
+#                if (!is.null(peaks_mono_iso_toUsed_NewRefMap()[input$sample_selectedCutting][[1]])) {
+#                  if (!is.null(RvarsCorrectionTime$samplesCuttingTable)) {
+#                    if (!is.na(RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_min_cut) &
+#                        !is.na(RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_max_cut)) {
+#                      print("Selectsample")
+#                      output$sample_selectedCutting_Plot <-
+#                        renderPlot({
+#                          if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                            shinyjs::show("UnitTime_sampleCutting_id")
+#                            shinyjs::show("mousepositionSampleCutting")
+#                            
+#                            RvarsCorrectionTime$sample_cutting_viewer_ConvertTime %>%
+#                              ggplot() +
+#                              aes(x = CE.time,
+#                                  y = M.H,
+#                                  colour = intensity) +
+#                              #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
+#                              geom_point(size = 1) +
+#                              geom_vline(
+#                                xintercept = as.numeric(
+#                                  RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_min_cut
+#                                ),
+#                                color = "gray",
+#                                linetype = "dashed"
+#                              ) +
+#                              geom_vline(
+#                                xintercept = as.numeric(
+#                                  RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_max_cut
+#                                ),
+#                                color = "gray",
+#                                linetype = "dashed"
+#                              ) +
+#                              ggplot2::annotate(
+#                                "rect",
+#                                xmin = c(
+#                                  0,
+#                                  as.numeric(
+#                                    RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_max_cut
+#                                  )
+#                                ),
+#                                xmax = c(
+#                                  as.numeric(
+#                                    RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_min_cut
+#                                  ),
+#                                  Inf
+#                                ),
+#                                ymin = -Inf ,
+#                                ymax = Inf,
+#                                alpha = 0.5,
+#                                fill = "gray"
+#                              ) +
+#                              scale_color_viridis_c(option = "inferno", direction = -1) +
+#                              ylab("Mass (M+H) (Da)") +
+#                              xlab(paste(
+#                                "CE-time (",
+#                                req(input$UnitTime_sampleCutting),
+#                                ")"
+#                              )) +
+#                              coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#                                              ylim = rangesZoomSample_selectedCutting$y,
+#                                              expand = TRUE) +
+#                              ggtitle(paste(
+#                                "Sample selected :",
+#                                input$sample_selectedCutting,
+#                                "\n"
+#                              )) +
+#                              
+#                              scale_x_continuous(n.breaks = 14) +
+#                              #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
+#                              
+#                              
+#                              #facet_grid(vars(sample), vars())+
+#                              #option_graphe.3
+#                              theme_ben() +
+#                              labs(colour = "log2 Intensity") +
+#                              theme(
+#                                plot.title = element_text(
+#                                  size = rel(0.9),
+#                                  face = "bold",
+#                                  color = "#760001",
+#                                  margin = margin(0, 0, 5, 0),
+#                                  hjust = 0.5
+#                                ),
+#                                plot.subtitle = element_text(hjust = 0.5),
+#                                plot.background = element_rect(fill = "aliceblue")
+#                              )
+#                          }
+#                          
+#                        })
+#                      
+#                      ## Mouse position
+#                      # output$sample_selectedCutting_Plot_info <- renderText({
+#                      #   paste0("Mouse position : ",
+#                      #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
+#                      #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
+#                      # })
+#                      
+#                      output$sample_selectedCutting_Plot_info <-
+#                        renderText({
+#                          paste0(
+#                            "Mouse position: ",
+#                            xy_str(
+#                              input$sample_selectedCutting_hover,
+#                              "CE-time",
+#                              "M+H"
+#                            ),
+#                            "Click: ",
+#                            xy_str(
+#                              input$sample_selectedCutting_click,
+#                              "CE-time",
+#                              "M+H"
+#                            )
+#                          )
+#                          # paste0("Mouse position : ",
+#                          #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
+#                          #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
+#                        })
+#                      ## Bulle info
+#                      
+#                      #### info-bulle
+#                      output$sample_selectedCutting_hover_info <-
+#                        renderUI({
+#                          hover <- req(input$sample_selectedCutting_hover)
+#                          
+#                          if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                            point <-
+#                              nearPoints(
+#                                req(
+#                                  RvarsCorrectionTime$sample_cutting_viewer_ConvertTime
+#                                ),
+#                                hover,
+#                                threshold = 5,
+#                                maxpoints = 1,
+#                                addDist = TRUE
+#                              )
+#                            if (nrow(point) == 0)
+#                              return(NULL)
+#                            
+#                            # calculate point position INSIDE the image as percent of total dimensions
+#                            # from left (horizontal) and from top (vertical)
+#                            left_pct <-
+#                              (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+#                            top_pct <-
+#                              (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+#                            
+#                            # calculate distance from left and bottom side of the picture in pixels
+#                            left_px <-
+#                              hover$range$left + left_pct * (hover$range$right - hover$range$left)
+#                            top_px <-
+#                              hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+#                            
+#                            # create style property fot tooltip
+#                            # background color is set so tooltip is a bit transparent
+#                            # z-index is set so we are sure are tooltip will be on top
+#                            style <-
+#                              paste0(
+#                                "position:absolute; z-index:100; background-color: #760001; color:white;",
+#                                "left:",
+#                                left_px + 2,
+#                                "px; top:",
+#                                top_px + 2,
+#                                "px;"
+#                              )
+#                            
+#                            # actual tooltip created as wellPanel
+#                            div(class = "well well-sm",
+#                                style = style,
+#                                p(HTML(
+#                                  paste0(
+#                                    "<span class='bullText'> M+H: </span>",
+#                                    round(point$M.H, 4),
+#                                    "<br/>",
+#                                    "<span class='bullText'> CE-time: </span>",
+#                                    round(point$CE.time, 2),
+#                                    "<br/>",
+#                                    
+#                                    "<span class='bullText'> log2 Intensity: </span>",
+#                                    round(point$intensity, 2),
+#                                    "<br/>",
+#                                    "<span class='bullText'> Intensity: </span>",
+#                                    round(2 ^ (point$intensity), 0),
+#                                    "<br/>"
+#                                  )
+#                                )))
+#                          }
+#                          
+#                        })
+#                      
+#                      
+#                    } else if (!is.na(RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_min_cut) &
+#                               is.na(RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_max_cut)) {
+#                      print("Selectsample")
+#                      output$sample_selectedCutting_Plot <-
+#                        renderPlot({
+#                          if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                            shinyjs::show("UnitTime_sampleCutting_id")
+#                            shinyjs::show("mousepositionSampleCutting")
+#                            
+#                            RvarsCorrectionTime$sample_cutting_viewer_ConvertTime %>%
+#                              ggplot() +
+#                              aes(x = CE.time,
+#                                  y = M.H,
+#                                  colour = intensity) +
+#                              #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
+#                              geom_point(size = 1) +
+#                              geom_vline(
+#                                xintercept = as.numeric(
+#                                  RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_min_cut
+#                                ),
+#                                color = "gray",
+#                                linetype = "dashed"
+#                              ) +
+#                              ggplot2::annotate(
+#                                "rect",
+#                                xmin = 0,
+#                                xmax = as.numeric(
+#                                  RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_min_cut
+#                                ),
+#                                ymin = -Inf ,
+#                                ymax = Inf,
+#                                alpha = 0.5,
+#                                fill = "gray"
+#                              ) +
+#                              scale_color_viridis_c(option = "inferno", direction = -1) +
+#                              ylab("Mass (M+H) (Da)") +
+#                              xlab(paste(
+#                                "CE-time (",
+#                                req(input$UnitTime_sampleCutting),
+#                                ")"
+#                              )) +
+#                              coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#                                              ylim = rangesZoomSample_selectedCutting$y,
+#                                              expand = TRUE) +
+#                              ggtitle(paste(
+#                                "Sample selected :",
+#                                input$sample_selectedCutting,
+#                                "\n"
+#                              )) +
+#                              
+#                              scale_x_continuous(n.breaks = 14) +
+#                              #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
+#                              
+#                              
+#                              #facet_grid(vars(sample), vars())+
+#                              #option_graphe.3
+#                              theme_ben() +
+#                              labs(colour = "log2 Intensity") +
+#                              theme(
+#                                plot.title = element_text(
+#                                  size = rel(0.9),
+#                                  face = "bold",
+#                                  color = "#760001",
+#                                  margin = margin(0, 0, 5, 0),
+#                                  hjust = 0.5
+#                                ),
+#                                plot.subtitle = element_text(hjust = 0.5),
+#                                plot.background = element_rect(fill = "aliceblue")
+#                              )
+#                          }
+#                        })
+#                      
+#                      ## Mouse position
+#                      # output$sample_selectedCutting_Plot_info <- renderText({
+#                      #   paste0("Mouse position : ",
+#                      #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
+#                      #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
+#                      # })
+#                      
+#                      output$sample_selectedCutting_Plot_info <-
+#                        renderText({
+#                          paste0(
+#                            "Mouse position: ",
+#                            xy_str(
+#                              input$sample_selectedCutting_hover,
+#                              "CE-time",
+#                              "M+H"
+#                            ),
+#                            "Click: ",
+#                            xy_str(
+#                              input$sample_selectedCutting_click,
+#                              "CE-time",
+#                              "M+H"
+#                            )
+#                          )
+#                          # paste0("Mouse position : ",
+#                          #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
+#                          #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
+#                        })
+#                      ## Bulle info
+#                      
+#                      #### info-bulle
+#                      output$sample_selectedCutting_hover_info <-
+#                        renderUI({
+#                          hover <- req(input$sample_selectedCutting_hover)
+#                          
+#                          if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                            point <-
+#                              nearPoints(
+#                                req(
+#                                  RvarsCorrectionTime$sample_cutting_viewer_ConvertTime
+#                                ),
+#                                hover,
+#                                threshold = 5,
+#                                maxpoints = 1,
+#                                addDist = TRUE
+#                              )
+#                            if (nrow(point) == 0)
+#                              return(NULL)
+#                            
+#                            # calculate point position INSIDE the image as percent of total dimensions
+#                            # from left (horizontal) and from top (vertical)
+#                            left_pct <-
+#                              (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+#                            top_pct <-
+#                              (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+#                            
+#                            # calculate distance from left and bottom side of the picture in pixels
+#                            left_px <-
+#                              hover$range$left + left_pct * (hover$range$right - hover$range$left)
+#                            top_px <-
+#                              hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+#                            
+#                            # create style property fot tooltip
+#                            # background color is set so tooltip is a bit transparent
+#                            # z-index is set so we are sure are tooltip will be on top
+#                            style <-
+#                              paste0(
+#                                "position:absolute; z-index:100; background-color: #760001; color:white;",
+#                                "left:",
+#                                left_px + 2,
+#                                "px; top:",
+#                                top_px + 2,
+#                                "px;"
+#                              )
+#                            
+#                            # actual tooltip created as wellPanel
+#                            div(class = "well well-sm",
+#                                style = style,
+#                                p(HTML(
+#                                  paste0(
+#                                    "<span class='bullText'> M+H: </span>",
+#                                    round(point$M.H, 4),
+#                                    "<br/>",
+#                                    "<span class='bullText'> CE-time: </span>",
+#                                    round(point$CE.time, 2),
+#                                    "<br/>",
+#                                    
+#                                    "<span class='bullText'> log2 Intensity: </span>",
+#                                    round(point$intensity, 2),
+#                                    "<br/>",
+#                                    "<span class='bullText'> Intensity: </span>",
+#                                    round(2 ^ (point$intensity), 0),
+#                                    "<br/>"
+#                                  )
+#                                )))
+#                          }
+#                        })
+#                      
+#                    } else if (is.na(RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_min_cut) &
+#                               !is.na(RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_max_cut)) {
+#                      print("Selectsample")
+#                      output$sample_selectedCutting_Plot <-
+#                        renderPlot({
+#                          if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                            shinyjs::show("UnitTime_sampleCutting_id")
+#                            shinyjs::show("mousepositionSampleCutting")
+#                            
+#                            RvarsCorrectionTime$sample_cutting_viewer_ConvertTime %>%
+#                              ggplot() +
+#                              aes(x = CE.time,
+#                                  y = M.H,
+#                                  colour = intensity) +
+#                              #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
+#                              geom_point(size = 1) +
+#                              geom_vline(
+#                                xintercept = as.numeric(
+#                                  RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_max_cut
+#                                ),
+#                                color = "gray",
+#                                linetype = "dashed"
+#                              ) +
+#                              ggplot2::annotate(
+#                                "rect",
+#                                xmin = as.numeric(
+#                                  RvarsCorrectionTime$samplesCuttingTable[input$sample_selectedCutting,]$rt_max_cut
+#                                ),
+#                                xmax = Inf,
+#                                ymin = -Inf ,
+#                                ymax = Inf,
+#                                alpha = 0.5,
+#                                fill = "gray"
+#                              ) +
+#                              scale_color_viridis_c(option = "inferno", direction = -1) +
+#                              ylab("Mass (M+H) (Da)") +
+#                              xlab(paste(
+#                                "CE-time (",
+#                                req(input$UnitTime_sampleCutting),
+#                                ")"
+#                              )) +
+#                              coord_cartesian(xlim = rangesZoomSample_selectedCutting$x,
+#                                              ylim = rangesZoomSample_selectedCutting$y,
+#                                              expand = TRUE) +
+#                              ggtitle(paste(
+#                                "Sample selected :",
+#                                input$sample_selectedCutting,
+#                                "\n"
+#                              )) +
+#                              
+#                              scale_x_continuous(n.breaks = 14) +
+#                              #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
+#                              
+#                              
+#                              #facet_grid(vars(sample), vars())+
+#                              #option_graphe.3
+#                              theme_ben() +
+#                              labs(colour = "log2 Intensity") +
+#                              theme(
+#                                plot.title = element_text(
+#                                  size = rel(0.9),
+#                                  face = "bold",
+#                                  color = "#760001",
+#                                  margin = margin(0, 0, 5, 0),
+#                                  hjust = 0.5
+#                                ),
+#                                plot.subtitle = element_text(hjust = 0.5),
+#                                plot.background = element_rect(fill = "aliceblue")
+#                              )
+#                            
+#                          }
+#                          
+#                          
+#                          
+#                        })
+#                      
+#                      ## Mouse position
+#                      # output$sample_selectedCutting_Plot_info <- renderText({
+#                      #   paste0("Mouse position : ",
+#                      #          "\n CE-time = ", round(req(input$sample_selectedCutting_click$x),0)," (second)",
+#                      #         "\n M+H = ", round(req(input$sample_selectedCutting_click$y),4),(" (Da)"))
+#                      # })
+#                      
+#                      output$sample_selectedCutting_Plot_info <-
+#                        renderText({
+#                          paste0(
+#                            "Mouse position: ",
+#                            xy_str(
+#                              input$sample_selectedCutting_hover,
+#                              "CE-time",
+#                              "M+H"
+#                            ),
+#                            "Click: ",
+#                            xy_str(
+#                              input$sample_selectedCutting_click,
+#                              "CE-time",
+#                              "M+H"
+#                            )
+#                          )
+#                          # paste0("Mouse position : ",
+#                          #        "\n CE-time = ", round(req(input$sample_selectedCutting_hover$x),0)," (",req(input$UnitTime_sampleCutting),")",
+#                          #        "\n M+H = ", round(req(input$sample_selectedCutting_hover$y),4),(" (Da)"))
+#                        })
+#                      ## Bulle info
+#                      
+#                      #### info-bulle
+#                      output$sample_selectedCutting_hover_info <-
+#                        renderUI({
+#                          hover <- req(input$sample_selectedCutting_hover)
+#                          
+#                          if (!is.null(RvarsCorrectionTime$sample_cutting_viewer_ConvertTime)) {
+#                            point <-
+#                              suppressWarnings(
+#                                nearPoints(
+#                                  req(
+#                                    RvarsCorrectionTime$sample_cutting_viewer_ConvertTime
+#                                  )
+#                                ),
+#                                hover,
+#                                threshold = 5,
+#                                maxpoints = 1,
+#                                addDist = TRUE
+#                              )
+#                            if (nrow(point) == 0)
+#                              return(NULL)
+#                            
+#                            # calculate point position INSIDE the image as percent of total dimensions
+#                            # from left (horizontal) and from top (vertical)
+#                            left_pct <-
+#                              (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+#                            top_pct <-
+#                              (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+#                            
+#                            # calculate distance from left and bottom side of the picture in pixels
+#                            left_px <-
+#                              hover$range$left + left_pct * (hover$range$right - hover$range$left)
+#                            top_px <-
+#                              hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+#                            
+#                            # create style property fot tooltip
+#                            # background color is set so tooltip is a bit transparent
+#                            # z-index is set so we are sure are tooltip will be on top
+#                            style <-
+#                              paste0(
+#                                "position:absolute; z-index:100; background-color: #760001; color:white;",
+#                                "left:",
+#                                left_px + 2,
+#                                "px; top:",
+#                                top_px + 2,
+#                                "px;"
+#                              )
+#                            
+#                            # actual tooltip created as wellPanel
+#                            div(class = "well well-sm",
+#                                style = style,
+#                                p(HTML(
+#                                  paste0(
+#                                    "<span class='bullText'> M+H: </span>",
+#                                    round(point$M.H, 4),
+#                                    "<br/>",
+#                                    "<span class='bullText'> CE-time: </span>",
+#                                    round(point$CE.time, 2),
+#                                    "<br/>",
+#                                    
+#                                    "<span class='bullText'> log2 Intensity: </span>",
+#                                    round(point$intensity, 2),
+#                                    "<br/>",
+#                                    "<span class='bullText'> Intensity: </span>",
+#                                    round(2 ^ (point$intensity), 0),
+#                                    "<br/>"
+#                                  )
+#                                )))
+#                          }
+#                          
+#                        })
+#                      
+#                    }
+#                    
+#                  }
+#                } else {
+#                  output$sample_selectedCutting_Plot <- renderPlot({
+#                    
+#                  })
+#                  output$sample_selectedCutting_Plot_info <-
+#                    renderText({
+#                      
+#                    })
+#                  output$sample_selectedCutting_hover_info <-
+#                    renderUI({
+#                      
+#                    })
+#                  hide("UnitTime_sampleCutting_id")
+#                }
+#              })
+# 
+# 
+# ####~~~~~~~~~~~~~~ action buttons ~~~~~~~~~~~~~~~~~~~~~~~~
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$validCuttingRun
+#              },
+#              handlerExpr = {
+#                ask_confirmation(
+#                  inputId = "validCuttingRun_confirmation",
+#                  title = NULL,
+#                  text = tags$b(
+#                    #icon("info"),
+#                    paste0(
+#                      "Are you sure you’re done cutting all your samples?",
+#                      "\n",
+#                      "Once you click OK, you may resume all if you want to go back."
+#                    ),
+#                    style = "color: #FA5858;"
+#                  ),
+#                  btn_labels = c("Cancel", "OK"),
+#                  btn_colors = c("#00BFFF", "#FE2E2E"),
+#                  html = TRUE
+#                )
+#                
+#                
+#              })
+# 
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$ResetCuttingRun
+#              },
+#              handlerExpr = {
+#                ask_confirmation(
+#                  inputId = "ResetCuttingRun_confirmation",
+#                  title = NULL,
+#                  text = tags$b(#icon("info"),
+#                    "Do you really want to resume the cutting of all samples ?",
+#                    style = "color: #FA5858;"),
+#                  btn_labels = c("Cancel", "OK"),
+#                  btn_colors = c("#00BFFF", "#FE2E2E"),
+#                  html = TRUE
+#                )
+#                
+#                
+#              })
+# 
+# 
+# 
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$validCuttingRun_confirmation
+#              },
+#              handlerExpr = {
+#                if (input$validCuttingRun_confirmation == TRUE) {
+#                  disable("RetentionTimeFiltering_id")
+#                  shinyjs::show("id_ResetCuttingRun")
+#                  enable("SaveCuttingSample")
+#                  hide("id_validCuttingRun")
+#                  enable("GoToSelectRefranceSample")
+#                  enable("id_SelectRefrenceSamplePanel")
+#                  
+#                  
+#                  
+#                }
+#              })
+# 
+# 
+# 
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$ResetCuttingRun_confirmation
+#              },
+#              handlerExpr = {
+#                if (input$ResetCuttingRun_confirmation == TRUE) {
+#                  enable("RetentionTimeFiltering_id")
+#                  hide("id_ResetCuttingRun")
+#                  shinyjs::show("id_validCuttingRun")
+#                  disable("SaveCuttingSample")
+#                  shinyjs::reset("rt_min_cut")
+#                  shinyjs::reset("rt_max_cut")
+#                  disable("GoToSelectRefranceSample")
+#                  disable("id_SelectRefrenceSamplePanel")
+#                  
+#                  
+#                  if (!is.null(names(peaks_mono_iso_toUsed_NewRefMap()))) {
+#                    RvarsCorrectionTime$samplesCuttingTable <-
+#                      data.frame(
+#                        row.names = names(peaks_mono_iso_toUsed_NewRefMap()),
+#                        rt_min_cut = rep(NA, length(
+#                          peaks_mono_iso_toUsed_NewRefMap()
+#                        )),
+#                        rt_max_cut = rep(NA, length(
+#                          peaks_mono_iso_toUsed_NewRefMap()
+#                        )),
+#                        Unit = rep("Second", length(
+#                          peaks_mono_iso_toUsed_NewRefMap()
+#                        ))
+#                      )
+#                  }
+#                  
+#                  updateAwesomeRadio(session = session,
+#                                     inputId = "UnitTime_sampleCutting",
+#                                     selected = "Second")
+#                  RvarsCorrectionTime$Second_Cutting <- TRUE
+#                }
+#              })
+# 
+# 
+# output$titleTimefilter <- renderUI(h6(paste0(
+#   "CE-time (", input$UnitTime_sampleCutting, ") :"
+# )))
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Save samples  ~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# peaks_mono_iso_sample_selectedCutting <- reactive({
+#   if (!is.null(names(peaks_mono_iso_toUsed_NewRefMap()))) {
+#     table_to_save <- peaks_mono_iso_toUsed_NewRefMap()
+#     
+#     for (i in rownames(RvarsCorrectionTime$samplesCuttingTable)) {
+#       if (RvarsCorrectionTime$samplesCuttingTable[i, "Unit"] == "Second") {
+#         if (!is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_min_cut) &
+#             !is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_max_cut)) {
+#           table_to_save[[i]] <- peaks_mono_iso_toUsed_NewRefMap()[[i]] %>%
+#             dplyr::filter(
+#               RvarsCorrectionTime$samplesCuttingTable[i,]$rt_min_cut < rt,
+#               rt < RvarsCorrectionTime$samplesCuttingTable[i,]$rt_max_cut
+#             )
+#         } else if (!is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_min_cut) &
+#                    is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_max_cut)) {
+#           table_to_save[[i]] <- peaks_mono_iso_toUsed_NewRefMap()[[i]] %>%
+#             dplyr::filter(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_min_cut <
+#                             rt)
+#         } else if (is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_min_cut) &
+#                    !is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_max_cut)) {
+#           table_to_save[[i]] <- peaks_mono_iso_toUsed_NewRefMap()[[i]] %>%
+#             dplyr::filter(rt < RvarsCorrectionTime$samplesCuttingTable[i,]$rt_max_cut)
+#         } else if (is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_min_cut) &
+#                    is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_max_cut)) {
+#           table_to_save[[i]] <- peaks_mono_iso_toUsed_NewRefMap()[[i]]
+#         }
+#       } else if (RvarsCorrectionTime$samplesCuttingTable[i, "Unit"] == "Minute") {
+#         if (!is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_min_cut) &
+#             !is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_max_cut)) {
+#           table_to_save[[i]] <- peaks_mono_iso_toUsed_NewRefMap()[[i]] %>%
+#             dplyr::filter(
+#               RvarsCorrectionTime$samplesCuttingTable[i,]$rt_min_cut < rt / 60,
+#               rt / 60 < RvarsCorrectionTime$samplesCuttingTable[i,]$rt_max_cut
+#             )
+#         } else if (!is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_min_cut) &
+#                    is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_max_cut)) {
+#           table_to_save[[i]] <- peaks_mono_iso_toUsed_NewRefMap()[[i]] %>%
+#             dplyr::filter(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_min_cut <
+#                             rt / 60)
+#         } else if (is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_min_cut) &
+#                    !is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_max_cut)) {
+#           table_to_save[[i]] <- peaks_mono_iso_toUsed_NewRefMap()[[i]] %>%
+#             dplyr::filter(rt / 60 < RvarsCorrectionTime$samplesCuttingTable[i,]$rt_max_cut)
+#         } else if (is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_min_cut) &
+#                    is.na(RvarsCorrectionTime$samplesCuttingTable[i,]$rt_max_cut)) {
+#           table_to_save[[i]] <- peaks_mono_iso_toUsed_NewRefMap()[[i]]
+#         }
+#       }
+#       
+#       
+#     }
+#     
+#     table_to_save
+#     
+#     
+#   }
+#   
+# })
+# 
+# 
+# 
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$SaveCuttingSample
+#              },
+#              handlerExpr = {
+#                shinyFileSave(input,
+#                              id = "SaveCuttingSample",
+#                              roots = volumes,
+#                              session = session)
+#                
+#                path_Save_Files_origine <- parseSavePath(volumes, input$SaveCuttingSample)$datapath
+#                valuestoSave <-  peaks_mono_iso_sample_selectedCutting()
+#                if (length(valuestoSave) > 0) {
+#                  valuestoSave <- do.call("rbind", valuestoSave)
+#                  reqColsSaved <-c('M+H',
+#                                    'M+H.min',
+#                                    'M+H.max',
+#                                    'CE-time',
+#                                    'CE-time.min',
+#                                    'CE-time.max',
+#                                    'integrated-intensity',
+#                                    'intensity',
+#                                    'sn',
+#                                    'sample'
+#                                  )
+#                  
+#                  reqColsUsed <- c('mz',
+#                                   'mzmin',
+#                                   'mzmax',
+#                                   'rt',
+#                                   'rtmin',
+#                                   'rtmax',
+#                                   'into',
+#                                   'maxo',
+#                                   'sn',
+#                                   'sample')
+#                  
+#                  idx_reqColsSaved <-  which(colnames(valuestoSave) %in% reqColsUsed)
+#                  colnames(valuestoSave)[idx_reqColsSaved] <- reqColsSaved
+#                  valuestoSave <- split(valuestoSave, f = valuestoSave$sample)
+#                  
+#                  if (length(path_Save_Files_origine) > 0) {
+#                    path_Save_Files <-
+#                      strsplit(path_Save_Files_origine, split = "/")[[1]]
+#                    directory_Save_Files <-
+#                      paste0(path_Save_Files[-length(path_Save_Files)], collapse = "/")
+#                    
+#                    
+#                    if (length(valuestoSave) == 1) {
+#                      write.table(
+#                        valuestoSave[[1]],
+#                        file = paste0(c(
+#                          directory_Save_Files,
+#                          paste(
+#                            names(valuestoSave)[1],
+#                            path_Save_Files[length(path_Save_Files)],
+#                            collapse = "",
+#                            sep = "-"
+#                          )
+#                        ), collapse = "/"),
+#                        
+#                        sep = ",",
+#                        row.names = FALSE
+#                      )
+#                      print("Save ok")
+#                    } else{
+#                      withProgress(message = 'Saving files...', value = 0, {
+#                        for (i in 1:length(valuestoSave)) {
+#                          incProgress(1 / length(peaks_mono_iso_toSave_NewRefMap()),
+#                                      detail = "")
+#                          print(paste0(c(
+#                            directory_Save_Files,
+#                            paste(
+#                              as.character(i),
+#                              path_Save_Files[length(path_Save_Files)],
+#                              collapse = "",
+#                              sep = "-"
+#                            )
+#                          ), collapse = "/"))
+#                          write.table(
+#                            valuestoSave[[i]],
+#                            file = paste0(c(
+#                              directory_Save_Files,
+#                              paste(
+#                                #as.character(i),
+#                                names(valuestoSave)[i],
+#                                path_Save_Files[length(path_Save_Files)],
+#                                collapse = "",
+#                                sep = "-"
+#                              )
+#                            ), collapse = "/"),
+#                            
+#                            sep = ",",
+#                            row.names = FALSE
+#                          )
+#                          print("Save ok")
+#                        }
+#                        
+#                      })
+#                      
+#                    }
+#                    
+#                  }
+#                }
+#                
+#              })
+# 
+# 
+# ###~~~~~~~~~~~~~~~~~~~ Validate cutted samples ~~~~~~~~~~~~~~~~~~~~~~~#
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$validCuttingRun_confirmation
+#              },
+#              handlerExpr = {
+#                if (input$validCuttingRun_confirmation) {
+#                  # if(length(peaks_mono_iso_sample_selectedCutting()) > 0){
+#                  #   RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse<-peaks_mono_iso_sample_selectedCutting()
+#                  #
+#                  #   updatePickerInput(session = session,
+#                  #                     inputId = "SelectRefrenceSample_option1",
+#                  #                     choices = names(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse))
+#                  # }
+#                  
+#                  
+#                  RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse <-
+#                    peaks_mono_iso_sample_selectedCutting()
+#                  
+#                  if (!is.null(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse)) {
+#                    updatePickerInput(
+#                      session = session,
+#                      inputId = "SelectRefrenceSample_option1",
+#                      choices = names(
+#                        RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse
+#                      )
+#                    )
+#                  } else{
+#                    updatePickerInput(
+#                      session = session,
+#                      inputId = "SelectRefrenceSample_option1",
+#                      choices = character(0),
+#                      selected = character(0)
+#                    )
+#                  }
+#                  
+#                  
+#                }
+#                
+#              })
+# 
+# 
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Choice of the reference sample Server~~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# 
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~~~~ For plot ~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# peaks_mono_iso_sample_selectedCutting_toPlot <- reactive({
+#   if (!is.null(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse) &
+#       !is.null(input$SelectRefrenceSample_option1)) {
+#     reqColstoPlot <- c('M+H', 'CE-time', 'intensity', 'sample')
+#     reqColsUsed <- c('mz', 'rt', 'maxo', 'sample')
+#     
+#     values <-
+#       RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse
+#     values <- req(values[input$SelectRefrenceSample_option1][[1]])
+#     idx_reqCols <- which(colnames(values) %in% reqColsUsed)
+#     colnames(values)[idx_reqCols] <- reqColstoPlot
+#     values$intensity <- log2(values$intensity)
+#     values
+#   }
+#   
+# })
+# 
+# 
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ When the user choose one sample ~~~~~~~~~~~~~~~~~~~~~~~~#
+# output$ReferenceSample_option1_Plot <- renderPlot({
+#   if (!is.null(peaks_mono_iso_sample_selectedCutting_toPlot()) &
+#       !is.null(input$SelectRefrenceSample_option1)) {
+#     # shinyjs::show("UnitTime_sampleCutting_id")
+#     # shinyjs::show("mousepositionSampleCutting")
+#     
+#     peaks_mono_iso_sample_selectedCutting_toPlot() %>%
+#       ggplot() +
+#       aes(x = `CE-time`, y = `M+H`, colour = intensity) +
+#       #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
+#       geom_point(size = 1) +
+#       # geom_vline(xintercept = 3229, lwd = 1.5, color = "blue", linetype = "dashed")+
+#       # geom_vline(xintercept = 750, lwd = 1.5, color = "blue", linetype = "dashed")+
+#       scale_color_viridis_c(option = "inferno", direction = -1) +
+#       ylab("Mass (M+H) (Da)") +
+#       xlab(paste("CE-time (Second)")) +
+#       #coord_cartesian(xlim = rangesZoomSample_selectedCutting$x, ylim = rangesZoomSample_selectedCutting$y, expand = TRUE)+
+#       ggtitle(paste(
+#         "Reference sample :",
+#         input$SelectRefrenceSample_option1,
+#         "\n"
+#       )) +
+#       
+#       scale_x_continuous(n.breaks = 14) +
+#       #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
+#       
+#       
+#       #facet_grid(vars(sample), vars())+
+#       #option_graphe.3
+#       theme_ben() +
+#       labs(colour = "log2 Intensity") +
+#       theme(
+#         plot.title = element_text(
+#           size = rel(0.9),
+#           face = "bold",
+#           color = "#760001",
+#           margin = margin(0, 0, 5, 0),
+#           hjust = 0.5
+#         ),
+#         plot.subtitle = element_text(hjust = 0.5),
+#         plot.background = element_rect(fill = "aliceblue")
+#       )
+#     
+#   }
+#   
+# })
+# 
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Reference sample if option 1 is choosed ~~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# observe({
+#   if (!is.null(input$SelectRefrenceSample_option1) &
+#       !is.null(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse)) {
+#     RvarsCorrectionTime$ref_Choose_sampleName <-
+#       req(input$SelectRefrenceSample_option1)
+#     RvarsCorrectionTime$ref_Choose_samplePeaks <-
+#       req(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse[RvarsCorrectionTime$ref_Choose_sampleName][[1]])
+#     
+#   }
+# })
+# 
+# 
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Reference sample if option 2 is choosed (median sample) ~~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$runSelectRefrenceSample
+#              },
+#              handlerExpr = {
+#                if (!is.null(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse)) {
+#                  disable("cutOff_sample_NewRefMap")
+#                  
+#                  cutOff_PeakList <-
+#                    do.call("rbind",
+#                            RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse)
+#                  rownames(cutOff_PeakList) <-
+#                    1:nrow(cutOff_PeakList)
+#                  
+#                  RvarsCorrectionTime$Ref_Mdian_sampleName <-
+#                    choose_refSample_alignment(cutOff_PeakList = cutOff_PeakList)
+#                  
+#                  RvarsCorrectionTime$Ref_Mdian_samplePeaks <-
+#                    RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse[RvarsCorrectionTime$Ref_Mdian_sampleName][[1]]
+#                  
+#                  
+#                  values_toPlot <-
+#                    RvarsCorrectionTime$Ref_Mdian_samplePeaks
+#                  reqColstoPlot <-
+#                    c('M+H', 'CE-time', 'intensity', 'sample')
+#                  reqColsUsed <- c('mz', 'rt', 'maxo', 'sample')
+#                  idx_reqCols <-
+#                    which(colnames(values_toPlot) %in% reqColsUsed)
+#                  colnames(values_toPlot)[idx_reqCols] <-
+#                    reqColstoPlot
+#                  values_toPlot$intensity <-
+#                    log2(values_toPlot$intensity)
+#                  
+#                  output$ReferenceSample_option2_Plot <- renderPlot({
+#                    if (!is.null(values_toPlot)) {
+#                      # shinyjs::show("UnitTime_sampleCutting_id")
+#                      # shinyjs::show("mousepositionSampleCutting")
+#                      
+#                      values_toPlot %>%
+#                        ggplot() +
+#                        aes(x = `CE-time`,
+#                            y = `M+H`,
+#                            colour = intensity) +
+#                        #geom_point(shape = "circle", size = input$sizePoints_NewRefMap) +
+#                        geom_point(size = 1) +
+#                        # geom_vline(xintercept = 3229, lwd = 1.5, color = "blue", linetype = "dashed")+
+#                        # geom_vline(xintercept = 750, lwd = 1.5, color = "blue", linetype = "dashed")+
+#                        scale_color_viridis_c(option = "inferno", direction = -1) +
+#                        ylab("Mass (M+H) (Da)") +
+#                        xlab(paste("CE-time (Second)")) +
+#                        #coord_cartesian(xlim = rangesZoomSample_selectedCutting$x, ylim = rangesZoomSample_selectedCutting$y, expand = TRUE)+
+#                        ggtitle(
+#                          paste(
+#                            "Reference sample :",
+#                            RvarsCorrectionTime$Ref_Mdian_sampleName,
+#                            "\n"
+#                          )
+#                        ) +
+#                        
+#                        scale_x_continuous(n.breaks = 14) +
+#                        #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
+#                        
+#                        
+#                        #facet_grid(vars(sample), vars())+
+#                        #option_graphe.3
+#                        theme_ben() +
+#                        labs(colour = "log2 Intensity") +
+#                        theme(
+#                          plot.title = element_text(
+#                            size = rel(0.9),
+#                            face = "bold",
+#                            color = "#760001",
+#                            margin = margin(0, 0, 5, 0),
+#                            hjust = 0.5
+#                          ),
+#                          plot.subtitle = element_text(hjust = 0.5),
+#                          plot.background = element_rect(fill = "aliceblue")
+#                        )
+#                      
+#                    }
+#                    
+#                    
+#                    
+#                  })
+#                  
+#                  enable("cutOff_sample_NewRefMap")
+#                  enable("ConfirmRefrenceSample")
+#                  
+#                }
+#                
+#              })
+# 
+# observe({
+#   if (is.null(RvarsCorrectionTime$Ref_Mdian_samplePeaks)) {
+#     output$ReferenceSample_option2_Plot <- renderPlot({
+#       
+#     })
+#   }
+# })
+# 
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ When confirm the reference sample ~~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$SelectRefrenceSample
+#              },
+#              handlerExpr = {
+#                if (input$SelectRefrenceSample == 2) {
+#                  disable("ConfirmRefrenceSample")
+#                } else if (input$SelectRefrenceSample == 1) {
+#                  enable("ConfirmRefrenceSample")
+#                }
+#              })
+# 
+# 
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$ConfirmRefrenceSample
+#              },
+#              handlerExpr = {
+#                if (input$SelectRefrenceSample == 1) {
+#                  RvarsCorrectionTime$ref_sample_sampleName <-
+#                    RvarsCorrectionTime$ref_Choose_sampleName
+#                  RvarsCorrectionTime$ref_sample_samplePeaks <-
+#                    RvarsCorrectionTime$ref_Choose_samplePeaks
+#                  hide("id_plotRefrenceSample")
+#                  hide("ConfirmRefrenceSample")
+#                  disable("id_SelectRefrenceSamplePanel")
+#                  enable("resetRefrenceSample")
+#                  shinyjs::show("resetRefrenceSample")
+#                  enable("id_Panel_runCorrectionTime")
+#                  
+#                  shinyjs::show("Id_SampleOffset")
+#                  shinyjs::show("IDoffsetSamplePlot_div")
+#                  
+#                  
+#                  if (is.null(RvarsCorrectionTime$Filenames)) {
+#                    disable("ViewSampleInfo")
+#                    
+#                  }
+#                  shinyjs::show("id_Panel_runCorrectionTime")
+#                  shinyjs::show("id_PanelDamplesInfo")
+#                  shinyjs::show("id_PanelParametersGenerateMap")
+#                  shinyjs::show("id_runProcess")
+#                  hide("id_PanelcutOff_sample_NewRefMap")
+#                } else if (input$SelectRefrenceSample == 2) {
+#                  RvarsCorrectionTime$ref_sample_sampleName <-
+#                    RvarsCorrectionTime$Ref_Mdian_sampleName
+#                  RvarsCorrectionTime$ref_sample_samplePeaks <-
+#                    RvarsCorrectionTime$Ref_Mdian_samplePeaks
+#                  hide("id_plotRefrenceSample")
+#                  hide("ConfirmRefrenceSample")
+#                  disable("id_SelectRefrenceSamplePanel")
+#                  enable("resetRefrenceSample")
+#                  shinyjs::show("resetRefrenceSample")
+#                  enable("id_Panel_runCorrectionTime")
+#                  
+#                  shinyjs::show("Id_SampleOffset")
+#                  shinyjs::show("IDoffsetSamplePlot_div")
+#                  
+#                  if (is.null(RvarsCorrectionTime$Filenames)) {
+#                    disable("ViewSampleInfo")
+#                    
+#                  }
+#                  shinyjs::show("id_Panel_runCorrectionTime")
+#                  shinyjs::show("id_PanelDamplesInfo")
+#                  shinyjs::show("id_PanelParametersGenerateMap")
+#                  shinyjs::show("id_runProcess")
+#                  hide("id_PanelcutOff_sample_NewRefMap")
+#                }
+#                
+#                
+#              })
+# 
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Reset to choose again reference sample ~~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$resetRefrenceSample
+#              },
+#              handlerExpr = {
+#                hide("resetRefrenceSample")
+#                shinyjs::show("ConfirmRefrenceSample")
+#                
+#                shinyjs::show("id_plotRefrenceSample")
+#                enable("id_SelectRefrenceSamplePanel")
+#                disable("id_Panel_runCorrectionTime")
+#                hide("id_Panel_runCorrectionTime")
+#                hide("id_PanelDamplesInfo")
+#                hide("id_PanelParametersGenerateMap")
+#                hide("id_runProcess")
+#                
+#                hide("Id_SampleOffset")
+#                hide("IDoffsetSamplePlot_div")
+#                
+#                disable("RefrenceSampleNextPage")
+#                
+#                shinyjs::show("id_PanelcutOff_sample_NewRefMap")
+#                if (input$SelectRefrenceSample == 2) {
+#                  disable("ConfirmRefrenceSample")
+#                }
+#                
+#              })
+# #
+# # ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# # ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Samples offset Server~~~~~~~~~~~~~~~~~~~~~~~~#
+# # #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# #
+# #
+# # ##~~~~~~~~~~~~~~~~~~~~~~~~~~~ Update Input SelectSampleOffset ~~~~~~~~~~~~~~~~~~~#
+# #
+# # observe({
+# #   if(!is.null(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse) & !is.null(RvarsCorrectionTime$ref_sample_sampleName)){
+# #
+# #     sample_name<-names(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse)
+# #
+# #     if(!is.null(RvarsCorrectionTime$SelectSampleOffset_Selected)){
+# #       updatePickerInput(session = session,
+# #                         inputId = "SelectSampleOffset",
+# #                         choices = sample_name[sample_name != RvarsCorrectionTime$ref_sample_sampleName],
+# #                         selected = RvarsCorrectionTime$SelectSampleOffset_Selected
+# #       )
+# #     } else {
+# #       updatePickerInput(session = session,
+# #                         inputId = "SelectSampleOffset",
+# #                         choices = sample_name[sample_name != RvarsCorrectionTime$ref_sample_sampleName]
+# #       )
+# #     }
+# #
+# #
+# #   } else {
+# #
+# #     updatePickerInput(session = session,
+# #                       inputId = "SelectSampleOffset",
+# #                       choices = character(0),
+# #                       selected = character(0))
+# #
+# #
+# #   }
+# # })
+# #
+# # ##~~~~~~~~~~~~~~~ Plot sample selected and Reference sample ~~~~~~~~~~~~~~~~~~~#
+# #
+# # observe({
+# #
+# #   if(!is.null(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse) & !is.null(input$SelectSampleOffset)){
+# #
+# #     RvarsCorrectionTime$peaks_mono_iso_shift_plot<-
+# #       RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse[c(input$SelectSampleOffset, RvarsCorrectionTime$ref_sample_sampleName)]
+# #   } else {
+# #     RvarsCorrectionTime$peaks_mono_iso_shift_plot<-NULL
+# #   }
+# #
+# # })
+# #
+# #
+# # ## Parameters plot
+# #
+# # rangesZoomOffsetSamplePlot<- reactiveValues(x = NULL, y = NULL)
+# #
+# # # When a double-click happens, check if there's a brush on the plot.
+# # # If so, zoom to the brush bounds; if not, reset the zoom.
+# # observeEvent({input$offsetSamplePlot_dblclick},{
+# #   brush <- input$offsetSamplePlot_brush
+# #   if (!is.null(brush)) {
+# #     rangesZoomOffsetSamplePlot$x <- c(brush$xmin, brush$xmax)
+# #     rangesZoomOffsetSamplePlot$y <- c(brush$ymin, brush$ymax)
+# #
+# #   } else {
+# #     ## reset coord_cartesian
+# #     rangesZoomOffsetSamplePlot$x <- NULL
+# #     rangesZoomOffsetSamplePlot$y <- NULL
+# #   }
+# # })
+# #
+# # output$offsetSamplePlot<-renderPlot({
+# #
+# #   if(length(RvarsCorrectionTime$peaks_mono_iso_shift_plot)>1){
+# #
+# #     peaks_shift_plot<-do.call("rbind", RvarsCorrectionTime$peaks_mono_iso_shift_plot)
+# #
+# #     rownames(peaks_shift_plot)<-1:nrow(peaks_shift_plot)
+# #
+# #     reqColstoPlot<-c('M+H','CE-time','intensity', 'sample')
+# #     reqColsUsed<-c('mz','rt','maxo', 'sample')
+# #
+# #     colnames(peaks_shift_plot)[which(colnames(peaks_shift_plot) %in% reqColsUsed)]<-reqColstoPlot
+# #
+# #     peaks_shift_plot$intensity<-log2(peaks_shift_plot$intensity)
+# #
+# #
+# #     peaks_shift_plot$sample[peaks_shift_plot$sample == RvarsCorrectionTime$ref_sample_sampleName]<-"Reference sample"
+# #
+# #     peaks_shift_plot$sample<-factor(peaks_shift_plot$sample,
+# #                                     levels = c(unique(peaks_shift_plot$sample)[unique(peaks_shift_plot$sample)!="Reference sample"],
+# #                                                "Reference sample"
+# #                                                ))
+# #
+# #     shinyjs::show("IDoffsetSamplePlot_info_div")
+# #
+# #     peaks_shift_plot %>%
+# #       ggplot() +
+# #       aes(x = `CE-time`, y = `M+H`, colour = intensity) +
+# #       #geom_point(shape = "circle", size = input$sizePoints) +
+# #       geom_point(size = 0.5) +
+# #       scale_color_viridis_c(option = "inferno", direction = -1) +
+# #       theme_gray() +
+# #       #facet_grid(vars(sample), vars())  +
+# #       facet_wrap(~sample, dir = "v")+
+# #       coord_cartesian(xlim = rangesZoomOffsetSamplePlot$x, ylim = rangesZoomOffsetSamplePlot$y, expand = TRUE)+
+# #       ylab("Mass (M+H) (Da)") +
+# #       #xlab(paste("CE-time (",input$UnitTime_NewRefMap,")")) +
+# #       xlab(paste("CE-time")) +
+# #
+# #       #ggtitle(paste("Nubmer of features :", number_of_features()))+
+# #
+# #       scale_x_continuous(n.breaks = 14)+
+# #       scale_y_continuous(n.breaks = 10)+
+# #       #scale_y_continuous(breaks=seq(input$mzRange[1],input$mzRange[2],by=200))+
+# #
+# #
+# #       #facet_grid(vars(sample), vars())+
+# #       #option_graphe.2 +
+# #       theme_ben() +
+# #       labs(colour ="log2 Intensity")+
+# #       theme(plot.title = element_text(size = rel(1),
+# #                                       face = "bold",
+# #                                       color = "blue",
+# #                                       margin = margin(0,0,5,0), hjust = 0.5),
+# #             plot.subtitle = element_text(hjust = 0.5),
+# #             panel.border = element_rect(fill = "transparent", # Needed to add the border
+# #                                         color = "blue",
+# #                                         linewidth = 0.5,
+# #                                         linetype = "dashed"),
+# #
+# #             # Les étiquettes dans le cas d'un facetting
+# #             strip.background = element_rect(fill = "grey", color = "grey"),
+# #             strip.text = element_text(size = rel(1), face = "bold.italic", color = "black", margin = margin(5,0,5,0)),
+# #             plot.background = element_rect(fill = "aliceblue"))
+# #   }
+# # })
+# #
+# # ###~~~~~~~~~~~~~~~~~~~~~~~~~~ Position mouse ~~~~~~~~~~~~~~~~~~~~~~~~#
+# # output$IDoffsetSamplePlot_info<- renderText({
+# #   paste0("Mouse position : CE-time = ", round(req(input$offsetSamplePlot_click$x),0)," (second), ",
+# #          " M+H = ", round(req(input$offsetSamplePlot_click$y),4)," (Da)")
+# # })
+# #
+# # ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~ info-bulle ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# # output$offsetSamplePlot_hover_info <- renderUI({
+# #   hover <- req(input$offsetSamplePlot_hover)
+# #   if(length(RvarsCorrectionTime$peaks_mono_iso_shift_plot)>1){
+# #
+# #     peaks_shift_plot<-do.call("rbind", RvarsCorrectionTime$peaks_mono_iso_shift_plot)
+# #
+# #     rownames(peaks_shift_plot)<-1:nrow(peaks_shift_plot)
+# #
+# #     reqColstoPlot<-c('M+H','CE-time','intensity', 'sample')
+# #     reqColsUsed<-c('mz','rt','maxo', 'sample')
+# #
+# #     colnames(peaks_shift_plot)[which(colnames(peaks_shift_plot) %in% reqColsUsed)]<-reqColstoPlot
+# #
+# #     peaks_shift_plot$intensity<-log2(peaks_shift_plot$intensity)
+# #
+# #
+# #     peaks_shift_plot$sample[ peaks_shift_plot$sample == RvarsCorrectionTime$ref_sample_sampleName]<-"Reference sample"
+# #
+# #     peaks_shift_plot$sample<-factor(peaks_shift_plot$sample,
+# #                                     levels = c(unique(peaks_shift_plot$sample)[unique(peaks_shift_plot$sample)!="Reference sample"],
+# #                                                "Reference sample"
+# #                                     ))
+# #
+# #
+# #     Values_myPlot_data_peaks_shift_plot<-reactive({
+# #       peaks_shift_plot
+# #     })
+# #
+# #
+# #     point <-suppressWarnings(nearPoints(req(Values_myPlot_data_peaks_shift_plot()), hover, threshold = 5, maxpoints = 1, addDist = TRUE))
+# #     if (nrow(point) == 0) return(NULL)
+# #
+# #     # calculate point position INSIDE the image as percent of total dimensions
+# #     # from left (horizontal) and from top (vertical)
+# #     left_pct <- (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+# #     top_pct <- (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+# #
+# #     # calculate distance from left and bottom side of the picture in pixels
+# #     left_px <- hover$range$left + left_pct * (hover$range$right - hover$range$left)
+# #     top_px <- hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+# #
+# #     # create style property fot tooltip
+# #     # background color is set so tooltip is a bit transparent
+# #     # z-index is set so we are sure are tooltip will be on top
+# #     style <- paste0("position:absolute; z-index:100; background-color: rgba(245, 245, 245, 0.85);",
+# #                     "left:", left_px + 2, "px; top:", top_px + 2, "px;")
+# #
+# #     # actual tooltip created as wellPanel
+# #     div(
+# #       class = "well well-sm",
+# #       style = style,
+# #       p(HTML(paste0(
+# #         "<span class='bullText'> M+H: </span>", round(point$`M+H`,4), "<br/>",
+# #         "<span class='bullText'> CE-time: </span>", round(point$`CE-time`,2), "<br/>",
+# #
+# #         "<span class='bullText'> log2 Intensity: </span>", round(point$intensity,2), "<br/>",
+# #         "<span class='bullText'> Intensity: </span>", round(2^(point$intensity),0), "<br/>"
+# #       )))
+# #     )
+# #
+# #     }
+# #
+# # })
+# #
+# #
+# # ###~~~~~~~~~~~~~~ Action button shift "ButtonShift" ~~~~~~~~~~~~~~#
+# #
+# # observeEvent(
+# #   ignoreNULL = TRUE,
+# #   eventExpr = {
+# #     input$ButtonShift
+# #   },
+# #   handlerExpr = {
+# #
+# #     print(input$IdValue)
+# #     print(input$IdRefValue)
+# #
+# #     if(!is.na(input$IdValue) &
+# #        !is.na(input$IdRefValue) &
+# #        !is.null(input$SelectSampleOffset) &
+# #        !is.null(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse)){
+# #
+# #       shiftValue<-input$IdRefValue-input$IdValue
+# #
+# #       if(shiftValue>=0){
+# #
+# #         RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse[input$SelectSampleOffset][[1]]$rt<-
+# #           RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse[input$SelectSampleOffset][[1]]$rt+shiftValue
+# #       }else{
+# #         RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse[input$SelectSampleOffset][[1]]$rt<-
+# #           RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse[input$SelectSampleOffset][[1]]$rt+shiftValue
+# #       }
+# #
+# #       RvarsCorrectionTime$SelectSampleOffset_Selected<-input$SelectSampleOffset
+# #     }
+# #
+# #   })
+# 
+# 
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ###~~~~~~~~~~~~~~~~ CE-time correction with R package xcms~~~~~~~~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# ##~~~~~~~~~~~~~~~ Update values for subsetObiwrap ~~~~~~~~~~~#
+# observe({
+#   if (!is.null(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse)) {
+#     sample_name <-
+#       names(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse)
+#     updatePickerInput(
+#       session = session,
+#       inputId = "subsetObiwrap",
+#       choices = sample_name,
+#       selected = sample_name
+#     )
+#   } else {
+#     updatePickerInput(
+#       session = session,
+#       inputId = "subsetObiwrap",
+#       choices = character(0),
+#       selected = character(0)
+#     )
+#   }
+# })
+# 
+# 
+# 
+# 
+# 
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~~~ Upload raw data format mzML~~~~~~~~~~~~~~~~~~~~~~~#
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$rawDataMZml
+#              },
+#              handlerExpr = {
+#                files <- input$rawDataMZml
+#                ext <- tools::file_ext(files$datapath)
+#                
+#                if (length(ext) >= 1) {
+#                  if (length(ext) > 1) {
+#                    if (all.equal(ext, rep("mzML", length(ext))) != TRUE) {
+#                      message("Please upload a mzML files...!")
+#                      # hide("progressWrapper")
+#                      # hide("analysisProgress")
+#                      # shinyjs::html("analysisProgress",html = NULL)
+#                      
+#                      sendSweetAlert(
+#                        session = session,
+#                        title = "Warning !",
+#                        text = "Please upload a mzML files!",
+#                        type = "warning"
+#                      )
+#                      
+#                    } else {
+#                      ## Verify if files mzML matched well files csv
+#                      path_mzML <- input$rawDataMZml$datapath
+#                      Filenames_csv <-
+#                        names(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse)
+#                      Filenames_mzML <- sub(
+#                        basename(input$rawDataMZml$name),
+#                        pattern = ".mzML",
+#                        replacement = "",
+#                        fixed = TRUE
+#                      )
+#                      if (length(Filenames_csv) != length(Filenames_mzML) ||
+#                          !all(Filenames_mzML %in% Filenames_csv)) {
+#                        RvarsCorrectionTime$rawData_mzML_path <- NULL
+#                        RvarsCorrectionTime$Filenames <- NULL
+#                        RvarsCorrectionTime$Class <- NULL
+#                        RvarsCorrectionTime$ImportClass <- FALSE
+# 
+#                        missing_mzML <- setdiff(Filenames_csv, Filenames_mzML)
+#                        extra_mzML   <- setdiff(Filenames_mzML, Filenames_csv)
+# 
+#                        msg <- sprintf(
+#                          "Mismatch detected!\nExpected: %d samples (from CSV)\nReceived: %d mzML files\nMissing in mzML: %s\nUnexpected in mzML: %s\n\nIf you uploaded many files, some may have been dropped. Try uploading in smaller batches or use a ZIP archive.",
+#                          length(Filenames_csv),
+#                          length(Filenames_mzML),
+#                          if (length(missing_mzML)) paste(head(missing_mzML, 10), collapse = ", ") else "none",
+#                          if (length(extra_mzML)) paste(head(extra_mzML, 10), collapse = ", ") else "none"
+#                        )
+# 
+#                        sendSweetAlert(
+#                          session = session,
+#                          title = "Warning !",
+#                          text = msg,
+#                          type = "warning"
+#                        )
+#                        
+#                      } else {
+#                        ## get path raw data mzML and files names
+#                        RvarsCorrectionTime$rawData_mzML_path <-
+#                          input$rawDataMZml$datapath
+#                        
+#                        RvarsCorrectionTime$Filenames <-
+#                          sub(
+#                            basename(input$rawDataMZml$name),
+#                            pattern = ".mzML",
+#                            replacement = "",
+#                            fixed = TRUE
+#                          )
+#                        
+#                        RvarsCorrectionTime$Class <-
+#                          rep("", length(RvarsCorrectionTime$rawData_mzML_path))
+#                        if (!is.null(RvarsCorrectionTime$Filenames)) {
+#                          enable("ViewSampleInfo")
+#                        }
+#                        
+#                      }
+#                      
+#                      
+#                      
+#                      
+#                      
+#                    }
+#                    
+#                  } else if (ext != "mzML") {
+#                    message("Please upload a mzML file...!")
+#                    # hide("progressWrapper")
+#                    # hide("analysisProgress")
+#                    # shinyjs::html("analysisProgress",html = NULL)
+#                    
+#                    sendSweetAlert(
+#                      session = session,
+#                      title = "Warning !",
+#                      text = "Please upload a mzML file !",
+#                      type = "warning"
+#                    )
+#                    
+#                  } else {
+#                    RvarsCorrectionTime$rawData_mzML_path <- input$rawDataMZml$datapath
+#                    ## Verify if files mzML matched well files csv
+#                    path_mzML <- input$rawDataMZml$datapath
+#                    Filenames_csv <-
+#                      names(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse)
+#                    Filenames_mzML <- sub(
+#                      basename(input$rawDataMZml$name),
+#                      pattern = ".mzML",
+#                      replacement = "",
+#                      fixed = TRUE
+#                    )
+#                    if (length(Filenames_csv) != length(Filenames_mzML) ||
+#                        !all(Filenames_mzML %in% Filenames_csv)) {
+#                      RvarsCorrectionTime$rawData_mzML_path <- NULL
+#                      RvarsCorrectionTime$Filenames <- NULL
+#                      RvarsCorrectionTime$Class <- NULL
+#                      RvarsCorrectionTime$ImportClass <- FALSE
+# 
+#                      missing_mzML <- setdiff(Filenames_csv, Filenames_mzML)
+#                      extra_mzML   <- setdiff(Filenames_mzML, Filenames_csv)
+# 
+#                      msg <- sprintf(
+#                        "Mismatch detected!\nExpected: %d samples (from CSV)\nReceived: %d mzML files\nMissing in mzML: %s\nUnexpected in mzML: %s\n\nIf you uploaded many files, some may have been dropped. Try uploading in smaller batches or use a ZIP archive.",
+#                        length(Filenames_csv),
+#                        length(Filenames_mzML),
+#                        if (length(missing_mzML)) paste(head(missing_mzML, 10), collapse = ", ") else "none",
+#                        if (length(extra_mzML)) paste(head(extra_mzML, 10), collapse = ", ") else "none"
+#                      )
+# 
+#                      sendSweetAlert(
+#                        session = session,
+#                        title = "Warning !",
+#                        text = msg,
+#                        type = "warning"
+#                      )
+#                      
+#                    } else {
+#                      ## get path raw data mzML and files names
+#                      RvarsCorrectionTime$rawData_mzML_path <-
+#                        input$rawDataMZml$datapath
+#                      
+#                      RvarsCorrectionTime$Filenames <-
+#                        sub(
+#                          basename(input$rawDataMZml$name),
+#                          pattern = ".mzML",
+#                          replacement = "",
+#                          fixed = TRUE
+#                        )
+#                      
+#                      RvarsCorrectionTime$Class <-
+#                        rep("", length(RvarsCorrectionTime$rawData_mzML_path))
+#                      if (!is.null(RvarsCorrectionTime$Filenames)) {
+#                        enable("ViewSampleInfo")
+#                      }
+#                      
+#                    }
+#                    
+#                    
+#                  }
+#                  
+#                  
+#                }
+#                
+#                # Filenames and classes
+#                
+#                
+#                output$sampleInfoEdit <- renderUI({
+#                  if (!is.null(RvarsCorrectionTime$Filenames)) {
+#                    lapply(1:length(RvarsCorrectionTime$Filenames), function(i, n) {
+#                      fluidRow(column(6,
+#                                      disabled(
+#                                        textInput(
+#                                          inputId = paste("sampleName_", i, sep = ""),
+#                                          value = n[i],
+#                                          label = ""
+#                                        )
+#                                      )), column(
+#                                        6,
+#                                        textInput(
+#                                          inputId = paste("className_", i, sep = ""),
+#                                          placeholder = "Enter class name",
+#                                          value = "",
+#                                          label = ""
+#                                        )
+#                                      ))
+#                    }, RvarsCorrectionTime$Filenames)
+#                  }
+#                  
+#                  
+#                })
+#                
+#                
+#                #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Samples Info Edit~~~~~~~~~~~~~~~~~~~~~#
+#                if (!is.null(RvarsCorrectionTime$Filenames)) {
+#                  showModal(
+#                    modalDialog(
+#                      title = "Edit the class that matches each sample",
+#                      
+#                      div(
+#                        id = "id_PanelDamplesInfo",
+#                        class = "well well-sm",
+#                        h4("Sample(s) information"),
+#                        hr(),
+#                        #htmlOutput("sampleInfoFileWrapper"),
+#                        
+#                        fluidRow(column(12,
+#                                        p(
+#                                          paste(
+#                                            "Manually enter sample-class information ",
+#                                            "(after file mzML upload)",
+#                                            sep = ""
+#                                          )
+#                                        ))),
+#                        fluidRow(column(6,
+#                                        div(
+#                                          style = paste(
+#                                            "font-weight:bold;",
+#                                            "border-style: none none dashed none;",
+#                                            "border-width: 2px;"
+#                                          ),
+#                                          "Filename"
+#                                        )), column(6,
+#                                                   div(
+#                                                     style = paste(
+#                                                       "font-weight:bold;",
+#                                                       "border-style: none none dashed none;",
+#                                                       "border-width: 2px;"
+#                                                     ),
+#                                                     "Class"
+#                                                   ))),
+#                        fluidRow(column(12,
+#                                        div(
+#                                          class = "small",
+#                                          htmlOutput("sampleInfoEdit")
+#                                        )))
+#                      ),
+#                      
+#                      size = "l",
+#                      easyClose = FALSE,
+#                      fade = TRUE,
+#                      footer = modalButton("Close (Esc)")
+#                    )
+#                  )
+#                  
+#                  
+#                }
+#                
+#              })
+# 
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~~save filename mzML ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 
+# observeEvent(ignoreInit = TRUE, 
+#              eventExpr =  {
+#                input$saveMZMLfilenames
+#              }, {
+#                if(!is.null(RvarsCorrectionTime$Filenames)){
+#                  # open file save dialog 
+#                  shinyFileSave(
+#                    input , 
+#                    id = "saveMZMLfilenames",
+#                    roots =  volumes,
+#                    session = session
+#                    
+#                  )
+#                  
+#                  # get the selected save path 
+#                  save_path = parseSavePath(volumes, input$saveMZMLfilenames)
+#                  
+#                  if(nrow(save_path) > 0 ){
+#                    file_path = as.character(save_path$datapath)
+#                    
+#                    tryCatch({
+#                      openxlsx::write.xlsx(
+#                        data.frame(Filenames = RvarsCorrectionTime$Filenames, 
+#                                   Class = rep("a", length(RvarsCorrectionTime$Filenames) )),
+#                        file = file_path,
+#                        rowNames =  FALSE
+#                      )
+#                      
+#                      
+#                      showNotification(
+#                        HTML(paste(
+#                          "<strong>✓ Export successful!</strong><br>",
+#                          "File saved as Excel with", length(RvarsCorrectionTime$Filenames), "rows<br>",
+#                          "Location:", basename(file_path)
+#                        )),
+#                        type = "message",
+#                        duration = 7
+#                      )
+#                    }, error = function(e) {
+#                      
+#                      showNotification(
+#                        HTML(paste(
+#                          "<strong>Error exporting Excel:</strong><br>",
+#                          e$message
+#                        )),
+#                        type = "error",
+#                        duration = 5
+#                      )
+#                      
+#                    })
+#                  }
+#                  
+#                }
+#              })
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ When upload Samples Info ~~~~~~~~~~~~~~~~~~~~~#
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$UploadSampleClass
+#              }
+#              , {
+#                if (is.null(RvarsCorrectionTime$Filenames)) {
+#                  sendSweetAlert(
+#                    session = session,
+#                    title = "Warning !",
+#                    text = "Please upload mzML files first",
+#                    type = "warning"
+#                  )
+#                } else {
+#                  files <- input$UploadSampleClass
+#                  ext <- tools::file_ext(files$datapath)
+#                  
+#                  reqCols <- c('Filenames', 'Class')
+#                  
+#                  reqColsMess <- " 'Filenames', 'Class'"
+#                  
+#                  
+#                  if (ext != "csv") {
+#                    message("Please upload a csv file...!")
+#                    
+#                    sendSweetAlert(
+#                      session = session,
+#                      title = "Warning !",
+#                      text = "Please upload a csv file !",
+#                      type = "warning"
+#                    )
+#                  } else {
+#                    tryCatch({
+#                      a <- read.csv(input$UploadSampleClass$datapath)
+#                    },
+#                    error = function(e) {
+#                      message("Please upload a csv file...!")
+#                      
+#                      
+#                      sendSweetAlert(
+#                        session = session,
+#                        title = "Warning !",
+#                        text = paste("Please upload a csv file...! "),
+#                        type = "warning"
+#                      )
+#                    })
+#                    
+#                    if (!all(reqCols %in% colnames(a))) {
+#                      message("Please upload a csv file...!")
+#                      
+#                      sendSweetAlert(
+#                        session = session,
+#                        title = "Warning !",
+#                        text = paste(
+#                          "Required columns :",
+#                          reqColsMess,
+#                          "not found in files.",
+#                          sep = " "
+#                        ),
+#                        type = "warning"
+#                      )
+#                    } else {
+#                      a <- a[, reqCols]
+#                      
+#                      if (!all(RvarsCorrectionTime$Filenames %in% a$Filenames)) {
+#                        sendSweetAlert(
+#                          session = session,
+#                          title = "Warning !",
+#                          text = paste("Files names mzML don't match samples names in file csv"),
+#                          type = "warning"
+#                        )
+#                      } else {
+#                        RvarsCorrectionTime$Class <- c()
+#                        for (i in 1:length(RvarsCorrectionTime$Filenames)) {
+#                          RvarsCorrectionTime$Class[i] <-
+#                            a[a$Filenames == RvarsCorrectionTime$Filenames[i], "Class"]
+#                        }
+#                        
+#                        RvarsCorrectionTime$ImportClass <- TRUE
+#                        
+#                        
+#                      }
+#                      
+#                      
+#                    }
+#                  }
+#                  
+#                }
+#              })
+# 
+# ###~~~~~~~~~~~~~~~~~~~~~~~~~ update the Pheno Data~~~~~~~~~~~~~~~~~~~~~~~~~~~~###
+# observe({
+#   if (!is.null(RvarsCorrectionTime$Filenames)) {
+#     if (!RvarsCorrectionTime$ImportClass) {
+#       RvarsCorrectionTime$Class <-
+#         unlist(sapply(1:length(RvarsCorrectionTime$Filenames), function(i) {
+#           n <- input[[paste("className_", i, sep = "")]]
+#           if (length(n) > 0)
+#             return(n)
+#           return("")
+#         }))
+#     }
+#     
+#     
+#     RvarsCorrectionTime$pheno_Data_mzML <-
+#       data.frame(Filenames = RvarsCorrectionTime$Filenames,
+#                  Class = RvarsCorrectionTime$Class)
+#   }
+#   
+# })
+# 
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~ When click at button 'Enter samples classes~~~~~~~~~~~~~~~~~~~~~~~##
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$ViewSampleInfo
+#              },
+#              handlerExpr = {
+#                if (!is.null(RvarsCorrectionTime$Class)) {
+#                  lapply(1:length(RvarsCorrectionTime$Class), function(i, n) {
+#                    updateTextInput(
+#                      session = session,
+#                      inputId = paste("className_", i, sep = ""),
+#                      placeholder = "Enter class name",
+#                      value = n[i],
+#                      label = ""
+#                    )
+#                  }, RvarsCorrectionTime$Class)
+#                }
+#                
+#                
+#                
+#                showModal(
+#                  modalDialog(
+#                    title = "Edit the class that matches each sample",
+#                    
+#                    div(
+#                      id = "id_PanelDamplesInfo",
+#                      class = "well well-sm",
+#                      h4("Sample(s) information"),
+#                      hr(),
+#                      #htmlOutput("sampleInfoFileWrapper"),
+#                      
+#                      fluidRow(column(12,
+#                                      p(
+#                                        paste(
+#                                          "Manually enter sample-class information ",
+#                                          "(after file mzML upload)",
+#                                          sep = ""
+#                                        )
+#                                      ))),
+#                      fluidRow(column(6,
+#                                      div(
+#                                        style = paste(
+#                                          "font-weight:bold;",
+#                                          "border-style: none none dashed none;",
+#                                          "border-width: 2px;"
+#                                        ),
+#                                        "Filename"
+#                                      )), column(6,
+#                                                 div(
+#                                                   style = paste(
+#                                                     "font-weight:bold;",
+#                                                     "border-style: none none dashed none;",
+#                                                     "border-width: 2px;"
+#                                                   ),
+#                                                   "Class"
+#                                                 ))),
+#                      fluidRow(column(12,
+#                                      div(
+#                                        class = "small",
+#                                        htmlOutput("sampleInfoEdit")
+#                                      )))
+#                    ),
+#                    
+#                    size = "l",
+#                    easyClose = FALSE,
+#                    fade = TRUE,
+#                    footer = modalButton("Close (Esc)")
+#                  )
+#                )
+#                
+#              })
+# 
+# 
+# ###~~~~~~~~~~~~~~~~~ Disable and enable button 'ButtonCorrectionXCMS'~~~~~~~~~~~#
+# 
+# observe({
+#   ClassOK <- (
+#     !is.null(RvarsCorrectionTime$pheno_Data_mzML$Class) &&
+#       all(RvarsCorrectionTime$pheno_Data_mzML$Class != "")
+#   )
+#   
+#   if (ClassOK) {
+#     enable("ButtonCorrectionXCMS")
+#   } else{
+#     disable("ButtonCorrectionXCMS")
+#   }
+# })
+# 
+# 
+# 
+# ##~~~~~~~~~~~~~ Reset some parameters when them in default ~~~~~~~~~~~~~~~~~~~~#
+# 
+# observe({
+#   if (length(input$CorrectionTimeXCMS_NewRefMap) != 0) {
+#     if (input$CorrectionTimeXCMS_NewRefMap == "defaults") {
+#       shinyjs::reset("binSizeObiwrap")
+#       
+#       shinyjs::reset("MSlevelObiwrap")
+#       
+#       shinyjs::reset("subsetAdjustObiwrap")
+#       
+#       
+#       
+#       if (!is.null(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse)) {
+#         sample_name <-
+#           names(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse)
+#         updatePickerInput(
+#           session = session,
+#           inputId = "subsetObiwrap",
+#           choices = sample_name,
+#           selected = sample_name
+#         )
+#       } else {
+#         updatePickerInput(
+#           session = session,
+#           inputId = "subsetObiwrap",
+#           choices = character(0),
+#           selected = character(0)
+#         )
+#       }
+#       
+#     }
+#     
+#   }
+# })
+# 
+# 
+# ##~~~~~~~~~~~~~ Start Correction Obiwrap with xcms (button 'ButtonCorrectionXCMS') ~~~~~~~~~~~~~~~~~~~~#
+# 
+# 
+# observe({
+#   if(!is.null(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse)){
+#     cat("RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse is not null !  \n")
+#   }
+# })
+# 
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$ButtonCorrectionXCMS
+#              },
+#              handlerExpr = {
+#                ClassOK <- (
+#                  !is.null(RvarsCorrectionTime$pheno_Data_mzML$Class) &&
+#                    all(RvarsCorrectionTime$pheno_Data_mzML$Class != "")
+#                )
+#                
+#                if (!is.null(RvarsCorrectionTime$rawData_mzML_path) &
+#                    !is.null(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse) &
+#                    !is.null(RvarsCorrectionTime$ref_sample_sampleName) &
+#                    ClassOK) {
+#                  if (length(RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse) <
+#                      2) {
+#                    sendSweetAlert(
+#                      session = session,
+#                      title = "Warning !",
+#                      text = HTML(
+#                        "Can’t do CE-time correction with only 1 file. <br/>
+#                       Please load at least 2 files.!"
+#                      ),
+#                      type = "warning",
+#                      html = TRUE
+#                    )
+#                    
+#                  } else {
+#                    if (!is.element(RvarsCorrectionTime$ref_sample_sampleName,
+#                                    input$subsetObiwrap)) {
+#                      print(paste(
+#                        "Length sample selected :",
+#                        length(input$subsetObiwrap)
+#                      ))
+#                      sendSweetAlert(
+#                        session = session,
+#                        title = "Warning !",
+#                        text = HTML(
+#                          paste(
+#                            "Please include the reference sample: ",
+#                            RvarsCorrectionTime$ref_sample_sampleName,
+#                            " in parameter 'Subset'!"
+#                          )
+#                        ),
+#                        type = "warning",
+#                        html = TRUE
+#                      )
+#                      
+#                    } else if (length(input$subsetObiwrap) < 2) {
+#                      print(paste(
+#                        "Length sample selected :",
+#                        length(input$subsetObiwrap)
+#                      ))
+#                      
+#                      sendSweetAlert(
+#                        session = session,
+#                        title = "Warning !",
+#                        text = HTML(
+#                          paste(
+#                            "Please select at least 2 sample and include the reference sample: ",
+#                            RvarsCorrectionTime$ref_sample_sampleName,
+#                            " in parameter 'Subset'!"
+#                          )
+#                        ),
+#                        type = "warning",
+#                        html = TRUE
+#                      )
+#                    } else {
+#                      print(paste(
+#                        "Length sample selected :",
+#                        length(input$subsetObiwrap)
+#                      ))
+#                      
+#                      ### Disable some buttons when processes started
+#                      shinyjs::disable(selector = '.navbar-nav a[data-value="Analysis new samples"')
+#                      shinyjs::disable(selector = '.navbar-nav a[data-value="New reference map"')
+#                      shinyjs::disable(selector = '.navbar-nav a[data-value="Database"')
+#                      shinyjs::disable(selector = '.navbar-nav a[data-value="Statistical analysis"')
+#                      shinyjs::disable(selector = '.navbar-nav a[data-value="Help"')
+#                      
+#                      
+#                      
+#                      
+#                      
+#                      withProgress(message = 'CE-time correction:', value = 0, {
+#                        message("\n 1. Importing the necessary functions...")
+#                        incProgress(1 / 6, detail = "Importing the necessary functions...")
+#                        source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R",
+#                               local = TRUE)
+#                        
+#                        message("\n 2. Getting data...")
+#                        incProgress(1 / 6, detail = "Getting data...")
+#                        peaks_mono_iso_toUSe <-
+#                          do.call(
+#                            "rbind",
+#                            RvarsCorrectionTime$peaks_mono_iso_sample_selectedCutting_toUse
+#                          )
+#                        rownames(peaks_mono_iso_toUSe) <-
+#                          1:nrow(peaks_mono_iso_toUSe)
+#                        
+#                        
+#                        incProgress(1 / 6, detail = "Reading mzML raw files...")
+#                        message("\n 3. Reading mzML raw files for the time correction...")
+#                        
+#                        
+#                        #~~~~~~~~~~~ Normalize path mzML and Filenames in pheno_Data ~~~~~~~~~~#
+#                        
+#                        rownames(RvarsCorrectionTime$pheno_Data_mzML) <-
+#                          1:nrow(RvarsCorrectionTime$pheno_Data_mzML)
+#                        rownames(peaks_mono_iso_toUSe) <-
+#                          1:nrow(peaks_mono_iso_toUSe)
+#                        
+#                        
+#                        rawData_mzML_OnDiskMSnExp <-
+#                          MSnbase::readMSData(
+#                            RvarsCorrectionTime$rawData_mzML_path,
+#                            pdata = new(
+#                              "AnnotatedDataFrame" ,#"NAnnotatedDataFrame",
+#                              RvarsCorrectionTime$pheno_Data_mzML
+#                            ),
+#                            mode = "onDisk"
+#                          )
+#                        
+#                        message("\n 4. Preprocessing in progress...")
+#                        incProgress(1 / 6, detail = "Preprocessing in progress...")
+#                        
+#                        ## Convert the object raw_data_mzML ('OnDiskMSnExp') into class 'XCMSnExp'
+#                        rawData_mzML_XCMSnExp <-
+#                          as(rawData_mzML_OnDiskMSnExp, "XCMSnExp")
+#                        
+#                        #select sample in pheno_Data
+#                        #please, make sure that column sample in peaks match with column sample_nampe pheno_Data
+#                        peaks_mono_iso_toUSe <-
+#                          peaks_mono_iso_toUSe %>%
+#                          dplyr::filter(sample %in% RvarsCorrectionTime$pheno_Data_mzML$Filenames)
+#                        
+#                        # numbering of samples
+#                        j <- 1
+#                        for (names in RvarsCorrectionTime$pheno_Data_mzML$Filenames) {
+#                          peaks_mono_iso_toUSe[peaks_mono_iso_toUSe$sample == names, "sample"] <-
+#                            j
+#                          j <- j + 1
+#                        }
+#                        peaks_mono_iso_toUSe$sample <-
+#                          as.double(peaks_mono_iso_toUSe$sample)
+#                        peaks_mono_iso_toUSe <-
+#                          order.data.frame(data = peaks_mono_iso_toUSe,
+#                                           column = "sample",
+#                                           rename.index = TRUE)
+#                        peaksMatrix <-
+#                          as.matrix.data.frame(peaks_mono_iso_toUSe[, 1:10]) ## modify
+#                        
+#                        ## Add peakMatrix in object 'rawData_mzML_XCMSnExp'
+#                        chromPeaks(rawData_mzML_XCMSnExp) <-
+#                          peaksMatrix
+#                        
+#                        # change column 'sample' with real names
+#                        
+#                        for (i in 1:length(unique(peaks_mono_iso_toUSe$sample))) {
+#                          peaks_mono_iso_toUSe[peaks_mono_iso_toUSe$sample == i, "sample"] <-
+#                            RvarsCorrectionTime$pheno_Data_mzML$Filenames[i]
+#                        }
+#                        peaks_mono_iso_toUSe$sample <-
+#                          as.character(peaks_mono_iso_toUSe$sample)
+#                        
+#                        ###~~~~~~~~~~~~~~~~~~~ Run function correction time ~~~~~~~~~~~~~~~~~#
+#                        message("\n 5. Correcting time in progress...")
+#                        incProgress(1 / 6, detail = "Correcting time in progress...")
+#                        
+#                        message(
+#                          "\n Reference sample name used : ",
+#                          RvarsCorrectionTime$ref_sample_sampleName
+#                        )
+# 
+#                        # system.time(
+#                        #   RvarsCorrectionTime$dataObiwarp_Aligned <-
+#                        #     alignement_Obiwrap(
+#                        #       xdata = rawData_mzML_XCMSnExp,
+#                        #       binSize = input$binSizeObiwrap,
+#                        #       msLevel = input$MSlevelObiwrap,
+#                        #       subset = which(
+#                        #         RvarsCorrectionTime$pheno_Data_mzML$Filenames %in% req(input$subsetObiwrap)
+#                        #       ),
+#                        #       subsetAdjust = input$subsetAdjustObiwrap,
+#                        #       centerSample = which(
+#                        #         RvarsCorrectionTime$pheno_Data_mzML$Filenames == RvarsCorrectionTime$ref_sample_sampleName
+#                        #       )
+#                        #     )
+#                        # )
+# 
+# 
+#                        # Batch when the subset is large to avoid cumulative
+#                        # memory exhaustion / non-deterministic segfaults in
+#                        # the C-level obiwarp routine.  Each batch of 50 runs
+#                        # in its own callr subprocess whose memory is fully
+#                        # released before the next batch starts.
+#                        n_subset_obiwarp   <- length(req(input$subsetObiwrap))
+#                        batch_size_obiwarp <- if (n_subset_obiwarp > 50L) 50L else NULL
+# 
+#                        system.time(
+#                          RvarsCorrectionTime$dataObiwarp_Aligned <-
+#                            alignement_Obiwrap(
+#                              xdata        = rawData_mzML_XCMSnExp,
+#                              binSize      = input$binSizeObiwrap,
+#                              msLevel      = input$MSlevelObiwrap,
+#                              subset       = which(
+#                                RvarsCorrectionTime$pheno_Data_mzML$Filenames %in% req(input$subsetObiwrap)
+#                              ),
+#                              subsetAdjust = input$subsetAdjustObiwrap,
+#                              centerSample = which(
+#                                RvarsCorrectionTime$pheno_Data_mzML$Filenames == RvarsCorrectionTime$ref_sample_sampleName
+#                              ),
+#                              batch_size   = batch_size_obiwarp,
+#                              timeout_sec  = 7200L
+#                            )
+#                        )
+#                        
+#                        message("\n 6. End of correction time...")
+#                        incProgress(1 / 6, detail = "End of correction time...")
+#                        ##~~~~~~~~~~~~~~~~~~~~~~~~ Get Features list aligned ~~~~~~~~~~~~~~~~#
+#                        RvarsCorrectionTime$peakListAligned <-
+#                          data.frame(chromPeaks(RvarsCorrectionTime$dataObiwarp_Aligned))
+#                        
+#                        for (i in 1:length(unique(RvarsCorrectionTime$peakListAligned$sample))) {
+#                          RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample ==
+#                                                                i, "sample"] <-
+#                            RvarsCorrectionTime$pheno_Data_mzML$Filenames[i]
+#                        }
+#                        
+#                        
+#                        RvarsCorrectionTime$peakListAligned$sample <-
+#                          as.character(RvarsCorrectionTime$peakListAligned$sample)
+#                        
+#                        
+#                        RvarsCorrectionTime$peakListAligned <-
+#                          cbind(RvarsCorrectionTime$peakListAligned,
+#                                peaks_mono_iso_toUSe[, 11:ncol(peaks_mono_iso_toUSe)])
+#                        
+#                        ##~~~~~ For correction with kernel density ~~~~~~#
+#                        RvarsCorrectionTime$peakListAligned_KernelDensity <-
+#                          RvarsCorrectionTime$peakListAligned
+#                        
+#                        # colSelect<-c("M+H","M+H.min","M+H.max","rt","rtmin","rtmax","Area","Height","SN","sample",
+#                        #              "iso.mass","iso.mass.link","mz_PeaksIsotopics_Group","rt_PeaksIsotopics_Group","Height_PeaksIsotopics_Group")
+#                        #
+#                        # colnames(RvarsCorrectionTime$peakListAligned)[c(1:10)]<-colSelect[c(1:10)]
+#                        
+#                        ##~~~~~~~~~~~~~~~~~~~~~~~~ Get Features list Before ~~~~~~~~~~~~~~~~#
+#                        RvarsCorrectionTime$peakListBefore <-
+#                          peaks_mono_iso_toUSe
+#                        
+#                        
+#                        ##~~~~~~~~~~~ Enable and show some inputs and outputs ~~~~~~~#
+#                        
+#                        
+#                        enable("RefrenceSampleNextPage")
+#                        enable("CorrectionXCMSNexPage")
+#                        
+#                        shinyjs::enable(selector = '.navbar-nav a[data-value="Analysis new samples"')
+#                        shinyjs::enable(selector = '.navbar-nav a[data-value="New reference map"')
+#                        shinyjs::enable(selector = '.navbar-nav a[data-value="Database"')
+#                        shinyjs::enable(selector = '.navbar-nav a[data-value="Statistical analysis"')
+#                        shinyjs::enable(selector = '.navbar-nav a[data-value="Help"')
+#                        
+#                        updateRadioButtons(session = session,
+#                                           inputId = "CorrectionTimeStep",
+#                                           selected = "3")
+#                        
+#                        
+#                      })
+#                      
+#                    }
+#                    
+#                    
+#                    
+#                    
+#                  }
+#                  
+#                }
+#                
+#              })
+# 
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ###~~~~~~~~~~~~ Visualization CE-time correction with R package xcms  ~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# ##~~~~~~~~~~~~ update input 'SelectSample_ViewerCorrectimeXcms' ~~~~~~~~~#
+# 
+# observe({
+#   if (!is.null(RvarsCorrectionTime$peakListAligned)) {
+#     sample_name <- unique(RvarsCorrectionTime$peakListAligned$sample)
+#     
+#     updatePickerInput(session = session,
+#                       inputId = "SelectSample_ViewerCorrectimeXcms",
+#                       choices = sample_name)
+#     
+#     # if(input$TabPanelCorrectionTimeXCMS_ID == "Graph 1"){
+#     #
+#     #   updatePickerInput(session = session,
+#     #                     inputId = "SelectSample_ViewerCorrectimeXcms",
+#     #                     choices = sample_name)
+#     #
+#     # } else{
+#     #   updatePickerInput(session = session,
+#     #                     inputId = "SelectSample_ViewerCorrectimeXcms",
+#     #                     choices = sample_name[sample_name != RvarsCorrectionTime$ref_sample_sampleName])
+#     # }
+#     
+#     
+#   } else {
+#     updatePickerInput(
+#       session = session,
+#       inputId = "SelectSample_ViewerCorrectimeXcms",
+#       choices = character(0),
+#       selected = character(0)
+#     )
+#   }
+# })
+# 
+# 
+# # observe({
+# #
+# #
+# #   if(!is.null(RvarsCorrectionTime$peakListBefore) &
+# #      !is.null(RvarsCorrectionTime$ref_sample_samplePeaks) &
+# #      !is.null(input$SelectSample_ViewerCorrectimeXcms)){
+# #
+# #     source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local=TRUE)
+# #
+# #     ref<-RvarsCorrectionTime$ref_sample_samplePeaks
+# #     table<-RvarsCorrectionTime$peakListBefore[RvarsCorrectionTime$peakListBefore$sample==input$SelectSample_ViewerCorrectimeXcms,]
+# #
+# #
+# #     View(ref)
+# #     View(table)
+# #
+# #     Test<-matchMz(x = ref,
+# #                   table = table,
+# #                   ppm_tolereance = 500,
+# #                   mzcol = "mz",
+# #                   rtcol = "rt",
+# #                   )
+# #
+# #     View(Test)
+# #   }
+# # })
+# 
+# #~~~~~~~~~ Plot rt reference and rt sample (CE-time correction with xcms)~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# 
+# output$CorrectimeXCMSViewer_1 <- renderPlot({
+#   if (!is.null(RvarsCorrectionTime$peakListBefore) &
+#       !is.null(RvarsCorrectionTime$peakListAligned) &
+#       !is.null(RvarsCorrectionTime$ref_sample_samplePeaks) &
+#       !is.null(input$SelectSample_ViewerCorrectimeXcms)) {
+#     source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R",
+#            local = TRUE)
+#     
+#     ref <- RvarsCorrectionTime$ref_sample_samplePeaks
+#     table.before <-
+#       RvarsCorrectionTime$peakListBefore[RvarsCorrectionTime$peakListBefore$sample ==
+#                                            input$SelectSample_ViewerCorrectimeXcms,]
+#     table.after <-
+#       RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample ==
+#                                             input$SelectSample_ViewerCorrectimeXcms,]
+#     
+#     # write.table(table.before[,1:10], file = "table.before.csv",  sep = ",", row.names =  FALSE)
+#     # write.table(table.after[,1:10], file = "table.after.csv", sep = ",", row.names =  FALSE)
+#     #
+#     # write.table(ref[,1:10], file = "ref.csv", sep = ",", row.names =  FALSE)
+#     
+#     resMatch.before <- matchMz(
+#       x = ref,
+#       table = table.before,
+#       ppm_tolereance = 1000,
+#       mzcol = "mz",
+#       rtcol = "rt" ,
+#       session = session
+#     )
+#     
+#     resMatch.after <- matchMz(
+#       x = ref,
+#       table = table.after,
+#       ppm_tolereance = 1000,
+#       mzcol = "mz",
+#       rtcol = "rt" ,
+#       session = session
+#     )
+#     
+#     
+#     Data_Plot.before <-
+#       resMatch.before$MatchTable[!is.na(resMatch.before$MatchTable$rt.2),
+#                                  c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "rt.2", "maxo.2")]
+#     Data_Plot.after <-
+#       resMatch.after$MatchTable[!is.na(resMatch.after$MatchTable$rt.2),
+#                                 c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "rt.2", "maxo.2")]
+#     
+#     
+#     
+#     median_line.before <- seq(min(
+#       range(Data_Plot.before$rt.2)[1],
+#       range(Data_Plot.before$rt.1)[1]
+#     ),
+#     max(
+#       range(Data_Plot.before$rt.2)[2],
+#       range(Data_Plot.before$rt.1)[2]
+#     ), by = 50)
+#     
+#     median_line_data.before <- data.frame(x =  median_line.before,
+#                                           y  =  median_line.before)
+#     
+#     
+#     median_line.after <- seq(min(
+#       range(Data_Plot.after$rt.2)[1],
+#       range(Data_Plot.after$rt.1)[1]
+#     ),
+#     max(
+#       range(Data_Plot.after$rt.2)[2],
+#       range(Data_Plot.after$rt.1)[2]
+#     ), by = 50)
+#     
+#     median_line_data.after <- data.frame(x =  median_line.after,
+#                                          y  =  median_line.after)
+#     
+#     
+#     
+#     
+#     #~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot before Correction ~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#     Plot.before <-
+#       ggplot(Data_Plot.before, aes(x = rt.2, y = rt.1)) +
+#       geom_point() +
+#       
+#       coord_cartesian(xlim = c(min(
+#         range(Data_Plot.before$rt.2)[1],
+#         range(Data_Plot.before$rt.1)[1]
+#       ),
+#       max(
+#         range(Data_Plot.before$rt.2)[2],
+#         range(Data_Plot.before$rt.1)[2]
+#       )),
+#       ylim = c(min(
+#         range(Data_Plot.before$rt.2)[1],
+#         range(Data_Plot.before$rt.1)[1]
+#       ),
+#       max(
+#         range(Data_Plot.before$rt.2)[2],
+#         range(Data_Plot.before$rt.1)[2]
+#       ))) +
+#       
+#       
+#       
+#       scale_x_continuous(n.breaks = 14) +
+#       scale_y_continuous(n.breaks = 14) +
+#       
+#       # xlab("CE-time (sample to align)")+
+#       # ylab("CE-time (reference sample)")+
+#       
+#       # geom_line(data = predict_data_model.np, aes(x = rt2, y = rt1, color = "Model"), lwd = 1, size = 1.5) +
+#       # #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
+#       # # geom_abline(yintercept = 0, lwd = 1, color = "green")+
+#       
+#       geom_line(
+#         data = median_line_data.before,
+#         aes(x = x, y = x, color = "Median"),
+#         lwd = 1,
+#         size = 1.5
+#       ) +
+#       
+#       labs(
+#         x = paste("CE-time (", input$SelectSample_ViewerCorrectimeXcms, ")"),
+#         y = "CE-time (reference sample)",
+#         color = "Legend"
+#       ) +
+#       ggtitle("Before correction with xcms") +
+#       
+#       scale_color_manual(values = c("Median" = "green")) +
+#       
+#       
+#       theme_ben() +
+#       theme(
+#         plot.title = element_text(
+#           size = rel(1),
+#           face = "bold",
+#           color = "#760001",
+#           margin = margin(0, 0, 5, 0),
+#           hjust = 0.5
+#         ),
+#         plot.subtitle = element_text(hjust = 0.5),
+#         plot.background = element_rect(fill = "aliceblue"),
+#         legend.title = element_text(
+#           size = rel(0.95),
+#           face = "bold.italic",
+#           hjust = 0.5
+#         ),
+#         legend.text = element_text(size = rel(0.85), face = "bold.italic")
+#       )
+#     
+#     
+#     
+#     #~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot after Correction ~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#     Plot.after <- ggplot(Data_Plot.after, aes(x = rt.2, y = rt.1)) +
+#       geom_point() +
+#       
+#       coord_cartesian(xlim = c(min(
+#         range(Data_Plot.after$rt.2)[1],
+#         range(Data_Plot.after$rt.1)[1]
+#       ),
+#       max(
+#         range(Data_Plot.after$rt.2)[2],
+#         range(Data_Plot.after$rt.1)[2]
+#       )),
+#       ylim = c(min(
+#         range(Data_Plot.after$rt.2)[1],
+#         range(Data_Plot.after$rt.1)[1]
+#       ),
+#       max(
+#         range(Data_Plot.after$rt.2)[2],
+#         range(Data_Plot.after$rt.1)[2]
+#       ))) +
+#       
+#       
+#       
+#       scale_x_continuous(n.breaks = 14) +
+#       scale_y_continuous(n.breaks = 14) +
+#       
+#       # xlab("CE-time (sample to align)")+
+#       # ylab("CE-time (reference sample)")+
+#       
+#       # geom_line(data = predict_data_model.np, aes(x = rt2, y = rt1, color = "Model"), lwd = 1, size = 1.5) +
+#       # #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
+#       # # geom_abline(yintercept = 0, lwd = 1, color = "green")+
+#       
+#       geom_line(
+#         data = median_line_data.after,
+#         aes(x = x, y = x, color = "Median"),
+#         lwd = 1,
+#         size = 1.5
+#       ) +
+#       
+#       labs(
+#         x = paste("CE-time (", input$SelectSample_ViewerCorrectimeXcms, ")"),
+#         y = "CE-time (reference sample)",
+#         color = "Legend"
+#       ) +
+#       ggtitle("After correction with xcms") +
+#       
+#       scale_color_manual(values = c("Median" = "green")) +
+#       
+#       
+#       theme_ben() +
+#       theme(
+#         plot.title = element_text(
+#           size = rel(1),
+#           face = "bold",
+#           color = "#760001",
+#           margin = margin(0, 0, 5, 0),
+#           hjust = 0.5
+#         ),
+#         plot.subtitle = element_text(hjust = 0.5),
+#         plot.background = element_rect(fill = "aliceblue"),
+#         legend.title = element_text(
+#           size = rel(0.95),
+#           face = "bold.italic",
+#           hjust = 0.5
+#         ),
+#         legend.text = element_text(size = rel(0.85), face = "bold.italic")
+#       )
+#     
+#     
+#     grid.arrange(Plot.before, Plot.after, nrow = 2)
+#     
+#   }
+# })
+# 
+# 
+# ####~~~~~~~~~~~~~~~~~~~~ Plot before ~~~~~~~~~~~~~~~~~~~~~~~~#
+# ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# output$CorrectimeXCMSViewer_Before <- renderPlot({
+#   if (!is.null(RvarsCorrectionTime$peakListBefore) &
+#       !is.null(RvarsCorrectionTime$peakListAligned) &
+#       !is.null(RvarsCorrectionTime$ref_sample_samplePeaks) &
+#       !is.null(input$SelectSample_ViewerCorrectimeXcms)) {
+#     source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R",
+#            local = TRUE)
+#     
+#     ref <- RvarsCorrectionTime$ref_sample_samplePeaks
+#     table.before <-
+#       RvarsCorrectionTime$peakListBefore[RvarsCorrectionTime$peakListBefore$sample ==
+#                                            input$SelectSample_ViewerCorrectimeXcms,]
+#     
+#     resMatch.before <- matchMz(
+#       x = ref,
+#       table = table.before,
+#       ppm_tolereance = 1000,
+#       mzcol = "mz",
+#       rtcol = "rt" ,
+#       session = session
+#     )
+#     
+#     
+#     Data_Plot.before <-
+#       resMatch.before$MatchTable[!is.na(resMatch.before$MatchTable$rt.2),
+#                                  c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "rt.2", "maxo.2")]
+#     
+#     RvarsCorrectionTime$Data_Plot.before <-
+#       Data_Plot.before # for info bull
+#     
+#     median_line.before <- seq(min(
+#       range(Data_Plot.before$rt.2)[1],
+#       range(Data_Plot.before$rt.1)[1]
+#     ),
+#     max(
+#       range(Data_Plot.before$rt.2)[2],
+#       range(Data_Plot.before$rt.1)[2]
+#     ), by = 50)
+#     
+#     median_line_data.before <- data.frame(x =  median_line.before,
+#                                           y  =  median_line.before)
+#     
+#     
+#     #~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot before Correction ~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#     Plot.before <-
+#       ggplot(Data_Plot.before, aes(x = rt.2, y = rt.1)) +
+#       geom_point() +
+#       
+#       coord_cartesian(xlim = c(min(
+#         range(Data_Plot.before$rt.2)[1],
+#         range(Data_Plot.before$rt.1)[1]
+#       ),
+#       max(
+#         range(Data_Plot.before$rt.2)[2],
+#         range(Data_Plot.before$rt.1)[2]
+#       )),
+#       ylim = c(min(
+#         range(Data_Plot.before$rt.2)[1],
+#         range(Data_Plot.before$rt.1)[1]
+#       ),
+#       max(
+#         range(Data_Plot.before$rt.2)[2],
+#         range(Data_Plot.before$rt.1)[2]
+#       ))) +
+#       
+#       
+#       
+#       scale_x_continuous(n.breaks = 14) +
+#       scale_y_continuous(n.breaks = 14) +
+#       
+#       # xlab("CE-time (sample to align)")+
+#       # ylab("CE-time (reference sample)")+
+#       
+#       # geom_line(data = predict_data_model.np, aes(x = rt2, y = rt1, color = "Model"), lwd = 1, size = 1.5) +
+#       # #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
+#       # # geom_abline(yintercept = 0, lwd = 1, color = "green")+
+#       
+#       geom_line(
+#         data = median_line_data.before,
+#         aes(x = x, y = x, color = "Median"),
+#         lwd = 1,
+#         size = 1.5
+#       ) +
+#       
+#       labs(
+#         x = paste("CE-time (", input$SelectSample_ViewerCorrectimeXcms, ")"),
+#         y = "CE-time (reference sample)",
+#         color = "Legend"
+#       ) +
+#       ggtitle("Before correction with xcms") +
+#       
+#       scale_color_manual(values = c("Median" = "green")) +
+#       
+#       
+#       theme_ben() +
+#       theme(
+#         plot.title = element_text(
+#           size = rel(1),
+#           face = "bold",
+#           color = "#760001",
+#           margin = margin(0, 0, 5, 0),
+#           hjust = 0.5
+#         ),
+#         plot.subtitle = element_text(hjust = 0.5),
+#         plot.background = element_rect(fill = "aliceblue"),
+#         legend.title = element_text(
+#           size = rel(0.95),
+#           face = "bold.italic",
+#           hjust = 0.5
+#         ),
+#         legend.text = element_text(size = rel(0.85), face = "bold.italic")
+#       )
+#     
+#     
+#     Plot.before
+#     
+#   }
+# })
+# 
+# #### info-bulle
+# output$CorrectimeXCMSViewer_Before_hover_info <- renderUI({
+#   hover <- req(input$CorrectimeXCMSViewer_Before_hover)
+#   
+#   if (!is.null(RvarsCorrectionTime$Data_Plot.before)) {
+#     point <- nearPoints(
+#       req(RvarsCorrectionTime$Data_Plot.before),
+#       hover,
+#       threshold = 5,
+#       maxpoints = 1,
+#       addDist = TRUE
+#     )
+#     if (nrow(point) == 0)
+#       return(NULL)
+#     
+#     # calculate point position INSIDE the image as percent of total dimensions
+#     # from left (horizontal) and from top (vertical)
+#     left_pct <-
+#       (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+#     top_pct <-
+#       (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+#     
+#     # calculate distance from left and bottom side of the picture in pixels
+#     left_px <-
+#       hover$range$left + left_pct * (hover$range$right - hover$range$left)
+#     top_px <-
+#       hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+#     
+#     # create style property fot tooltip
+#     # background color is set so tooltip is a bit transparent
+#     # z-index is set so we are sure are tooltip will be on top
+#     style <-
+#       paste0(
+#         "position:absolute; z-index:100; background-color: #760001; color:white;",
+#         "left:",
+#         left_px + 2,
+#         "px; top:",
+#         top_px + 2,
+#         "px;"
+#       )
+#     
+#     # actual tooltip created as wellPanel
+#     div(class = "well well-sm",
+#         style = style,
+#         p(HTML(
+#           paste0(
+#             "<span class='bullText'> M+H (ref): </span>",
+#             round(point$mz.1, 4),
+#             "<br/>",
+#             "<span class='bullText'> CE-time (ref): </span>",
+#             round(point$rt.1, 2),
+#             "<br/>",
+#             "<span class='bullText'> Intensity (ref): </span>",
+#             round(point$maxo.1, 0),
+#             "<br/>",
+#             "<br>",
+#             "<span class='bullText'> M+H (sample): </span>",
+#             round(point$mz.2, 4),
+#             "<br/>",
+#             "<span class='bullText'> CE-time (sample): </span>",
+#             round(point$rt.2, 2),
+#             "<br/>",
+#             "<span class='bullText'> Intensity (sample): </span>",
+#             round(point$maxo.2, 0),
+#             "<br/>"
+#           )
+#         )))
+#   }
+#   
+# })
+# 
+# ####~~~~~~~~~~~~~~~~~~~~ Plot After ~~~~~~~~~~~~~~~~~~~~~~~~#
+# ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# output$CorrectimeXCMSViewer_After <- renderPlot({
+#   if (!is.null(RvarsCorrectionTime$peakListBefore) &
+#       !is.null(RvarsCorrectionTime$peakListAligned) &
+#       !is.null(RvarsCorrectionTime$ref_sample_samplePeaks) &
+#       !is.null(input$SelectSample_ViewerCorrectimeXcms)) {
+#     source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R",
+#            local = TRUE)
+#     
+#     ref <- RvarsCorrectionTime$ref_sample_samplePeaks
+#     table.after <-
+#       RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample ==
+#                                             input$SelectSample_ViewerCorrectimeXcms,]
+#     
+#     resMatch.after <- matchMz(
+#       x = ref,
+#       table = table.after,
+#       ppm_tolereance = 1000,
+#       mzcol = "mz",
+#       rtcol = "rt" ,
+#       session = session
+#     )
+#     
+#     Data_Plot.after <-
+#       resMatch.after$MatchTable[!is.na(resMatch.after$MatchTable$rt.2),
+#                                 c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "rt.2", "maxo.2")]
+#     
+#     RvarsCorrectionTime$Data_Plot.after <- Data_Plot.after
+#     
+#     median_line.after <- seq(min(
+#       range(Data_Plot.after$rt.2)[1],
+#       range(Data_Plot.after$rt.1)[1]
+#     ),
+#     max(
+#       range(Data_Plot.after$rt.2)[2],
+#       range(Data_Plot.after$rt.1)[2]
+#     ), by = 50)
+#     
+#     median_line_data.after <- data.frame(x =  median_line.after,
+#                                          y  =  median_line.after)
+#     
+#     
+#     #~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot after Correction ~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#     Plot.after <- ggplot(Data_Plot.after, aes(x = rt.2, y = rt.1)) +
+#       geom_point() +
+#       
+#       coord_cartesian(xlim = c(min(
+#         range(Data_Plot.after$rt.2)[1],
+#         range(Data_Plot.after$rt.1)[1]
+#       ),
+#       max(
+#         range(Data_Plot.after$rt.2)[2],
+#         range(Data_Plot.after$rt.1)[2]
+#       )),
+#       ylim = c(min(
+#         range(Data_Plot.after$rt.2)[1],
+#         range(Data_Plot.after$rt.1)[1]
+#       ),
+#       max(
+#         range(Data_Plot.after$rt.2)[2],
+#         range(Data_Plot.after$rt.1)[2]
+#       ))) +
+#       
+#       
+#       
+#       scale_x_continuous(n.breaks = 14) +
+#       scale_y_continuous(n.breaks = 14) +
+#       
+#       # xlab("CE-time (sample to align)")+
+#       # ylab("CE-time (reference sample)")+
+#       
+#       # geom_line(data = predict_data_model.np, aes(x = rt2, y = rt1, color = "Model"), lwd = 1, size = 1.5) +
+#       # #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
+#       # # geom_abline(yintercept = 0, lwd = 1, color = "green")+
+#       
+#       geom_line(
+#         data = median_line_data.after,
+#         aes(x = x, y = x, color = "Median"),
+#         lwd = 1,
+#         size = 1.5
+#       ) +
+#       
+#       labs(
+#         x = paste("CE-time (", input$SelectSample_ViewerCorrectimeXcms, ")"),
+#         y = "CE-time (reference sample)",
+#         color = "Legend"
+#       ) +
+#       ggtitle("After correction with xcms") +
+#       
+#       scale_color_manual(values = c("Median" = "green")) +
+#       
+#       
+#       theme_ben() +
+#       theme(
+#         plot.title = element_text(
+#           size = rel(1),
+#           face = "bold",
+#           color = "#760001",
+#           margin = margin(0, 0, 5, 0),
+#           hjust = 0.5
+#         ),
+#         plot.subtitle = element_text(hjust = 0.5),
+#         plot.background = element_rect(fill = "aliceblue"),
+#         legend.title = element_text(
+#           size = rel(0.95),
+#           face = "bold.italic",
+#           hjust = 0.5
+#         ),
+#         legend.text = element_text(size = rel(0.85), face = "bold.italic")
+#       )
+#     
+#     Plot.after
+#   }
+#   
+# })
+# 
+# #### info-bulle
+# output$CorrectimeXCMSViewer_After_hover_info <- renderUI({
+#   hover <- req(input$CorrectimeXCMSViewer_After_hover)
+#   
+#   if (!is.null(RvarsCorrectionTime$Data_Plot.after)) {
+#     point <- nearPoints(
+#       req(RvarsCorrectionTime$Data_Plot.after),
+#       hover,
+#       threshold = 5,
+#       maxpoints = 1,
+#       addDist = TRUE
+#     )
+#     if (nrow(point) == 0)
+#       return(NULL)
+#     
+#     # calculate point position INSIDE the image as percent of total dimensions
+#     # from left (horizontal) and from top (vertical)
+#     left_pct <-
+#       (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+#     top_pct <-
+#       (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+#     
+#     # calculate distance from left and bottom side of the picture in pixels
+#     left_px <-
+#       hover$range$left + left_pct * (hover$range$right - hover$range$left)
+#     top_px <-
+#       hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+#     
+#     # create style property fot tooltip
+#     # background color is set so tooltip is a bit transparent
+#     # z-index is set so we are sure are tooltip will be on top
+#     style <-
+#       paste0(
+#         "position:absolute; z-index:100; background-color: #760001; color: white;",
+#         "left:",
+#         left_px + 2,
+#         "px; top:",
+#         top_px + 2,
+#         "px;"
+#       )
+#     
+#     # actual tooltip created as wellPanel
+#     div(class = "well well-sm",
+#         style = style,
+#         p(HTML(
+#           paste0(
+#             "<span class='bullText'> M+H (ref): </span>",
+#             round(point$mz.1, 4),
+#             "<br/>",
+#             "<span class='bullText'> CE-time (ref): </span>",
+#             round(point$rt.1, 2),
+#             "<br/>",
+#             "<span class='bullText'> Intensity (ref): </span>",
+#             round(point$maxo.1, 0),
+#             "<br/>",
+#             "<br>",
+#             "<span class='bullText'> M+H (sample): </span>",
+#             round(point$mz.2, 4),
+#             "<br/>",
+#             "<span class='bullText'> CE-time (sample): </span>",
+#             round(point$rt.2, 2),
+#             "<br/>",
+#             "<span class='bullText'> Intensity (sample): </span>",
+#             round(point$maxo.2, 0),
+#             "<br/>"
+#           )
+#         )))
+#   }
+#   
+# })
+# 
+# 
+# #~~~~~~~~~ Plot mz (or M+H)~rt reference and mz(M+H)~rt sample (CE-time correction with xcms)~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# output$CorrectimeXCMSViewer_2 <- renderPlot({
+#   if (!is.null(RvarsCorrectionTime$peakListBefore) &
+#       !is.null(RvarsCorrectionTime$peakListAligned) &
+#       !is.null(RvarsCorrectionTime$ref_sample_samplePeaks) &
+#       !is.null(input$SelectSample_ViewerCorrectimeXcms)) {
+#     ref <- RvarsCorrectionTime$ref_sample_samplePeaks
+#     
+#     reqColstoPlot <- c('M+H', 'CE-time', 'intensity', 'sample')
+#     reqColsUsed <- c('mz', 'rt', 'maxo', 'sample')
+#     
+#     
+#     ##~~~~~~~~~~~~~~~~~~~~ Before correction ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#     table.before <-
+#       RvarsCorrectionTime$peakListBefore[RvarsCorrectionTime$peakListBefore$sample ==
+#                                            input$SelectSample_ViewerCorrectimeXcms,]
+#     Data_before <- rbind(table.before,
+#                          ref)
+#     
+#     rownames(Data_before) <- 1:nrow(Data_before)
+#     
+#     
+#     colnames(Data_before)[which(colnames(Data_before) %in% reqColsUsed)] <-
+#       reqColstoPlot
+#     Data_before$intensity <- log2(Data_before$intensity)
+#     
+#     Data_before$sample[Data_before$sample == RvarsCorrectionTime$ref_sample_sampleName] <-
+#       "Reference sample"
+#     Data_before$sample <- factor(Data_before$sample,
+#                                  levels = c(unique(Data_before$sample)[unique(Data_before$sample) !=
+#                                                                          "Reference sample"],
+#                                             "Reference sample"))
+#     
+#     
+#     
+#     Plot.Before <- Data_before %>%
+#       ggplot() +
+#       aes(x = `CE-time`, y = `M+H`, colour = intensity) +
+#       #geom_point(shape = "circle", size = input$sizePoints) +
+#       geom_point(size = 0.5) +
+#       scale_color_viridis_c(option = "inferno", direction = -1) +
+#       theme_gray() +
+#       #facet_grid(vars(sample), vars())  +
+#       facet_wrap(~ sample, dir = "v") +
+#       #coord_cartesian(xlim = rangesZoomOffsetSamplePlot$x, ylim = rangesZoomOffsetSamplePlot$y, expand = TRUE)+
+#       ylab("Mass (M+H) (Da)") +
+#       #xlab(paste("CE-time (",input$UnitTime_NewRefMap,")")) +
+#       xlab(paste("CE-time")) +
+#       
+#       ggtitle("Before correction with xcms") +
+#       
+#       scale_x_continuous(n.breaks = 14) +
+#       scale_y_continuous(n.breaks = 5) +
+#       
+#       theme_ben() +
+#       labs(colour = "log2 Intensity") +
+#       theme(
+#         plot.title = element_text(
+#           size = rel(1),
+#           face = "bold",
+#           color = "#760001",
+#           margin = margin(0, 0, 5, 0),
+#           hjust = 0.5
+#         ),
+#         plot.subtitle = element_text(hjust = 0.5),
+#         panel.border = element_rect(
+#           fill = "transparent",
+#           # Needed to add the border
+#           color = "blue",
+#           linewidth = 0.5,
+#           linetype = "dashed"
+#         ),
+#         
+#         # Les étiquettes dans le cas d'un facetting
+#         strip.background = element_rect(fill = "grey", color = "grey"),
+#         strip.text = element_text(
+#           size = rel(1),
+#           face = "bold.italic",
+#           color = "black",
+#           margin = margin(5, 0, 5, 0)
+#         ),
+#         plot.background = element_rect(fill = "aliceblue")
+#       )
+#     
+#     
+#     ##~~~~~~~~~~~~~~~~~~~~ After correction ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#     table.after <-
+#       RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample ==
+#                                             input$SelectSample_ViewerCorrectimeXcms,]
+#     Data_after <- rbind(table.after,
+#                         ref)
+#     rownames(Data_after) <- 1:nrow(Data_after)
+#     colnames(Data_after)[which(colnames(Data_after) %in% reqColsUsed)] <-
+#       reqColstoPlot
+#     Data_after$intensity <- log2(Data_after$intensity)
+#     
+#     Data_after$sample[Data_after$sample == RvarsCorrectionTime$ref_sample_sampleName] <-
+#       "Reference sample"
+#     Data_after$sample <- factor(Data_after$sample,
+#                                 levels = c(unique(Data_after$sample)[unique(Data_after$sample) !=
+#                                                                        "Reference sample"],
+#                                            "Reference sample"))
+#     
+#     Plot.After <- Data_after %>%
+#       ggplot() +
+#       aes(x = `CE-time`, y = `M+H`, colour = intensity) +
+#       #geom_point(shape = "circle", size = input$sizePoints) +
+#       geom_point(size = 0.5) +
+#       scale_color_viridis_c(option = "inferno", direction = -1) +
+#       theme_gray() +
+#       #facet_grid(vars(sample), vars())  +
+#       facet_wrap(~ sample, dir = "v") +
+#       #coord_cartesian(xlim = rangesZoomOffsetSamplePlot$x, ylim = rangesZoomOffsetSamplePlot$y, expand = TRUE)+
+#       ylab("Mass (M+H) (Da)") +
+#       #xlab(paste("CE-time (",input$UnitTime_NewRefMap,")")) +
+#       xlab(paste("CE-time")) +
+#       
+#       ggtitle("After correction with xcms") +
+#       
+#       scale_x_continuous(n.breaks = 14) +
+#       scale_y_continuous(n.breaks = 5) +
+#       
+#       theme_ben() +
+#       labs(colour = "log2 Intensity") +
+#       theme(
+#         plot.title = element_text(
+#           size = rel(1),
+#           face = "bold",
+#           color = "#760001",
+#           margin = margin(0, 0, 5, 0),
+#           hjust = 0.5
+#         ),
+#         plot.subtitle = element_text(hjust = 0.5),
+#         panel.border = element_rect(
+#           fill = "transparent",
+#           # Needed to add the border
+#           color = "blue",
+#           linewidth = 0.5,
+#           linetype = "dashed"
+#         ),
+#         
+#         # Les étiquettes dans le cas d'un facetting
+#         strip.background = element_rect(fill = "grey", color = "grey"),
+#         strip.text = element_text(
+#           size = rel(1),
+#           face = "bold.italic",
+#           color = "black",
+#           margin = margin(5, 0, 5, 0)
+#         ),
+#         plot.background = element_rect(fill = "aliceblue")
+#       )
+#     
+#     
+#     grid.arrange(Plot.Before, Plot.After, nrow = 2)
+#     
+#   }
+#   
+# })
+# 
+# 
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ###~~~~~~~~~~~~~~~~ Correction time with kernel Density ~~~~~~~~~~~~~~~~~~~~~~##
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# ##~~~~~~~~~~~~ update input 'SelectSample_KernelDensity' ~~~~~~~~~#
+# 
+# # observe({
+# #   if(!is.null(RvarsCorrectionTime$peakListAligned)){
+# #
+# #     sample_name<-unique(RvarsCorrectionTime$peakListAligned$sample)
+# #
+# #     updatePickerInput(session = session,
+# #                       inputId = "SelectSample_KernelDensity",
+# #                       choices = sample_name[sample_name != RvarsCorrectionTime$ref_sample_sampleName])
+# #
+# #
+# #
+# #   } else {
+# #     updatePickerInput(session = session,
+# #                       inputId = "SelectSample_KernelDensity",
+# #                       choices = character(0),
+# #                       selected = character(0))
+# #   }
+# # })
+# 
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$Add_to
+#              },
+#              
+#              handlerExpr = {
+#                RvarsCorrectionTime$samples_names_to_align_withKernDensity <-
+#                  unique(
+#                    c(
+#                      RvarsCorrectionTime$samples_names_to_align_withKernDensity,
+#                      input$SelectSample_ViewerCorrectimeXcms
+#                    )
+#                  )
+#                
+#                message("\n RvarsCorrectionTime$samples_names_to_align_withKernDensity: ")
+#                print(RvarsCorrectionTime$samples_names_to_align_withKernDensity)
+#                
+#                if (length(RvarsCorrectionTime$samples_names_to_align_withKernDensity) !=0) {
+#                  sample_name <- RvarsCorrectionTime$samples_names_to_align_withKernDensity
+#                  
+#                  updatePickerInput(session = session,
+#                                    inputId = "SelectSample_KernelDensity",
+#                                    choices = sample_name[sample_name != RvarsCorrectionTime$ref_sample_sampleName])
+#                  
+#                  
+#                  sendSweetAlert(
+#                    session = session,
+#                    title = "",
+#                    text = HTML(paste0("Sample: <span style = 'font-weight:bold;color: #760001;'>",
+#                                       input$SelectSample_ViewerCorrectimeXcms, 
+#                                       "</span> has been added !")),
+#                    type = "success",
+#                    closeOnClickOutside = FALSE,
+#                    html = TRUE
+#                  )
+#                  
+#                } else {
+#                  updatePickerInput(
+#                    session = session,
+#                    inputId = "SelectSample_KernelDensity",
+#                    choices = character(0),
+#                    selected = character(0)
+#                  )
+#                }
+#                
+#                
+#                
+#              })
+# 
+# 
+# ##~~~~~~~~~~~~ Kernel density filter ~~~~~~~~~#
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$SelectSample_KernelDensity
+#              },
+#              handlerExpr = {
+#                if (!is.null(input$SelectSample_KernelDensity) &
+#                    !is.null(RvarsCorrectionTime$peakListAligned) &
+#                    !is.null(RvarsCorrectionTime$ref_sample_samplePeaks)) {
+#                  ##Matched samples
+#                  
+#                  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R",
+#                         local = TRUE)
+#                  
+#                  ref <- RvarsCorrectionTime$ref_sample_samplePeaks
+#                  table.after <-
+#                    RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample ==
+#                                                          input$SelectSample_KernelDensity,]
+#                  
+#                  
+#                  resMatch.after_xcms <- matchMz(
+#                    x = ref,
+#                    table = table.after,
+#                    ppm_tolereance = 1000,
+#                    mzcol = "mz",
+#                    rtcol = "rt" ,
+#                    session = session
+#                  )
+#                  
+#                  
+#                  RvarsCorrectionTime$Data_Plot.after_xcms_to_filter <-
+#                    resMatch.after_xcms$MatchTable[!is.na(resMatch.after_xcms$MatchTable$rt.2),
+#                                                   c("mz.1",
+#                                                     "rt.1",
+#                                                     "maxo.1",
+#                                                     "mz.2",
+#                                                     "rt.2",
+#                                                     "rt.2",
+#                                                     "maxo.2",
+#                                                     "sample.2")]
+#                  
+#                  ##Log2 intensity sample to align
+#                  RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$maxo.2 <-
+#                    log2(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$maxo.2)
+#                  
+#                  ## Filter intensity
+#                  observe({
+#                    if (!is.null(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter)) {
+#                      RvarsCorrectionTime$Data_Plot.after_xcms <-
+#                        RvarsCorrectionTime$Data_Plot.after_xcms_to_filter %>%
+#                        dplyr::filter(maxo.2 >= req(input$intensityFilter))
+#                    }
+#                  })
+#                  
+#                  ## Median line
+#                  if (!is.null(RvarsCorrectionTime$Data_Plot.after_xcms)) {
+#                    median_line.after_xcms <-
+#                      seq(min(
+#                        range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.2)[1],
+#                        range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.1)[1]
+#                      ),
+#                      max(
+#                        range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.2)[2],
+#                        range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.1)[2]
+#                      ), by = 50)
+#                    
+#                    median_line_data.after_xcms <-
+#                      data.frame(x =  median_line.after_xcms,
+#                                 y  =  median_line.after_xcms)
+#                  }
+#                  
+#                  
+#                  ####~~~~~~~~~~~~~~~~ Correction with Kernel Density ~~~~~~~~~~~~~~~~~~~~###
+#                  
+#                  #~~~~~~~~~~~~~~~~~~~~ Density filter ~~~~~~~~~~~~~~~~~~#
+#                  data_dens_filter <-
+#                    reactive(if (!is.null(RvarsCorrectionTime$Data_Plot.after_xcms) &
+#                                 nrow(RvarsCorrectionTime$Data_Plot.after_xcms) != 0) {
+#                      dens <-
+#                        kde2d(
+#                          RvarsCorrectionTime$Data_Plot.after_xcms$rt.2,
+#                          RvarsCorrectionTime$Data_Plot.after_xcms$rt.1,
+#                          h = input$bandwidth_Filter,
+#                          n = input$gridSize
+#                        )
+#                      nx <-
+#                        nrow(RvarsCorrectionTime$Data_Plot.after_xcms)
+#                      df <- expand.grid(x = dens$x, y = dens$y)
+#                      df$density <- (as.vector(dens$z))
+#                      df$density <- df$density / max(df$density)
+#                      #df$group <- data$group[1]
+#                      df$ndensity <-
+#                        df$density / max(df$density, na.rm = TRUE)
+#                      df$count <- nx * df$density
+#                      df$n <- nx
+#                      df$level <- 1
+#                      df$piece <- 1
+#                      df_filter <- df %>%
+#                        dplyr::filter(density >= req(input$minDensity))
+#                      
+#                      colnames(df_filter)[1:2] <- c("rt.2", "rt.1")
+#                      
+#                      df_filter
+#                    })
+#                  
+#                  
+#                  #~~~~~~~~~~~~~~~~~~~~~~~~ Plot filter density ~~~~~~~~~~~~~~~~~~~~~~~#
+#                  output$DensityFilterPlot <- renderPlot({
+#                    if (length(data_dens_filter()) != 0) {
+#                      if (!is.null(data_dens_filter()) &
+#                          nrow(data_dens_filter()) != 0 &
+#                          nrow(RvarsCorrectionTime$Data_Plot.after_xcms) != 0) {
+#                        p1 <- RvarsCorrectionTime$Data_Plot.after_xcms %>%
+#                          ggplot() +
+#                          aes(x = rt.2, y = rt.1) +
+#                          geom_point(aes(color = maxo.2), size = 0.8) +
+#                          scale_color_viridis_c(option = "H", direction = -1) +
+#                          geom_density_2d(h = input$bandwidth_Filter,
+#                                          n = input$gridSize) +
+#                          scale_x_continuous(n.breaks = 14) +
+#                          scale_y_continuous(n.breaks = 14) +
+#                          
+#                          coord_cartesian(xlim = c(min(
+#                            range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.2)[1],
+#                            range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.1)[1]
+#                          ),
+#                          max(
+#                            range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.2)[2],
+#                            range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.1)[2]
+#                          )),
+#                          
+#                          ylim = c(min(
+#                            range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.2)[1],
+#                            range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.1)[1]
+#                          ),
+#                          max(
+#                            range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.2)[2],
+#                            range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.1)[2]
+#                          ))) +
+#                          
+#                          
+#                          xlab(
+#                            paste(
+#                              "CE-time (",
+#                              RvarsCorrectionTime$Data_Plot.after_xcms$sample.2,
+#                              ")"
+#                            )
+#                          ) +
+#                          ylab("CE-time (reference sample)") +
+#                          #labs(colour ="log2 Intensity")+
+#                          theme_ben() +
+#                          labs(colour = "log2 Intensity") 
+#                        
+#                        p2 <-
+#                          ggplot(data_dens_filter(), aes(x = rt.2, y = rt.1)) +
+#                          geom_point(aes(color = density)) +
+#                          
+#                          scale_x_continuous(n.breaks = 14) +
+#                          scale_y_continuous(n.breaks = 14) +
+#                          
+#                          coord_cartesian(xlim = c(min(
+#                            range(data_dens_filter()$rt.2)[1],
+#                            range(data_dens_filter()$rt.1)[1]
+#                          ),
+#                          max(
+#                            range(data_dens_filter()$rt.2)[2],
+#                            range(data_dens_filter()$rt.1)[2]
+#                          )),
+#                          
+#                          ylim = c(min(
+#                            range(data_dens_filter()$rt.2)[1],
+#                            range(data_dens_filter()$rt.1)[1]
+#                          ),
+#                          max(
+#                            range(data_dens_filter()$rt.2)[2],
+#                            range(data_dens_filter()$rt.1)[2]
+#                          ))) +
+#                          
+#                          xlab(
+#                            paste(
+#                              "CE-time (",
+#                              RvarsCorrectionTime$Data_Plot.after_xcms$sample.2,
+#                              ")"
+#                            )
+#                          ) +
+#                          ylab("CE-time (reference sample)") +
+#                          
+#                          theme_ben() +
+#                          theme(
+#                            legend.title = element_text(
+#                              size = rel(0.95),
+#                              face = "bold.italic",
+#                              hjust = 0.5
+#                            ),
+#                            legend.text = element_text(size = rel(0.85), face = "bold.italic")
+#                          )
+#                        
+#                        grid.arrange(p1, p2, nrow = 2)
+#                        
+#                      }
+#                    }
+#                    
+#                    
+#                  })
+#                  
+#                  
+#                  
+#                }
+#                
+#              })
+# 
+# ##~~~~~~~~~~~~~~~~~~~~ Fit model kernel density estimation ~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$fitModel
+#              },
+#              handlerExpr = {
+#                
+#                if (!is.null(RvarsCorrectionTime$Data_Plot.after_xcms)) {
+#                  
+#                  
+#                  if (nrow(RvarsCorrectionTime$Data_Plot.after_xcms) != 0) {
+#                    
+#                    
+#                    #~~~~~~~~~~~~~~~~~~~~ Density filter ~~~~~~~~~~~~~~~~~~#
+#                    data_dens_filter <-
+#                      reactive(if (!is.null(RvarsCorrectionTime$Data_Plot.after_xcms)) {
+#                        dens <-
+#                          kde2d(
+#                            RvarsCorrectionTime$Data_Plot.after_xcms$rt.2,
+#                            RvarsCorrectionTime$Data_Plot.after_xcms$rt.1,
+#                            h = input$bandwidth_Filter,
+#                            n = input$gridSize
+#                          )
+#                        nx <-
+#                          nrow(RvarsCorrectionTime$Data_Plot.after_xcms)
+#                        df <- expand.grid(x = dens$x, y = dens$y)
+#                        df$density <- (as.vector(dens$z))
+#                        df$density <- df$density / max(df$density)
+#                        #df$group <- data$group[1]
+#                        df$ndensity <-
+#                          df$density / max(df$density, na.rm = TRUE)
+#                        df$count <- nx * df$density
+#                        df$n <- nx
+#                        df$level <- 1
+#                        df$piece <- 1
+#                        df_filter <- df %>%
+#                          dplyr::filter(density >= req(input$minDensity))
+#                        
+#                        colnames(df_filter)[1:2] <- c("rt.2", "rt.1")
+#                        
+#                        df_filter
+#                      })
+#                    
+#                    
+#                    ##~~~~~~~~~~~~~~~~~~~~~~~~~~~ Fit model ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                    if (length(data_dens_filter()) != 0) {
+#                      if (!is.null(data_dens_filter())) {
+#                        dataDensity <- isolate(data_dens_filter())
+#                        
+#                        if (!is.null(dataDensity)) {
+#                          withProgress(message = 'Fit model...', value = 0, {
+#                            incProgress(1 / 3, detail = "")
+#                            
+#                            #~~~~~~~~~~~~~~~~~ Kernel density estimation ~~~~~~~~~~~~~~~~~~~~~~~#
+#                            RvarsCorrectionTime$modelKernelDensity <-
+#                              npreg(
+#                                rt.1 ~ rt.2,
+#                                bws = req(input$"bandwidth_Model"),
+#                                bwtype = c("fixed", "generalized_nn", "adaptive_nn")[1],
+#                                regtype = "ll",
+#                                ckertype = input$KernelType,
+#                                #bwmethod = "cv.aic",
+#                                gradients = TRUE,
+#                                data = dataDensity
+#                              )
+#                            
+#                            #~~~~~~~~~~~~~~~~~ Calculate prediction rt for sample selected ~~~~~~~~~~~~~~~~~~~~~~~#
+#                            if (!is.null(RvarsCorrectionTime$modelKernelDensity)) {
+#                              incProgress(1 / 3, detail = "")
+#                              
+#                              ### correction rt xcms by correction rt Kernel Density
+#                              RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity$sample ==
+#                                                                                  input$SelectSample_KernelDensity,]$rt <-
+#                                predict(
+#                                  RvarsCorrectionTime$modelKernelDensity,
+#                                  newdata = data.frame(rt.2 = RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample ==
+#                                                                                                    input$SelectSample_KernelDensity,]$rt)
+#                                )
+#                              
+#                              ### Delete negative correction rt
+#                              
+#                              # RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity==input$SelectSample_KernelDensity,]$rt<-
+#                              #   RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity==input$SelectSample_KernelDensity,]$rt %>% dplyr::filter(rt>0)
+#                              #
+#                              
+#                              
+#                              ## ~~~~~~~~~~~~~~~~~~ Plot correction rt with kernel Density ~~~~~~~~~~~~~#
+#                              
+#                              ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Before~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                              output$PlotCorrectionKernelDensity_Before <-
+#                                renderPlot({
+#                                  predict_data_model.np <-
+#                                    data.frame(
+#                                      rt.1 = predict(
+#                                        RvarsCorrectionTime$modelKernelDensity,
+#                                        newdata = data.frame(rt.2 = seq(
+#                                          min(
+#                                            range(
+#                                              RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                            )[1],
+#                                            range(
+#                                              RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                            )[1]
+#                                          ),
+#                                          max(
+#                                            range(
+#                                              RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                            )[2],
+#                                            range(
+#                                              RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                            )[2]
+#                                          )
+#                                        ), by = 50)
+#                                      ),
+#                                      rt.2 = seq(
+#                                        min(
+#                                          range(
+#                                            RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                          )[1],
+#                                          range(
+#                                            RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                          )[1]
+#                                        ),
+#                                        max(
+#                                          range(
+#                                            RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                          )[2],
+#                                          range(
+#                                            RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                          )[2]
+#                                        )
+#                                      ),
+#                                      by = 50
+#                                    )
+#                                  
+#                                  median_line <-
+#                                    seq(min(
+#                                      range(
+#                                        RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                      )[1],
+#                                      range(
+#                                        RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                      )[1]
+#                                    ),
+#                                    max(
+#                                      range(
+#                                        RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                      )[2],
+#                                      range(
+#                                        RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                      )[2]
+#                                    ),
+#                                    by = 50)
+#                                  
+#                                  median_line_data <-
+#                                    data.frame(x =  median_line, y  =  median_line)
+#                                  
+#                                  ggplot(
+#                                    RvarsCorrectionTime$Data_Plot.after_xcms_to_filter,
+#                                    aes(x = rt.2, y = rt.1)
+#                                  ) +
+#                                    geom_point() +
+#                                    
+#                                    coord_cartesian(xlim = c(
+#                                      min(
+#                                        range(
+#                                          RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                        )[1],
+#                                        range(
+#                                          RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                        )[1]
+#                                      ),
+#                                      max(
+#                                        range(
+#                                          RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                        )[2],
+#                                        range(
+#                                          RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                        )[2]
+#                                      )
+#                                    ),
+#                                    ylim = c(
+#                                      min(
+#                                        range(
+#                                          RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                        )[1],
+#                                        range(
+#                                          RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                        )[1]
+#                                      ),
+#                                      max(
+#                                        range(
+#                                          RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                        )[2],
+#                                        range(
+#                                          RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                        )[2]
+#                                      )
+#                                    )) +
+#                                    
+#                                    scale_x_continuous(n.breaks = 14) +
+#                                    scale_y_continuous(n.breaks = 14) +
+#                                    
+#                                    # xlab("CE-time (sample to align)")+
+#                                    # ylab("CE-time (reference sample)")+
+#                                    
+#                                    geom_line(
+#                                      data = predict_data_model.np,
+#                                      aes(
+#                                        x = rt.2,
+#                                        y = rt.1,
+#                                        color = "Model"
+#                                      ),
+#                                      lwd = 1,
+#                                      size = 1.5
+#                                    ) +
+#                                    #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
+#                                    # geom_abline(yintercept = 0, lwd = 1, color = "green")+
+#                                    geom_line(
+#                                      data = median_line_data,
+#                                      aes(
+#                                        x = x,
+#                                        y = x,
+#                                        color = "Median"
+#                                      ),
+#                                      lwd = 1,
+#                                      size = 1.5
+#                                    ) +
+#                                    ggtitle("Correction with xcms") +
+#                                    
+#                                    labs(
+#                                      x = paste(
+#                                        "CE-time (",
+#                                        RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$sample.2,
+#                                        ")"
+#                                      ),
+#                                      y = "CE-time (reference sample)",
+#                                      color = "Legend"
+#                                    ) +
+#                                    
+#                                    scale_color_manual(values = c(
+#                                      "Model" = "red",
+#                                      "Median" = "green"
+#                                    )) +
+#                                    
+#                                    
+#                                    theme_ben() +
+#                                    theme(
+#                                      plot.title = element_text(
+#                                        size = rel(1),
+#                                        face = "bold",
+#                                        color = "#760001",
+#                                        margin = margin(0, 0, 5, 0),
+#                                        hjust = 0.5
+#                                      ),
+#                                      plot.subtitle = element_text(hjust = 0.5),
+#                                      plot.background = element_rect(fill = "aliceblue"),
+#                                      legend.title = element_text(
+#                                        size = rel(0.95),
+#                                        face = "bold.italic",
+#                                        hjust = 0.5
+#                                      ),
+#                                      legend.text = element_text(size = rel(0.85), face = "bold.italic")
+#                                    )
+#                                  
+#                                })
+#                              
+#                              #### info-bulle
+#                              output$PlotCorrectionKernelDensity_Before_hover_info <-
+#                                renderUI({
+#                                  hover <- req(input$PlotCorrectionKernelDensity_Before_hover)
+#                                  
+#                                  if (!is.null(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter)) {
+#                                    point <-
+#                                      nearPoints(
+#                                        req(
+#                                          RvarsCorrectionTime$Data_Plot.after_xcms_to_filter
+#                                        ),
+#                                        hover,
+#                                        threshold = 5,
+#                                        maxpoints = 1,
+#                                        addDist = TRUE
+#                                      )
+#                                    if (nrow(point) == 0)
+#                                      return(NULL)
+#                                    
+#                                    # calculate point position INSIDE the image as percent of total dimensions
+#                                    # from left (horizontal) and from top (vertical)
+#                                    left_pct <-
+#                                      (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+#                                    top_pct <-
+#                                      (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+#                                    
+#                                    # calculate distance from left and bottom side of the picture in pixels
+#                                    left_px <-
+#                                      hover$range$left + left_pct * (hover$range$right - hover$range$left)
+#                                    top_px <-
+#                                      hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+#                                    
+#                                    # create style property fot tooltip
+#                                    # background color is set so tooltip is a bit transparent
+#                                    # z-index is set so we are sure are tooltip will be on top
+#                                    style <-
+#                                      paste0(
+#                                        "position:absolute; z-index:100; background-color: #760001; color: white;",
+#                                        "left:",
+#                                        left_px + 2,
+#                                        "px; top:",
+#                                        top_px + 2,
+#                                        "px;"
+#                                      )
+#                                    
+#                                    # actual tooltip created as wellPanel
+#                                    div(class = "well well-sm",
+#                                        style = style,
+#                                        p(HTML(
+#                                          paste0(
+#                                            "<span class='bullText'> M+H (ref): </span>",
+#                                            round(point$mz.1, 4),
+#                                            "<br/>",
+#                                            "<span class='bullText'> CE-time (ref): </span>",
+#                                            round(point$rt.1, 2),
+#                                            "<br/>",
+#                                            "<span class='bullText'> Intensity (ref): </span>",
+#                                            round(point$maxo.1, 0),
+#                                            "<br/>",
+#                                            "<br>",
+#                                            "<span class='bullText'> M+H (sample): </span>",
+#                                            round(point$mz.2, 4),
+#                                            "<br/>",
+#                                            "<span class='bullText'> CE-time (sample): </span>",
+#                                            round(point$rt.2, 2),
+#                                            "<br/>",
+#                                            "<span class='bullText'> Intensity (sample): </span>",
+#                                            round(2 ^ (point$maxo.2), 0),
+#                                            "<br/>"
+#                                          )
+#                                        )))
+#                                  }
+#                                  
+#                                })
+#                              
+#                              incProgress(1 / 3, detail = "")
+#                              ####~~~~~~~~~~~~~~~~~~~~ Plot After ~~~~~~~~~~~~~~~~~~~~~~~~#
+#                              ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                              output$PlotCorrectionKernelDensity_After <-
+#                                renderPlot({
+#                                  if (!is.null(input$SelectSample_KernelDensity) &
+#                                      !is.null(RvarsCorrectionTime$peakListAligned) &
+#                                      !is.null(RvarsCorrectionTime$ref_sample_samplePeaks) &
+#                                      !is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
+#                                    source(
+#                                      "lib/NewReferenceMap/R_files/CE_time_Correction.lib.R",
+#                                      local = TRUE
+#                                    )
+#                                    
+#                                    ref <-
+#                                      RvarsCorrectionTime$ref_sample_samplePeaks
+#                                    table.after <-
+#                                      RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity$sample ==
+#                                                                                          input$SelectSample_KernelDensity,]
+#                                    
+#                                    resMatch.after <- matchMz(
+#                                      x = ref,
+#                                      table = table.after,
+#                                      ppm_tolereance = 1000,
+#                                      mzcol = "mz",
+#                                      rtcol = "rt" ,
+#                                      session = session
+#                                    )
+#                                    
+#                                    Data_Plot.after <-
+#                                      resMatch.after$MatchTable[!is.na(resMatch.after$MatchTable$rt.2),
+#                                                                c(
+#                                                                  "mz.1",
+#                                                                  "rt.1",
+#                                                                  "maxo.1",
+#                                                                  "mz.2",
+#                                                                  "rt.2",
+#                                                                  "rt.2",
+#                                                                  "maxo.2",
+#                                                                  "sample.2"
+#                                                                )]
+#                                    
+#                                    RvarsCorrectionTime$Data_Plot.after_KernelDensity <-
+#                                      Data_Plot.after
+#                                    
+#                                    median_line.after <-
+#                                      seq(min(
+#                                        range(Data_Plot.after$rt.2)[1],
+#                                        range(Data_Plot.after$rt.1)[1]
+#                                      ),
+#                                      max(
+#                                        range(Data_Plot.after$rt.2)[2],
+#                                        range(Data_Plot.after$rt.1)[2]
+#                                      ),
+#                                      by = 50)
+#                                    
+#                                    median_line_data.after <-
+#                                      data.frame(x =  median_line.after,
+#                                                 y  =  median_line.after)
+#                                    
+#                                    
+#                                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot after Correction ~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                                    Plot.after <-
+#                                      ggplot(Data_Plot.after, aes(x = rt.2, y = rt.1)) +
+#                                      geom_point() +
+#                                      
+#                                      coord_cartesian(xlim = c(
+#                                        min(
+#                                          range(Data_Plot.after$rt.2)[1],
+#                                          range(Data_Plot.after$rt.1)[1]
+#                                        ),
+#                                        max(
+#                                          range(Data_Plot.after$rt.2)[2],
+#                                          range(Data_Plot.after$rt.1)[2]
+#                                        )
+#                                      ),
+#                                      ylim = c(
+#                                        min(
+#                                          range(Data_Plot.after$rt.2)[1],
+#                                          range(Data_Plot.after$rt.1)[1]
+#                                        ),
+#                                        max(
+#                                          range(Data_Plot.after$rt.2)[2],
+#                                          range(Data_Plot.after$rt.1)[2]
+#                                        )
+#                                      )) +
+#                                      
+#                                      
+#                                      
+#                                      scale_x_continuous(n.breaks = 14) +
+#                                      scale_y_continuous(n.breaks = 14) +
+#                                      
+#                                      # xlab("CE-time (sample to align)")+
+#                                      # ylab("CE-time (reference sample)")+
+#                                      
+#                                      # geom_line(data = predict_data_model.np, aes(x = rt2, y = rt1, color = "Model"), lwd = 1, size = 1.5) +
+#                                      # #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
+#                                      # # geom_abline(yintercept = 0, lwd = 1, color = "green")+
+#                                      
+#                                      geom_line(
+#                                        data = median_line_data.after,
+#                                        aes(
+#                                          x = x,
+#                                          y = x,
+#                                          color = "Median"
+#                                        ),
+#                                        lwd = 1,
+#                                        size = 1.5
+#                                      ) +
+#                                      
+#                                      labs(
+#                                        x = paste(
+#                                          "CE-time (",
+#                                          Data_Plot.after$sample.2,
+#                                          ")"
+#                                        ),
+#                                        y = "CE-time (reference sample)",
+#                                        color = "Legend"
+#                                      ) +
+#                                      ggtitle("Correction with Kernel Density") +
+#                                      
+#                                      scale_color_manual(values = c("Median" = "green")) +
+#                                      
+#                                      
+#                                      theme_ben() +
+#                                      theme(
+#                                        plot.title = element_text(
+#                                          size = rel(1),
+#                                          face = "bold",
+#                                          color = "#760001",
+#                                          margin = margin(0, 0, 5, 0),
+#                                          hjust = 0.5
+#                                        ),
+#                                        plot.subtitle = element_text(hjust = 0.5),
+#                                        plot.background = element_rect(fill = "aliceblue"),
+#                                        legend.title = element_text(
+#                                          size = rel(0.95),
+#                                          face = "bold.italic",
+#                                          hjust = 0.5
+#                                        ),
+#                                        legend.text = element_text(size = rel(0.85), face = "bold.italic")
+#                                      )
+#                                    
+#                                    Plot.after
+#                                  }
+#                                  
+#                                })
+#                              
+#                              #### info-bulle
+#                              output$PlotCorrectionKernelDensity_After_hover_info <-
+#                                renderUI({
+#                                  hover <- req(input$PlotCorrectionKernelDensity_After_hover)
+#                                  
+#                                  if (!is.null(RvarsCorrectionTime$Data_Plot.after_KernelDensity)) {
+#                                    point <-
+#                                      nearPoints(
+#                                        req(
+#                                          RvarsCorrectionTime$Data_Plot.after_KernelDensity
+#                                        ),
+#                                        hover,
+#                                        threshold = 5,
+#                                        maxpoints = 1,
+#                                        addDist = TRUE
+#                                      )
+#                                    if (nrow(point) == 0)
+#                                      return(NULL)
+#                                    
+#                                    # calculate point position INSIDE the image as percent of total dimensions
+#                                    # from left (horizontal) and from top (vertical)
+#                                    left_pct <-
+#                                      (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+#                                    top_pct <-
+#                                      (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+#                                    
+#                                    # calculate distance from left and bottom side of the picture in pixels
+#                                    left_px <-
+#                                      hover$range$left + left_pct * (hover$range$right - hover$range$left)
+#                                    top_px <-
+#                                      hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+#                                    
+#                                    # create style property fot tooltip
+#                                    # background color is set so tooltip is a bit transparent
+#                                    # z-index is set so we are sure are tooltip will be on top
+#                                    style <-
+#                                      paste0(
+#                                        "position:absolute; z-index:100; background-color: #760001; color: white;",
+#                                        "left:",
+#                                        left_px + 2,
+#                                        "px; top:",
+#                                        top_px + 2,
+#                                        "px;"
+#                                      )
+#                                    
+#                                    # actual tooltip created as wellPanel
+#                                    div(class = "well well-sm",
+#                                        style = style,
+#                                        p(HTML(
+#                                          paste0(
+#                                            "<span class='bullText'> M+H (ref): </span>",
+#                                            round(point$mz.1, 4),
+#                                            "<br/>",
+#                                            "<span class='bullText'> CE-time (ref): </span>",
+#                                            round(point$rt.1, 2),
+#                                            "<br/>",
+#                                            "<span class='bullText'> Intensity (ref): </span>",
+#                                            round(point$maxo.1, 0),
+#                                            "<br/>",
+#                                            "<br>",
+#                                            "<span class='bullText'> M+H (sample): </span>",
+#                                            round(point$mz.2, 4),
+#                                            "<br/>",
+#                                            "<span class='bullText'> CE-time (sample): </span>",
+#                                            round(point$rt.2, 2),
+#                                            "<br/>",
+#                                            "<span class='bullText'> Intensity (sample): </span>",
+#                                            round(point$maxo.2, 0),
+#                                            "<br/>"
+#                                          )
+#                                        )))
+#                                  }
+#                                  
+#                                })
+#                              
+#                              #~~~~~~~~~ Plot mz (or M+H)~rt reference and mz(M+H)~rt sample (CE-time correction with xcms)~~~~~~~~~~~~~#
+#                              #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                              
+#                              output$CorrectimeKernelDensityViewer_2 <-
+#                                renderPlot({
+#                                  if (!is.null(input$SelectSample_KernelDensity) &
+#                                      !is.null(RvarsCorrectionTime$peakListAligned) &
+#                                      !is.null(RvarsCorrectionTime$ref_sample_samplePeaks) &
+#                                      !is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
+#                                    ref <- RvarsCorrectionTime$ref_sample_samplePeaks
+#                                    
+#                                    reqColstoPlot <-
+#                                      c('M+H', 'CE-time', 'intensity', 'sample')
+#                                    reqColsUsed <-
+#                                      c('mz', 'rt', 'maxo', 'sample')
+#                                    
+#                                    
+#                                    ##~~~~~~~~~~~~~~~~~~~~ After correction xcms ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                                    table.after <-
+#                                      RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample ==
+#                                                                            input$SelectSample_KernelDensity,]
+#                                    Data_after <- rbind(table.after,
+#                                                        ref)
+#                                    rownames(Data_after) <-
+#                                      1:nrow(Data_after)
+#                                    colnames(Data_after)[which(colnames(Data_after) %in% reqColsUsed)] <-
+#                                      reqColstoPlot
+#                                    Data_after$intensity <-
+#                                      log2(Data_after$intensity)
+#                                    
+#                                    Data_after$sample[Data_after$sample == RvarsCorrectionTime$ref_sample_sampleName] <-
+#                                      "Reference sample"
+#                                    Data_after$sample <-
+#                                      factor(Data_after$sample,
+#                                             levels = c(
+#                                               unique(Data_after$sample)[unique(Data_after$sample) != "Reference sample"],
+#                                               "Reference sample"
+#                                             ))
+#                                    
+#                                    Plot.After <- Data_after %>%
+#                                      ggplot() +
+#                                      aes(x = `CE-time`,
+#                                          y = `M+H`,
+#                                          colour = intensity) +
+#                                      #geom_point(shape = "circle", size = input$sizePoints) +
+#                                      geom_point(size = 0.5) +
+#                                      scale_color_viridis_c(option = "inferno",
+#                                                            direction = -1) +
+#                                      theme_gray() +
+#                                      #facet_grid(vars(sample), vars())  +
+#                                      facet_wrap(~ sample, dir = "v") +
+#                                      #coord_cartesian(xlim = rangesZoomOffsetSamplePlot$x, ylim = rangesZoomOffsetSamplePlot$y, expand = TRUE)+
+#                                      ylab("Mass (M+H) (Da)") +
+#                                      #xlab(paste("CE-time (",input$UnitTime_NewRefMap,")")) +
+#                                      xlab(paste("CE-time")) +
+#                                      
+#                                      ggtitle("Correction with xcms") +
+#                                      
+#                                      scale_x_continuous(n.breaks = 14) +
+#                                      scale_y_continuous(n.breaks = 5) +
+#                                      
+#                                      theme_ben() +
+#                                      labs(colour = "log2 Intensity") +
+#                                      theme(
+#                                        plot.title = element_text(
+#                                          size = rel(1),
+#                                          face = "bold",
+#                                          color = "#760001",
+#                                          margin = margin(0, 0, 5, 0),
+#                                          hjust = 0.5
+#                                        ),
+#                                        plot.subtitle = element_text(hjust = 0.5),
+#                                        panel.border = element_rect(
+#                                          fill = "transparent",
+#                                          # Needed to add the border
+#                                          color = "blue",
+#                                          linewidth = 0.5,
+#                                          linetype = "dashed"
+#                                        ),
+#                                        
+#                                        # Les étiquettes dans le cas d'un facetting
+#                                        strip.background = element_rect(
+#                                          fill = "grey",
+#                                          color = "grey"
+#                                        ),
+#                                        strip.text = element_text(
+#                                          size = rel(1),
+#                                          face = "bold.italic",
+#                                          color = "black",
+#                                          margin = margin(5, 0, 5, 0)
+#                                        ),
+#                                        plot.background = element_rect(fill = "aliceblue")
+#                                      )
+#                                    
+#                                    ##~~~~~~~~~~~~~~~~~~~~ After correction With Kernel Density ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                                    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                                    table.After_KernelDensity <-
+#                                      RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity$sample ==
+#                                                                                          input$SelectSample_KernelDensity,]
+#                                    Data_After_KernelDensity <-
+#                                      rbind(table.After_KernelDensity,
+#                                            ref)
+#                                    
+#                                    rownames(Data_After_KernelDensity) <-
+#                                      1:nrow(Data_After_KernelDensity)
+#                                    
+#                                    
+#                                    colnames(Data_After_KernelDensity)[which(colnames(Data_After_KernelDensity) %in% reqColsUsed)] <-
+#                                      reqColstoPlot
+#                                    Data_After_KernelDensity$intensity <-
+#                                      log2(Data_After_KernelDensity$intensity)
+#                                    
+#                                    Data_After_KernelDensity$sample[Data_After_KernelDensity$sample == RvarsCorrectionTime$ref_sample_sampleName] <-
+#                                      "Reference sample"
+#                                    Data_After_KernelDensity$sample <-
+#                                      factor(
+#                                        Data_After_KernelDensity$sample,
+#                                        levels = c(
+#                                          unique(Data_After_KernelDensity$sample)[unique(Data_After_KernelDensity$sample) !=
+#                                                                                    "Reference sample"],
+#                                          "Reference sample"
+#                                        )
+#                                      )
+#                                    
+#                                    
+#                                    
+#                                    Plot.After_KernelDensity <-
+#                                      Data_After_KernelDensity %>%
+#                                      ggplot() +
+#                                      aes(x = `CE-time`,
+#                                          y = `M+H`,
+#                                          colour = intensity) +
+#                                      #geom_point(shape = "circle", size = input$sizePoints) +
+#                                      geom_point(size = 0.5) +
+#                                      scale_color_viridis_c(option = "inferno",
+#                                                            direction = -1) +
+#                                      theme_gray() +
+#                                      #facet_grid(vars(sample), vars())  +
+#                                      facet_wrap(~ sample, dir = "v") +
+#                                      #coord_cartesian(xlim = rangesZoomOffsetSamplePlot$x, ylim = rangesZoomOffsetSamplePlot$y, expand = TRUE)+
+#                                      ylab("Mass (M+H) (Da)") +
+#                                      #xlab(paste("CE-time (",input$UnitTime_NewRefMap,")")) +
+#                                      xlab(paste("CE-time")) +
+#                                      
+#                                      ggtitle("Correction with Kernel density") +
+#                                      
+#                                      scale_x_continuous(n.breaks = 14) +
+#                                      scale_y_continuous(n.breaks = 5) +
+#                                      
+#                                      theme_ben() +
+#                                      labs(colour = "log2 Intensity") +
+#                                      theme(
+#                                        plot.title = element_text(
+#                                          size = rel(1),
+#                                          face = "bold",
+#                                          color = "#760001",
+#                                          margin = margin(0, 0, 5, 0),
+#                                          hjust = 0.5
+#                                        ),
+#                                        plot.subtitle = element_text(hjust = 0.5),
+#                                        panel.border = element_rect(
+#                                          fill = "transparent",
+#                                          # Needed to add the border
+#                                          color = "blue",
+#                                          linewidth = 0.5,
+#                                          linetype = "dashed"
+#                                        ),
+#                                        
+#                                        # Les étiquettes dans le cas d'un facetting
+#                                        strip.background = element_rect(
+#                                          fill = "grey",
+#                                          color = "grey"
+#                                        ),
+#                                        strip.text = element_text(
+#                                          size = rel(1),
+#                                          face = "bold.italic",
+#                                          color = "black",
+#                                          margin = margin(5, 0, 5, 0)
+#                                        ),
+#                                        plot.background = element_rect(fill = "aliceblue")
+#                                      )
+#                                    
+#                                    
+#                                    
+#                                    
+#                                    
+#                                    grid.arrange(Plot.After,
+#                                                 Plot.After_KernelDensity,
+#                                                 nrow = 2)
+#                                    
+#                                  }
+#                                  
+#                                })
+#                              
+#                              
+#                              
+#                            }
+#                            
+#                            
+#                          })
+#                          
+#                        }
+#                      }
+#                      
+#                    }
+#                    
+#                  }
+#                }
+#                
+#                
+#                
+#                
+#              })
+# 
+# 
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ##~~~~~~~ reset CE-time kernel correction to CE-time correction XCMS ~~~~~~~~~~~~~~~~~#
+# #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$resetFitModel
+#              },
+#              handlerExpr = {
+#                if (!is.null(RvarsCorrectionTime$Data_Plot.after_xcms)) {
+#                  if (nrow(RvarsCorrectionTime$Data_Plot.after_xcms) != 0) {
+#                    #~~~~~~~~~~~~~~~~~~~~ Density filter ~~~~~~~~~~~~~~~~~~#
+#                    data_dens_filter <-
+#                      reactive(if (!is.null(RvarsCorrectionTime$Data_Plot.after_xcms)) {
+#                        dens <-
+#                          kde2d(
+#                            RvarsCorrectionTime$Data_Plot.after_xcms$rt.2,
+#                            RvarsCorrectionTime$Data_Plot.after_xcms$rt.1,
+#                            h = input$bandwidth_Filter,
+#                            n = input$gridSize
+#                          )
+#                        nx <-
+#                          nrow(RvarsCorrectionTime$Data_Plot.after_xcms)
+#                        df <- expand.grid(x = dens$x, y = dens$y)
+#                        df$density <- (as.vector(dens$z))
+#                        df$density <- df$density / max(df$density)
+#                        #df$group <- data$group[1]
+#                        df$ndensity <-
+#                          df$density / max(df$density, na.rm = TRUE)
+#                        df$count <- nx * df$density
+#                        df$n <- nx
+#                        df$level <- 1
+#                        df$piece <- 1
+#                        df_filter <- df %>%
+#                          dplyr::filter(density >= req(input$minDensity))
+#                        
+#                        colnames(df_filter)[1:2] <- c("rt.2", "rt.1")
+#                        
+#                        df_filter
+#                      })
+#                    
+#                    ##~~~~~~~~~~~~~~~~~~~~~~~~~~~ Fit model ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                    if (!is.null(data_dens_filter())) {
+#                      dataDensity <- isolate(data_dens_filter())
+#                      
+#                      if (!is.null(dataDensity)) {
+#                        withProgress(message = 'Fit model...', value = 0, {
+#                          incProgress(1 / 3, detail = "")
+#                          
+#                          #~~~~~~~~~~~~~~~~~ Kernel density estimation ~~~~~~~~~~~~~~~~~~~~~~~#
+#                          RvarsCorrectionTime$modelKernelDensity <-
+#                            npreg(
+#                              rt.1 ~ rt.2,
+#                              bws = req(input$"bandwidth_Model"),
+#                              bwtype = c("fixed", "generalized_nn", "adaptive_nn")[1],
+#                              regtype = "ll",
+#                              ckertype = input$KernelType,
+#                              #bwmethod = "cv.aic",
+#                              gradients = TRUE,
+#                              data = dataDensity
+#                            )
+#                          
+#                          #~~~~~~~~~~~~~~~~~ Calculate prediction rt for sample selected ~~~~~~~~~~~~~~~~~~~~~~~#
+#                          if (!is.null(RvarsCorrectionTime$modelKernelDensity)) {
+#                            incProgress(1 / 3, detail = "")
+#                            
+#                            ### correction rt xcms by correction rt Kernel Density
+#                            RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity$sample ==
+#                                                                                input$SelectSample_KernelDensity,]$rt <-
+#                              RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample ==
+#                                                                    input$SelectSample_KernelDensity,]$rt
+#                            
+#                            ### Delete negative correction rt
+#                            
+#                            # RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity==input$SelectSample_KernelDensity,]$rt<-
+#                            #   RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity==input$SelectSample_KernelDensity,]$rt %>% dplyr::filter(rt>0)
+#                            #
+#                            
+#                            
+#                            ## ~~~~~~~~~~~~~~~~~~ Plot correction rt with kernel Density ~~~~~~~~~~~~~#
+#                            ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Before~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                            output$PlotCorrectionKernelDensity_Before <-
+#                              renderPlot({
+#                                predict_data_model.np <-
+#                                  data.frame(
+#                                    rt.1 = predict(
+#                                      RvarsCorrectionTime$modelKernelDensity,
+#                                      newdata = data.frame(rt.2 = seq(
+#                                        min(
+#                                          range(
+#                                            RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                          )[1],
+#                                          range(
+#                                            RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                          )[1]
+#                                        ),
+#                                        max(
+#                                          range(
+#                                            RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                          )[2],
+#                                          range(
+#                                            RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                          )[2]
+#                                        )
+#                                      ), by = 50)
+#                                    ),
+#                                    rt.2 = seq(min(
+#                                      range(
+#                                        RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                      )[1],
+#                                      range(
+#                                        RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                      )[1]
+#                                    ),
+#                                    max(
+#                                      range(
+#                                        RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                      )[2],
+#                                      range(
+#                                        RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                      )[2]
+#                                    )),
+#                                    by = 50
+#                                  )
+#                                
+#                                median_line <-
+#                                  seq(min(
+#                                    range(
+#                                      RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                    )[1],
+#                                    range(
+#                                      RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                    )[1]
+#                                  ),
+#                                  max(
+#                                    range(
+#                                      RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                    )[2],
+#                                    range(
+#                                      RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                    )[2]
+#                                  ),
+#                                  by = 50)
+#                                
+#                                median_line_data <-
+#                                  data.frame(x =  median_line, y  =  median_line)
+#                                
+#                                ggplot(
+#                                  RvarsCorrectionTime$Data_Plot.after_xcms_to_filter,
+#                                  aes(x = rt.2, y = rt.1)
+#                                ) +
+#                                  geom_point() +
+#                                  
+#                                  coord_cartesian(xlim = c(min(
+#                                    range(
+#                                      RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                    )[1],
+#                                    range(
+#                                      RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                    )[1]
+#                                  ),
+#                                  max(
+#                                    range(
+#                                      RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                    )[2],
+#                                    range(
+#                                      RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                    )[2]
+#                                  )),
+#                                  ylim = c(min(
+#                                    range(
+#                                      RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                    )[1],
+#                                    range(
+#                                      RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                    )[1]
+#                                  ),
+#                                  max(
+#                                    range(
+#                                      RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2
+#                                    )[2],
+#                                    range(
+#                                      RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+#                                    )[2]
+#                                  ))) +
+#                                  
+#                                  scale_x_continuous(n.breaks = 14) +
+#                                  scale_y_continuous(n.breaks = 14) +
+#                                  
+#                                  # xlab("CE-time (sample to align)")+
+#                                  # ylab("CE-time (reference sample)")+
+#                                  
+#                                  geom_line(
+#                                    data = predict_data_model.np,
+#                                    aes(
+#                                      x = rt.2,
+#                                      y = rt.1,
+#                                      color = "Model"
+#                                    ),
+#                                    lwd = 1,
+#                                    size = 1.5
+#                                  ) +
+#                                  #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
+#                                  # geom_abline(yintercept = 0, lwd = 1, color = "green")+
+#                                  geom_line(
+#                                    data = median_line_data,
+#                                    aes(
+#                                      x = x,
+#                                      y = x,
+#                                      color = "Median"
+#                                    ),
+#                                    lwd = 1,
+#                                    size = 1.5
+#                                  ) +
+#                                  ggtitle("Correction with xcms") +
+#                                  
+#                                  labs(
+#                                    x = paste(
+#                                      "CE-time (",
+#                                      RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$sample.2,
+#                                      ")"
+#                                    ),
+#                                    y = "CE-time (reference sample)",
+#                                    color = "Legend"
+#                                  ) +
+#                                  
+#                                  scale_color_manual(values = c(
+#                                    "Model" = "red",
+#                                    "Median" = "green"
+#                                  )) +
+#                                  
+#                                  
+#                                  theme_ben() +
+#                                  theme(
+#                                    plot.title = element_text(
+#                                      size = rel(1),
+#                                      face = "bold",
+#                                      color = "#760001",
+#                                      margin = margin(0, 0, 5, 0),
+#                                      hjust = 0.5
+#                                    ),
+#                                    plot.subtitle = element_text(hjust = 0.5),
+#                                    plot.background = element_rect(fill = "aliceblue"),
+#                                    legend.title = element_text(
+#                                      size = rel(0.95),
+#                                      face = "bold.italic",
+#                                      hjust = 0.5
+#                                    ),
+#                                    legend.text = element_text(size = rel(0.85), face = "bold.italic")
+#                                  )
+#                                
+#                              })
+#                            
+#                            #### info-bulle
+#                            output$PlotCorrectionKernelDensity_Before_hover_info <-
+#                              renderUI({
+#                                hover <- req(input$PlotCorrectionKernelDensity_Before_hover)
+#                                
+#                                if (!is.null(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter)) {
+#                                  point <-
+#                                    nearPoints(
+#                                      req(
+#                                        RvarsCorrectionTime$Data_Plot.after_xcms_to_filter
+#                                      ),
+#                                      hover,
+#                                      threshold = 5,
+#                                      maxpoints = 1,
+#                                      addDist = TRUE
+#                                    )
+#                                  if (nrow(point) == 0)
+#                                    return(NULL)
+#                                  
+#                                  # calculate point position INSIDE the image as percent of total dimensions
+#                                  # from left (horizontal) and from top (vertical)
+#                                  left_pct <-
+#                                    (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+#                                  top_pct <-
+#                                    (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+#                                  
+#                                  # calculate distance from left and bottom side of the picture in pixels
+#                                  left_px <-
+#                                    hover$range$left + left_pct * (hover$range$right - hover$range$left)
+#                                  top_px <-
+#                                    hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+#                                  
+#                                  # create style property fot tooltip
+#                                  # background color is set so tooltip is a bit transparent
+#                                  # z-index is set so we are sure are tooltip will be on top
+#                                  style <-
+#                                    paste0(
+#                                      "position:absolute; z-index:100; background-color: #760001; color: white;",
+#                                      "left:",
+#                                      left_px + 2,
+#                                      "px; top:",
+#                                      top_px + 2,
+#                                      "px;"
+#                                    )
+#                                  
+#                                  # actual tooltip created as wellPanel
+#                                  div(class = "well well-sm",
+#                                      style = style,
+#                                      p(HTML(
+#                                        paste0(
+#                                          "<span class='bullText'> M+H (ref): </span>",
+#                                          round(point$mz.1, 4),
+#                                          "<br/>",
+#                                          "<span class='bullText'> CE-time (ref): </span>",
+#                                          round(point$rt.1, 2),
+#                                          "<br/>",
+#                                          "<span class='bullText'> Intensity (ref): </span>",
+#                                          round(point$maxo.1, 0),
+#                                          "<br/>",
+#                                          "<br>",
+#                                          "<span class='bullText'> M+H (sample): </span>",
+#                                          round(point$mz.2, 4),
+#                                          "<br/>",
+#                                          "<span class='bullText'> CE-time (sample): </span>",
+#                                          round(point$rt.2, 2),
+#                                          "<br/>",
+#                                          "<span class='bullText'> Intensity (sample): </span>",
+#                                          round(2 ^ (point$maxo.2), 0),
+#                                          "<br/>"
+#                                        )
+#                                      )))
+#                                }
+#                                
+#                              })
+#                            
+#                            incProgress(1 / 3, detail = "")
+#                            ####~~~~~~~~~~~~~~~~~~~~ Plot After ~~~~~~~~~~~~~~~~~~~~~~~~#
+#                            ####~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                            output$PlotCorrectionKernelDensity_After <-
+#                              renderPlot({
+#                                if (!is.null(input$SelectSample_KernelDensity) &
+#                                    !is.null(RvarsCorrectionTime$peakListAligned) &
+#                                    !is.null(RvarsCorrectionTime$ref_sample_samplePeaks) &
+#                                    !is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
+#                                  source(
+#                                    "lib/NewReferenceMap/R_files/CE_time_Correction.lib.R",
+#                                    local = TRUE
+#                                  )
+#                                  
+#                                  ref <-
+#                                    RvarsCorrectionTime$ref_sample_samplePeaks
+#                                  table.after <-
+#                                    RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity$sample ==
+#                                                                                        input$SelectSample_KernelDensity,]
+#                                  
+#                                  resMatch.after <- matchMz(
+#                                    x = ref,
+#                                    table = table.after,
+#                                    ppm_tolereance = 1000,
+#                                    mzcol = "mz",
+#                                    rtcol = "rt" ,
+#                                    session = session
+#                                  )
+#                                  
+#                                  Data_Plot.after <-
+#                                    resMatch.after$MatchTable[!is.na(resMatch.after$MatchTable$rt.2),
+#                                                              c(
+#                                                                "mz.1",
+#                                                                "rt.1",
+#                                                                "maxo.1",
+#                                                                "mz.2",
+#                                                                "rt.2",
+#                                                                "rt.2",
+#                                                                "maxo.2",
+#                                                                "sample.2"
+#                                                              )]
+#                                  
+#                                  RvarsCorrectionTime$Data_Plot.after_KernelDensity <-
+#                                    Data_Plot.after
+#                                  
+#                                  median_line.after <-
+#                                    seq(min(
+#                                      range(Data_Plot.after$rt.2)[1],
+#                                      range(Data_Plot.after$rt.1)[1]
+#                                    ),
+#                                    max(
+#                                      range(Data_Plot.after$rt.2)[2],
+#                                      range(Data_Plot.after$rt.1)[2]
+#                                    ),
+#                                    by = 50)
+#                                  
+#                                  median_line_data.after <-
+#                                    data.frame(x =  median_line.after,
+#                                               y  =  median_line.after)
+#                                  
+#                                  
+#                                  #~~~~~~~~~~~~~~~~~~~~~~~~~~~ Plot after Correction ~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                                  Plot.after <-
+#                                    ggplot(Data_Plot.after, aes(x = rt.2, y = rt.1)) +
+#                                    geom_point() +
+#                                    
+#                                    coord_cartesian(xlim = c(
+#                                      min(
+#                                        range(Data_Plot.after$rt.2)[1],
+#                                        range(Data_Plot.after$rt.1)[1]
+#                                      ),
+#                                      max(
+#                                        range(Data_Plot.after$rt.2)[2],
+#                                        range(Data_Plot.after$rt.1)[2]
+#                                      )
+#                                    ),
+#                                    ylim = c(
+#                                      min(
+#                                        range(Data_Plot.after$rt.2)[1],
+#                                        range(Data_Plot.after$rt.1)[1]
+#                                      ),
+#                                      max(
+#                                        range(Data_Plot.after$rt.2)[2],
+#                                        range(Data_Plot.after$rt.1)[2]
+#                                      )
+#                                    )) +
+#                                    
+#                                    
+#                                    
+#                                    scale_x_continuous(n.breaks = 14) +
+#                                    scale_y_continuous(n.breaks = 14) +
+#                                    
+#                                    # xlab("CE-time (sample to align)")+
+#                                    # ylab("CE-time (reference sample)")+
+#                                    
+#                                    # geom_line(data = predict_data_model.np, aes(x = rt2, y = rt1, color = "Model"), lwd = 1, size = 1.5) +
+#                                    # #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
+#                                    # # geom_abline(yintercept = 0, lwd = 1, color = "green")+
+#                                    
+#                                    geom_line(
+#                                      data = median_line_data.after,
+#                                      aes(
+#                                        x = x,
+#                                        y = x,
+#                                        color = "Median"
+#                                      ),
+#                                      lwd = 1,
+#                                      size = 1.5
+#                                    ) +
+#                                    
+#                                    labs(
+#                                      x = paste("CE-time (", Data_Plot.after$sample.2, ")"),
+#                                      y = "CE-time (reference sample)",
+#                                      color = "Legend"
+#                                    ) +
+#                                    ggtitle("Correction with xcms (Correction with Kernel Density deleted)") +
+#                                    
+#                                    scale_color_manual(values = c("Median" = "green")) +
+#                                    
+#                                    
+#                                    theme_ben() +
+#                                    theme(
+#                                      plot.title = element_text(
+#                                        size = rel(1),
+#                                        face = "bold",
+#                                        color = "#760001",
+#                                        margin = margin(0, 0, 5, 0),
+#                                        hjust = 0.5
+#                                      ),
+#                                      plot.subtitle = element_text(hjust = 0.5),
+#                                      plot.background = element_rect(fill = "aliceblue"),
+#                                      legend.title = element_text(
+#                                        size = rel(0.95),
+#                                        face = "bold.italic",
+#                                        hjust = 0.5
+#                                      ),
+#                                      legend.text = element_text(size = rel(0.85), face = "bold.italic")
+#                                    )
+#                                  
+#                                  Plot.after
+#                                }
+#                                
+#                              })
+#                            
+#                            #### info-bulle
+#                            output$PlotCorrectionKernelDensity_After_hover_info <-
+#                              renderUI({
+#                                hover <- req(input$PlotCorrectionKernelDensity_After_hover)
+#                                
+#                                if (!is.null(RvarsCorrectionTime$Data_Plot.after_KernelDensity)) {
+#                                  point <-
+#                                    nearPoints(
+#                                      req(
+#                                        RvarsCorrectionTime$Data_Plot.after_KernelDensity
+#                                      ),
+#                                      hover,
+#                                      threshold = 5,
+#                                      maxpoints = 1,
+#                                      addDist = TRUE
+#                                    )
+#                                  if (nrow(point) == 0)
+#                                    return(NULL)
+#                                  
+#                                  # calculate point position INSIDE the image as percent of total dimensions
+#                                  # from left (horizontal) and from top (vertical)
+#                                  left_pct <-
+#                                    (hover$x - hover$domain$left) / (hover$domain$right - hover$domain$left)
+#                                  top_pct <-
+#                                    (hover$domain$top - hover$y) / (hover$domain$top - hover$domain$bottom)
+#                                  
+#                                  # calculate distance from left and bottom side of the picture in pixels
+#                                  left_px <-
+#                                    hover$range$left + left_pct * (hover$range$right - hover$range$left)
+#                                  top_px <-
+#                                    hover$range$top + top_pct * (hover$range$bottom - hover$range$top)
+#                                  
+#                                  # create style property fot tooltip
+#                                  # background color is set so tooltip is a bit transparent
+#                                  # z-index is set so we are sure are tooltip will be on top
+#                                  style <-
+#                                    paste0(
+#                                      "position:absolute; z-index:100; background-color: #760001; color: white;",
+#                                      "left:",
+#                                      left_px + 2,
+#                                      "px; top:",
+#                                      top_px + 2,
+#                                      "px;"
+#                                    )
+#                                  
+#                                  # actual tooltip created as wellPanel
+#                                  div(class = "well well-sm",
+#                                      style = style,
+#                                      p(HTML(
+#                                        paste0(
+#                                          "<span class='bullText'> M+H (ref): </span>",
+#                                          round(point$mz.1, 4),
+#                                          "<br/>",
+#                                          "<span class='bullText'> CE-time (ref): </span>",
+#                                          round(point$rt.1, 2),
+#                                          "<br/>",
+#                                          "<span class='bullText'> Intensity (ref): </span>",
+#                                          round(point$maxo.1, 0),
+#                                          "<br/>",
+#                                          "<br>",
+#                                          "<span class='bullText'> M+H (sample): </span>",
+#                                          round(point$mz.2, 4),
+#                                          "<br/>",
+#                                          "<span class='bullText'> CE-time (sample): </span>",
+#                                          round(point$rt.2, 2),
+#                                          "<br/>",
+#                                          "<span class='bullText'> Intensity (sample): </span>",
+#                                          round(point$maxo.2, 0),
+#                                          "<br/>"
+#                                        )
+#                                      )))
+#                                }
+#                                
+#                              })
+#                            
+#                            #~~~~~~~~~ Plot mz (or M+H)~rt reference and mz(M+H)~rt sample (CE-time correction with xcms)~~~~~~~~~~~~~#
+#                            #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                            
+#                            output$CorrectimeKernelDensityViewer_2 <-
+#                              renderPlot({
+#                                if (!is.null(input$SelectSample_KernelDensity) &
+#                                    !is.null(RvarsCorrectionTime$peakListAligned) &
+#                                    !is.null(RvarsCorrectionTime$ref_sample_samplePeaks) &
+#                                    !is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
+#                                  ref <- RvarsCorrectionTime$ref_sample_samplePeaks
+#                                  
+#                                  reqColstoPlot <-
+#                                    c('M+H', 'CE-time', 'intensity', 'sample')
+#                                  reqColsUsed <-
+#                                    c('mz', 'rt', 'maxo', 'sample')
+#                                  
+#                                  
+#                                  ##~~~~~~~~~~~~~~~~~~~~ After correction xcms ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                                  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                                  table.after <-
+#                                    RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample ==
+#                                                                          input$SelectSample_KernelDensity,]
+#                                  Data_after <- rbind(table.after,
+#                                                      ref)
+#                                  rownames(Data_after) <-
+#                                    1:nrow(Data_after)
+#                                  colnames(Data_after)[which(colnames(Data_after) %in% reqColsUsed)] <-
+#                                    reqColstoPlot
+#                                  Data_after$intensity <-
+#                                    log2(Data_after$intensity)
+#                                  
+#                                  Data_after$sample[Data_after$sample == RvarsCorrectionTime$ref_sample_sampleName] <-
+#                                    "Reference sample"
+#                                  Data_after$sample <-
+#                                    factor(Data_after$sample,
+#                                           levels = c(
+#                                             unique(Data_after$sample)[unique(Data_after$sample) != "Reference sample"],
+#                                             "Reference sample"
+#                                           ))
+#                                  
+#                                  Plot.After <- Data_after %>%
+#                                    ggplot() +
+#                                    aes(x = `CE-time`,
+#                                        y = `M+H`,
+#                                        colour = intensity) +
+#                                    #geom_point(shape = "circle", size = input$sizePoints) +
+#                                    geom_point(size = 0.5) +
+#                                    scale_color_viridis_c(option = "inferno", direction = -1) +
+#                                    theme_gray() +
+#                                    #facet_grid(vars(sample), vars())  +
+#                                    facet_wrap(~ sample, dir = "v") +
+#                                    #coord_cartesian(xlim = rangesZoomOffsetSamplePlot$x, ylim = rangesZoomOffsetSamplePlot$y, expand = TRUE)+
+#                                    ylab("Mass (M+H) (Da)") +
+#                                    #xlab(paste("CE-time (",input$UnitTime_NewRefMap,")")) +
+#                                    xlab(paste("CE-time")) +
+#                                    
+#                                    ggtitle("Correction with xcms") +
+#                                    
+#                                    scale_x_continuous(n.breaks = 14) +
+#                                    scale_y_continuous(n.breaks = 5) +
+#                                    
+#                                    theme_ben() +
+#                                    labs(colour = "log2 Intensity") +
+#                                    theme(
+#                                      plot.title = element_text(
+#                                        size = rel(1),
+#                                        face = "bold",
+#                                        color = "#760001",
+#                                        margin = margin(0, 0, 5, 0),
+#                                        hjust = 0.5
+#                                      ),
+#                                      plot.subtitle = element_text(hjust = 0.5),
+#                                      panel.border = element_rect(
+#                                        fill = "transparent",
+#                                        # Needed to add the border
+#                                        color = "blue",
+#                                        linewidth = 0.5,
+#                                        linetype = "dashed"
+#                                      ),
+#                                      
+#                                      # Les étiquettes dans le cas d'un facetting
+#                                      strip.background = element_rect(
+#                                        fill = "grey",
+#                                        color = "grey"
+#                                      ),
+#                                      strip.text = element_text(
+#                                        size = rel(1),
+#                                        face = "bold.italic",
+#                                        color = "black",
+#                                        margin = margin(5, 0, 5, 0)
+#                                      ),
+#                                      plot.background = element_rect(fill = "aliceblue")
+#                                    )
+#                                  
+#                                  ##~~~~~~~~~~~~~~~~~~~~ After correction With Kernel Density ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                                  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#                                  table.After_KernelDensity <-
+#                                    RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity$sample ==
+#                                                                                        input$SelectSample_KernelDensity,]
+#                                  Data_After_KernelDensity <-
+#                                    rbind(table.After_KernelDensity,
+#                                          ref)
+#                                  
+#                                  rownames(Data_After_KernelDensity) <-
+#                                    1:nrow(Data_After_KernelDensity)
+#                                  
+#                                  
+#                                  colnames(Data_After_KernelDensity)[which(colnames(Data_After_KernelDensity) %in% reqColsUsed)] <-
+#                                    reqColstoPlot
+#                                  Data_After_KernelDensity$intensity <-
+#                                    log2(Data_After_KernelDensity$intensity)
+#                                  
+#                                  Data_After_KernelDensity$sample[Data_After_KernelDensity$sample == RvarsCorrectionTime$ref_sample_sampleName] <-
+#                                    "Reference sample"
+#                                  Data_After_KernelDensity$sample <-
+#                                    factor(
+#                                      Data_After_KernelDensity$sample,
+#                                      levels = c(
+#                                        unique(Data_After_KernelDensity$sample)[unique(Data_After_KernelDensity$sample) !=
+#                                                                                  "Reference sample"],
+#                                        "Reference sample"
+#                                      )
+#                                    )
+#                                  
+#                                  cat("Affichage de la table :  data_after_Kerberl_density : \n")
+#                                  print(Data_After_KernelDensity)
+#                                  
+#                                  Plot.After_KernelDensity <-
+#                                    Data_After_KernelDensity %>%
+#                                    ggplot() +
+#                                    aes(x = `CE-time`,
+#                                        y = `M+H`,
+#                                        colour = intensity) +
+#                                    #geom_point(shape = "circle", size = input$sizePoints) +
+#                                    geom_point(size = 0.5) +
+#                                    scale_color_viridis_c(option = "inferno", direction = -1) +
+#                                    theme_gray() +
+#                                    #facet_grid(vars(sample), vars())  +
+#                                    facet_wrap(~ sample, dir = "v") +
+#                                    #coord_cartesian(xlim = rangesZoomOffsetSamplePlot$x, ylim = rangesZoomOffsetSamplePlot$y, expand = TRUE)+
+#                                    ylab("Mass (M+H) (Da)") +
+#                                    #xlab(paste("CE-time (",input$UnitTime_NewRefMap,")")) +
+#                                    xlab(paste("CE-time")) +
+#                                    
+#                                    ggtitle("Correction with xcms (Correction with Kernel Density deleted)") +
+#                                    
+#                                    scale_x_continuous(n.breaks = 14) +
+#                                    scale_y_continuous(n.breaks = 5) +
+#                                    
+#                                    theme_ben() +
+#                                    labs(colour = "log2 Intensity") +
+#                                    theme(
+#                                      plot.title = element_text(
+#                                        size = rel(1),
+#                                        face = "bold",
+#                                        color = "#760001",
+#                                        margin = margin(0, 0, 5, 0),
+#                                        hjust = 0.5
+#                                      ),
+#                                      plot.subtitle = element_text(hjust = 0.5),
+#                                      panel.border = element_rect(
+#                                        fill = "transparent",
+#                                        # Needed to add the border
+#                                        color = "blue",
+#                                        linewidth = 0.5,
+#                                        linetype = "dashed"
+#                                      ),
+#                                      
+#                                      # Les étiquettes dans le cas d'un facetting
+#                                      strip.background = element_rect(
+#                                        fill = "grey",
+#                                        color = "grey"
+#                                      ),
+#                                      strip.text = element_text(
+#                                        size = rel(1),
+#                                        face = "bold.italic",
+#                                        color = "black",
+#                                        margin = margin(5, 0, 5, 0)
+#                                      ),
+#                                      plot.background = element_rect(fill = "aliceblue")
+#                                    )
+#                                  
+#                                  
+#                                  
+#                                  
+#                                  
+#                                  grid.arrange(Plot.After,
+#                                               Plot.After_KernelDensity,
+#                                               nrow = 2)
+#                                  
+#                                }
+#                                
+#                              })
+#                            
+#                            
+#                            
+#                          }
+#                          
+#                          
+#                        })
+#                        
+#                      }
+#                    }
+#                    
+#                  }
+#                }
+#                
+#                
+#              })
+# 
+# 
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ##~~~~~~~~~~~~~~~~~~ Save CE-time Corrected Data with shinyFiles ~~~~~~~~~~~~~~~~#
+# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# 
+# observeEvent(input$valideAllKernel, {
+#   shinyjs::enable(id = "SaveKernelAjust")
+# })
+# 
+# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ##~~~~~~~~~~~~~~~~~~ Save CE-time Corrected Data as CSV ~~~~~~~~~~~~~~~~~~~~~~~~~#
+# ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+# observeEvent(ignoreNULL = TRUE,
+#              eventExpr = {
+#                input$SaveKernelAjust
+#              },
+#              handlerExpr = {
+#                # Open file save dialog
+#                shinyFileSave(input,
+#                              id = "SaveKernelAjust",
+#                              roots = volumes,
+#                              session = session)
+#                
+#                # Get the selected file path
+#                path_Save_File <- parseSavePath(volumes, input$SaveKernelAjust)$datapath
+#                
+#                # Only proceed if user selected a valid path
+#                if (length(path_Save_File) > 0) {
+#                  
+#                  # Check if data exists
+#                  if (!is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
+#                    
+#                    # Show progress notification
+#                    showNotification(
+#                      "Creating CSV file with corrected data...",
+#                      type = "message",
+#                      duration = NULL,
+#                      id = "save_csv_progress"
+#                    )
+#                    
+#                    tryCatch({
+#                      # Get corrected data
+#                      corrected_data <- RvarsCorrectionTime$peakListAligned_KernelDensity
+#                      
+#                      # Ensure the file has .csv extension
+#                      if (!grepl("\\.csv$", path_Save_File, ignore.case = TRUE)) {
+#                        path_Save_File <- paste0(path_Save_File, ".csv")
+#                      }
+#                      
+#                      # Save as CSV
+#                      write.csv(corrected_data,
+#                                file = path_Save_File,
+#                                row.names = FALSE,
+#                                quote = TRUE,
+#                                na = "")
+#                      
+#                      # Remove progress notification
+#                      removeNotification(id = "save_csv_progress")
+#                      
+#                      # Show success notification
+#                      showNotification(
+#                        paste0("CSV file saved successfully to:\n", basename(path_Save_File)),
+#                        type = "message",
+#                        duration = 5
+#                      )
+#                      
+#                      # Log save event
+#                      cat(paste0(
+#                        "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
+#                        "CE-Time corrected data saved as CSV to: ", path_Save_File,
+#                        " (", nrow(corrected_data), " peaks, ",
+#                        length(unique(corrected_data$sample)), " samples)\n"
+#                      ))
+#                      
+#                    }, error = function(e) {
+#                      # Remove progress notification
+#                      removeNotification(id = "save_csv_progress")
+#                      
+#                      # Show error notification
+#                      showNotification(
+#                        paste0("Error saving CSV file: ", e$message),
+#                        type = "error",
+#                        duration = 10
+#                      )
+#                      
+#                      # Log error
+#                      cat(paste0(
+#                        "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
+#                        "ERROR saving CE-Time data as CSV: ", e$message, "\n"
+#                      ))
+#                    })
+#                    
+#                  } else {
+#                    # No data available
+#                    showNotification(
+#                      "No corrected data available. Please apply Kernel Density correction first.",
+#                      type = "warning",
+#                      duration = 5
+#                    )
+#                  }
+#                }
+#                
+# })
+# 
+# 
+# # observeEvent(ignoreNULL = TRUE,
+# #              eventExpr = {
+# #                input$SaveKernelAjust
+# #              },
+# #              handlerExpr = {
+# #                # Open file save dialog
+# #                shinyFileSave(input,
+# #                              id = "SaveKernelAjust",
+# #                              roots = volumes,
+# #                              session = session)
+# #                
+# #                # Get the selected file path
+# #                path_Save_File <- parseSavePath(volumes, input$SaveKernelAjust)$datapath
+# #                
+# #                # Only proceed if user selected a valid path
+# #                if (length(path_Save_File) > 0) {
+# #                  
+# #                  # Check if data exists
+# #                  if (!is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
+# #                    
+# #                    # Show progress notification
+# #                    showNotification(
+# #                      "Creating csv file with corrected data...",
+# #                      type = "message",
+# #                      duration = 5,
+# #                      id = "save_progress"
+# #                    )
+# #                    
+# #                    tryCatch({
+# #                      # Get corrected data
+# #                      corrected_data <- RvarsCorrectionTime$peakListAligned_KernelDensity
+# #                      #export des données en format csv
+# #                      #write.csv(corrected_data, file = "Correction CE-Time - xcms and kernel density.csv")
+# #                      
+# #                      # Create workbook with multiple sheets
+# #                      wb <- openxlsx::createWorkbook()
+# # 
+# #                      # Sheet 1: Corrected peaks data
+# #                      openxlsx::addWorksheet(wb, "Corrected_Peaks")
+# #                      openxlsx::writeData(wb, "Corrected_Peaks", corrected_data,
+# #                                          startRow = 1, startCol = 1,
+# #                                          rowNames = FALSE)
+# # 
+# #                      # Add header styling
+# #                      header_style <- openxlsx::createStyle(
+# #                        fontSize = 12,
+# #                        fontColour = "#FFFFFF",
+# #                        fgFill = "#4F81BD",
+# #                        halign = "center",
+# #                        valign = "center",
+# #                        textDecoration = "bold",
+# #                        border = "TopBottomLeftRight"
+# #                      )
+# # 
+# #                      openxlsx::addStyle(wb, "Corrected_Peaks",
+# #                                         style = header_style,
+# #                                         rows = 1,
+# #                                         cols = 1:ncol(corrected_data),
+# #                                         gridExpand = TRUE)
+# # 
+# #                      # Freeze first row
+# #                      openxlsx::freezePane(wb, "Corrected_Peaks", firstRow = TRUE)
+# # 
+# #                      # Auto-size columns
+# #                      openxlsx::setColWidths(wb, "Corrected_Peaks",
+# #                                             cols = 1:ncol(corrected_data),
+# #                                             widths = "auto")
+# # 
+# #                      # Sheet 2: Metadata/Parameters (if available)
+# #                      if (!is.null(RvarsCorrectionTime$pheno_Data_mzML)) {
+# #                        openxlsx::addWorksheet(wb, "Sample_Info")
+# #                        openxlsx::writeData(wb, "Sample_Info",
+# #                                            RvarsCorrectionTime$pheno_Data_mzML,
+# #                                            rowNames = FALSE)
+# # 
+# #                        openxlsx::addStyle(wb, "Sample_Info",
+# #                                           style = header_style,
+# #                                           rows = 1,
+# #                                           cols = 1:ncol(RvarsCorrectionTime$pheno_Data_mzML),
+# #                                           gridExpand = TRUE)
+# # 
+# #                        openxlsx::freezePane(wb, "Sample_Info", firstRow = TRUE)
+# #                      }
+# # 
+# #                      # Sheet 3: Correction summary
+# #                      openxlsx::addWorksheet(wb, "Correction_Summary")
+# # 
+# #                      summary_info <- data.frame(
+# #                        Parameter = c("Correction Method",
+# #                                      "Kernel Type",
+# #                                      "Bandwidth (Model)",
+# #                                      "Bandwidth (Filter)",
+# #                                      "Min Density",
+# #                                      "Intensity Filter",
+# #                                      "Export Date",
+# #                                      "Number of Peaks",
+# #                                      "Number of Samples"),
+# #                        Value = c("Kernel Density",
+# #                                  ifelse(!is.null(input$KernelType), input$KernelType, "N/A"),
+# #                                  ifelse(!is.null(input$bandwidth_Model), input$bandwidth_Model, "N/A"),
+# #                                  ifelse(!is.null(input$bandwidth_Filter), input$bandwidth_Filter, "N/A"),
+# #                                  ifelse(!is.null(input$minDensity), input$minDensity, "N/A"),
+# #                                  ifelse(!is.null(input$intensityFilter), input$intensityFilter, "N/A"),
+# #                                  format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
+# #                                  nrow(corrected_data),
+# #                                  length(unique(corrected_data$sample)))
+# #                      )
+# # 
+# #                      openxlsx::writeData(wb, "Correction_Summary", summary_info, rowNames = FALSE)
+# # 
+# #                      openxlsx::addStyle(wb, "Correction_Summary",
+# #                                         style = header_style,
+# #                                         rows = 1,
+# #                                         cols = 1:2,
+# #                                         gridExpand = TRUE)
+# # 
+# #                      # Ensure the file has .xlsx extension
+# #                      if (!grepl("\\.xlsx$", path_Save_File, ignore.case = TRUE)) {
+# #                        path_Save_File <- paste0(path_Save_File, ".xlsx")
+# #                      }
+# # 
+# #                      # Save workbook to selected path
+# #                      openxlsx::saveWorkbook(wb, path_Save_File, overwrite = TRUE)
+# #                      # 
+# #                      # Remove progress notification
+# #                      removeNotification(id = "save_progress")
+# #                      # 
+# #                      # # Show success notification
+# #                      showNotification(
+# #                        paste0("File saved successfully to:\n", basename(path_Save_File)),
+# #                        type = "message",
+# #                        duration = 5
+# #                      )
+# #                      # 
+# #                      # Log save event
+# #                      cat(paste0(
+# #                        "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
+# #                        "CE-Time corrected data saved to: ", path_Save_File,
+# #                        " (", nrow(corrected_data), " peaks, ",
+# #                        length(unique(corrected_data$sample)), " samples)\n"
+# #                      ))
+# #                      
+# #                    }, error = function(e) {
+# #                      # Remove progress notification
+# #                      removeNotification(id = "save_progress")
+# #                      
+# #                      # Show error notification
+# #                      showNotification(
+# #                        paste0("Error saving file: ", e$message),
+# #                        type = "error",
+# #                        duration = 10
+# #                      )
+# #                      
+# #                      # Log error
+# #                      cat(paste0(
+# #                        "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
+# #                        "ERROR saving CE-Time data: ", e$message, "\n"
+# #                      ))
+# #                    })
+# #                    
+# #                  } else {
+# #                    # No data available
+# #                    showNotification(
+# #                      "No corrected data available. Please apply Kernel Density correction first.",
+# #                      type = "warning",
+# #                      duration = 5
+# #                    )
+# #                  }
+# #                }
+# # })
+# 
+# 
+# 
+# observe({
+#   if (is.null(RvarsCorrectionTime$modelKernelDensity)) {
+#     output$PlotCorrectionKernelDensity_Before <- renderPlot({
+#       
+#     })
+#     output$PlotCorrectionKernelDensity_After <- renderPlot({
+#       
+#     })
+#     output$CorrectimeKernelDensityViewer_2 <- renderPlot({
+#       
+#     })
+#   }
+#   
+#   if (is.null(input$SelectSample_KernelDensity) ||
+#       is.null(RvarsCorrectionTime$peakListAligned) ||
+#       is.null(RvarsCorrectionTime$ref_sample_samplePeaks)) {
+#     output$DensityFilterPlot <- renderPlot({
+#       
+#     })
+#   }
+# })
+
+
 
 
 ##" Initialize reactive values
@@ -648,7 +7322,7 @@ observeEvent({
   if (!is.null(brush)) {
     rangesZoomSample_selectedCutting$x <- c(brush$xmin, brush$xmax)
     rangesZoomSample_selectedCutting$y <- c(brush$ymin, brush$ymax)
-
+    
   } else {
     ## reset coord_cartesian
     rangesZoomSample_selectedCutting$x <- NULL
@@ -1972,187 +8646,6 @@ observeEvent(ignoreNULL = TRUE,
              })
 
 
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Batch import cut-off (Min/Max en temps) ~~~~~~~~~~~~~~~~~~~~~~#*
-## Permet d'importer un fichier Excel (Sample, Min, Max, Unit optionnel) pour
-## appliquer en masse les bornes de découpage RT, au lieu de les saisir
-## manuellement échantillon par échantillon. Réutilise normalize_run_key
-## (définie plus bas dans ce fichier, mais déjà disponible au moment de
-## l'exécution de cet observer — tout le code top-level du serveur s'exécute
-## une fois à l'initialisation de la session, avant toute interaction) pour
-## tolérer les variations de format de nom de run.
-observeEvent(input$applyBatchCutOff, ignoreNULL = TRUE, {
-  req(input$batchCutOffFile)
-
-  if (is.null(RvarsCorrectionTime$samplesCuttingTable)) {
-    showNotification("Aucun échantillon chargé pour le découpage.", type = "error", duration = 8)
-    return()
-  }
-
-  df <- tryCatch(
-    openxlsx::read.xlsx(input$batchCutOffFile$datapath, sheet = 1),
-    error = function(e) NULL
-  )
-  if (is.null(df)) {
-    showNotification("Impossible de lire le fichier Excel.", type = "error", duration = 8)
-    return()
-  }
-
-  loaded_samples <- rownames(RvarsCorrectionTime$samplesCuttingTable)
-  loaded_key_lookup <- stats::setNames(loaded_samples, normalize_run_key(loaded_samples))
-
-  col_names    <- colnames(df)
-  datafile_col <- col_names[grepl(pattern = "^Datafile$|^Sample$", col_names, ignore.case = TRUE)][1]
-  min_col      <- col_names[grepl(pattern = "^Min$|^RT.?min$|^CE.?time.?min$", col_names, ignore.case = TRUE)][1]
-  max_col      <- col_names[grepl(pattern = "^Max$|^RT.?max$|^CE.?time.?max$", col_names, ignore.case = TRUE)][1]
-  unit_col     <- col_names[grepl(pattern = "^Unit$", col_names, ignore.case = TRUE)][1]
-
-  missing_cols <- c("Sample/Datafile", "Min", "Max")[is.na(c(datafile_col, min_col, max_col))]
-  if (length(missing_cols) > 0) {
-    showNotification(
-      paste("Colonnes manquantes dans le fichier :", paste(missing_cols, collapse = ", ")),
-      type = "error", duration = 10
-    )
-    return()
-  }
-
-  n <- nrow(df)
-  results <- data.frame(Sample = character(0), Status = character(0), stringsAsFactors = FALSE)
-
-  withProgress(message = "Import batch des bornes de découpage...", value = 0, {
-    for (i in seq_len(n)) {
-      incProgress(1 / n, detail = sprintf("%d/%d", i, n))
-
-      sample_raw <- trimws(as.character(df[[datafile_col]][i]))
-      if (grepl("\\.d$", sample_raw, ignore.case = TRUE)) {
-        sample_raw <- sub("\\.d$", "", sample_raw, ignore.case = TRUE)
-      }
-      rt_min <- suppressWarnings(as.numeric(df[[min_col]][i]))
-      rt_max <- suppressWarnings(as.numeric(df[[max_col]][i]))
-      unit_raw <- if (!is.na(unit_col)) trimws(as.character(df[[unit_col]][i])) else NA_character_
-      unit_val <- if (!is.na(unit_raw) && tolower(unit_raw) %in% c("minute", "minutes", "min")) {
-        "Minute"
-      } else {
-        "Second"
-      }
-
-      # Un run peut n'être découpé que d'un seul côté (Min ou Max seul) — comme
-      # pour la saisie manuelle — donc on n'ignore que si les DEUX bornes manquent.
-      if (!nzchar(sample_raw) || (is.na(rt_min) && is.na(rt_max))) {
-        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (valeurs manquantes)"))
-        next
-      }
-
-      sample_sel <- unname(loaded_key_lookup[normalize_run_key(sample_raw)])
-      if (is.na(sample_sel)) {
-        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (run non chargé)"))
-        next
-      }
-
-      RvarsCorrectionTime$samplesCuttingTable[sample_sel, 1:2] <- c(rt_min, rt_max)
-      RvarsCorrectionTime$samplesCuttingTable[sample_sel, 3]   <- unit_val
-
-      results <- rbind(results, data.frame(Sample = sample_sel, Status = "OK"))
-    }
-  })
-
-  n_ok <- sum(results$Status == "OK")
-  n_other <- nrow(results) - n_ok
-
-  showNotification(
-    sprintf("Import batch terminé : %d run(s) découpé(s), %d ignoré(s).", n_ok, n_other),
-    type = if (n_other == 0) "message" else "warning",
-    duration = 10
-  )
-
-  RvarsCorrectionTime$batchCutOffResults <- results
-  # Forcer le rafraîchissement du graphique pour l'échantillon actuellement
-  # affiché : sans ce reset du picker (vider puis re-remplir avec la même
-  # sélection), un import batch laisserait affiché l'ancien graphique (non
-  # coupé) tant que l'utilisateur ne change pas manuellement d'échantillon.
-  current_sample <- isolate(input$sample_selectedCutting)
-  if (!is.null(current_sample) && nzchar(current_sample)) {
-    all_cut_choices <- rownames(RvarsCorrectionTime$samplesCuttingTable)
-    updatePickerInput(session = session,
-                      inputId = "sample_selectedCutting",
-                      choices = character(0))
-    updatePickerInput(session = session,
-                      inputId = "sample_selectedCutting",
-                      choices = all_cut_choices,
-                      selected = current_sample)
-  }
-  show_batch_cutoff_results_modal(results)
-})
-
-## Affiche (ou réaffiche) le tableau des résultats du dernier import batch cut-off
-show_batch_cutoff_results_modal <- function(results) {
-  output$batchCutOffResultTable <- DT::renderDataTable({
-    DT::datatable(
-      results,
-      rownames = FALSE,
-      options = list(pageLength = 15, scrollX = TRUE)
-    )
-  })
-  showModal(
-    modalDialog(
-      title = "Résultats de l'import batch — cut-off",
-      size = "l",
-      easyClose = TRUE,
-      footer = modalButton("Close"),
-      DT::dataTableOutput("batchCutOffResultTable")
-    )
-  )
-}
-
-observeEvent(input$viewBatchCutOffResults, ignoreNULL = TRUE, {
-  results <- isolate(RvarsCorrectionTime$batchCutOffResults)
-  if (is.null(results) || nrow(results) == 0) {
-    showNotification("Aucun résultat d'import batch disponible pour l'instant.",
-                     type = "message", duration = 6)
-    return()
-  }
-  show_batch_cutoff_results_modal(results)
-})
-
-## Export Excel des bornes CE-time (Min/Max/Unit) actuellement définies pour
-## chaque run — au même format de colonnes que l'import, pour pouvoir être
-## réimporté tel quel (aller-retour édition dans Excel facilité).
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$ExportCutOffValues
-             },
-             handlerExpr = {
-               shinyFileSave(input,
-                             id = "ExportCutOffValues",
-                             roots = volumes,
-                             session = session)
-
-               path_Save_File <- parseSavePath(volumes, input$ExportCutOffValues)$datapath
-
-               if (length(path_Save_File) > 0) {
-                 cutting_table <- RvarsCorrectionTime$samplesCuttingTable
-                 if (is.null(cutting_table) || nrow(cutting_table) == 0) {
-                   showNotification("Aucune donnée de découpage à exporter.", type = "message", duration = 6)
-                   return()
-                 }
-
-                 export_df <- data.frame(
-                   Sample = rownames(cutting_table),
-                   Min    = cutting_table$rt_min_cut,
-                   Max    = cutting_table$rt_max_cut,
-                   Unit   = cutting_table$Unit,
-                   stringsAsFactors = FALSE
-                 )
-
-                 if (!grepl("\\.xlsx$", path_Save_File, ignore.case = TRUE)) {
-                   path_Save_File <- paste0(path_Save_File, ".xlsx")
-                 }
-
-                 openxlsx::write.xlsx(export_df, file = path_Save_File, rowNames = FALSE)
-                 showNotification("Bornes CE-time exportées.", type = "message", duration = 6)
-               }
-             })
-
-
 ####~~~~~~~~~~~~~~ action buttons ~~~~~~~~~~~~~~~~~~~~~~~~
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
@@ -2342,16 +8835,16 @@ observeEvent(ignoreNULL = TRUE,
                if (length(valuestoSave) > 0) {
                  valuestoSave <- do.call("rbind", valuestoSave)
                  reqColsSaved <-c('M+H',
-                                   'M+H.min',
-                                   'M+H.max',
-                                   'CE-time',
-                                   'CE-time.min',
-                                   'CE-time.max',
-                                   'integrated-intensity',
-                                   'intensity',
-                                   'sn',
-                                   'sample'
-                                 )
+                                  'M+H.min',
+                                  'M+H.max',
+                                  'CE-time',
+                                  'CE-time.min',
+                                  'CE-time.max',
+                                  'integrated-intensity',
+                                  'intensity',
+                                  'sn',
+                                  'sample'
+                 )
                  
                  reqColsUsed <- c('mz',
                                   'mzmin',
@@ -3089,22 +9582,11 @@ observeEvent(ignoreNULL = TRUE,
                        RvarsCorrectionTime$Filenames <- NULL
                        RvarsCorrectionTime$Class <- NULL
                        RvarsCorrectionTime$ImportClass <- FALSE
-
-                       missing_mzML <- setdiff(Filenames_csv, Filenames_mzML)
-                       extra_mzML   <- setdiff(Filenames_mzML, Filenames_csv)
-
-                       msg <- sprintf(
-                         "Mismatch detected!\nExpected: %d samples (from CSV)\nReceived: %d mzML files\nMissing in mzML: %s\nUnexpected in mzML: %s\n\nIf you uploaded many files, some may have been dropped. Try uploading in smaller batches or use a ZIP archive.",
-                         length(Filenames_csv),
-                         length(Filenames_mzML),
-                         if (length(missing_mzML)) paste(head(missing_mzML, 10), collapse = ", ") else "none",
-                         if (length(extra_mzML)) paste(head(extra_mzML, 10), collapse = ", ") else "none"
-                       )
-
+                       
                        sendSweetAlert(
                          session = session,
                          title = "Warning !",
-                         text = msg,
+                         text = "the mzML files uploaded don't matched well files csv!",
                          type = "warning"
                        )
                        
@@ -3166,22 +9648,11 @@ observeEvent(ignoreNULL = TRUE,
                      RvarsCorrectionTime$Filenames <- NULL
                      RvarsCorrectionTime$Class <- NULL
                      RvarsCorrectionTime$ImportClass <- FALSE
-
-                     missing_mzML <- setdiff(Filenames_csv, Filenames_mzML)
-                     extra_mzML   <- setdiff(Filenames_mzML, Filenames_csv)
-
-                     msg <- sprintf(
-                       "Mismatch detected!\nExpected: %d samples (from CSV)\nReceived: %d mzML files\nMissing in mzML: %s\nUnexpected in mzML: %s\n\nIf you uploaded many files, some may have been dropped. Try uploading in smaller batches or use a ZIP archive.",
-                       length(Filenames_csv),
-                       length(Filenames_mzML),
-                       if (length(missing_mzML)) paste(head(missing_mzML, 10), collapse = ", ") else "none",
-                       if (length(extra_mzML)) paste(head(extra_mzML, 10), collapse = ", ") else "none"
-                     )
-
+                     
                      sendSweetAlert(
                        session = session,
                        title = "Warning !",
-                       text = msg,
+                       text = "The mzML files uploaded don't matched well files csv!",
                        type = "warning"
                      )
                      
@@ -3776,47 +10247,20 @@ observeEvent(ignoreNULL = TRUE,
                          "\n Reference sample name used : ",
                          RvarsCorrectionTime$ref_sample_sampleName
                        )
-
-                       # system.time(
-                       #   RvarsCorrectionTime$dataObiwarp_Aligned <-
-                       #     alignement_Obiwrap(
-                       #       xdata = rawData_mzML_XCMSnExp,
-                       #       binSize = input$binSizeObiwrap,
-                       #       msLevel = input$MSlevelObiwrap,
-                       #       subset = which(
-                       #         RvarsCorrectionTime$pheno_Data_mzML$Filenames %in% req(input$subsetObiwrap)
-                       #       ),
-                       #       subsetAdjust = input$subsetAdjustObiwrap,
-                       #       centerSample = which(
-                       #         RvarsCorrectionTime$pheno_Data_mzML$Filenames == RvarsCorrectionTime$ref_sample_sampleName
-                       #       )
-                       #     )
-                       # )
-
-
-                       # Batch when the subset is large to avoid cumulative
-                       # memory exhaustion / non-deterministic segfaults in
-                       # the C-level obiwarp routine.  Each batch of 50 runs
-                       # in its own callr subprocess whose memory is fully
-                       # released before the next batch starts.
-                       n_subset_obiwarp   <- length(req(input$subsetObiwrap))
-                       batch_size_obiwarp <- if (n_subset_obiwarp > 50L) 50L else NULL
-
+                       
                        system.time(
                          RvarsCorrectionTime$dataObiwarp_Aligned <-
                            alignement_Obiwrap(
-                             xdata        = rawData_mzML_XCMSnExp,
-                             binSize      = input$binSizeObiwrap,
-                             msLevel      = input$MSlevelObiwrap,
-                             subset       = which(
+                             xdata = rawData_mzML_XCMSnExp,
+                             binSize = input$binSizeObiwrap,
+                             msLevel = input$MSlevelObiwrap,
+                             subset = which(
                                RvarsCorrectionTime$pheno_Data_mzML$Filenames %in% req(input$subsetObiwrap)
                              ),
                              subsetAdjust = input$subsetAdjustObiwrap,
                              centerSample = which(
                                RvarsCorrectionTime$pheno_Data_mzML$Filenames == RvarsCorrectionTime$ref_sample_sampleName
-                             ),
-                             batch_size   = batch_size_obiwarp,
-                             timeout_sec  = 7200L
+                             )
                            )
                        )
                        
@@ -3899,6 +10343,10 @@ observe({
     updatePickerInput(session = session,
                       inputId = "SelectSample_ViewerCorrectimeXcms",
                       choices = sample_name)
+    
+    # State-driven enabling: also covers cache restore (event handler not replayed)
+    enable("RefrenceSampleNextPage")
+    enable("CorrectionXCMSNexPage")
     
     # if(input$TabPanelCorrectionTimeXCMS_ID == "Graph 1"){
     #
@@ -4784,7 +11232,9 @@ observeEvent(ignoreNULL = TRUE,
                                       "</span> has been added !")),
                    type = "success",
                    closeOnClickOutside = FALSE,
-                   html = TRUE
+                   html = TRUE,
+                   timer = 1000, # 1s
+                   showConfirmButton = FALSE
                  )
                  
                } else {
@@ -4799,6 +11249,69 @@ observeEvent(ignoreNULL = TRUE,
                
                
              })
+
+
+##~~~~~~~~~~~~~~~~~~~~ Robust line filter (alternative au filtre d'intensité) #
+## Suit la CRÊTE de densité 2D (déjà calculée pour le filtre de densité
+## existant) plutôt que d'ajuster une régression globale. Pour chaque
+## tranche verticale (valeur de rt.2), on prend le rt.1 où la densité kde2d
+## est maximale — ça trace une courbe locale, tranche par tranche, qui n'est
+## jamais tirée par une zone globalement plus dense qu'une autre. On garde
+## ensuite les points proches de cette crête (résidu < seuil x MAD).
+## Réplique exactement filter_newSample_points_for_correction côté ANS.
+filter_points_for_correction <- function(data_to_filter,
+                                         use_robust,
+                                         intensity_filter,
+                                         robust_threshold = 3,
+                                         bandwidth_filter = 20,
+                                         grid_size = 500) {
+  if (!isTRUE(use_robust)) {
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+  
+  if (nrow(data_to_filter) < 10) {
+    message("--- Robust ridge filter : pas assez de points (<10), filtre d'intensité utilisé en repli ---")
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+  
+  dens <- tryCatch(
+    MASS::kde2d(data_to_filter$rt.2, data_to_filter$rt.1,
+                h = bandwidth_filter, n = grid_size),
+    error = function(e) NULL
+  )
+  if (is.null(dens)) {
+    message("--- Robust ridge filter : échec du calcul de densité, filtre d'intensité utilisé en repli ---")
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+  
+  ridge_y <- apply(dens$z, 1, function(col) {
+    if (all(col == 0)) return(NA_real_)
+    dens$y[which.max(col)]
+  })
+  ridge <- data.frame(x = dens$x, y = ridge_y)
+  ridge <- ridge[!is.na(ridge$y), ]
+  if (nrow(ridge) < 2) {
+    message("--- Robust ridge filter : crête de densité non calculable, filtre d'intensité utilisé en repli ---")
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+  
+  predicted <- suppressWarnings(
+    stats::approx(ridge$x, ridge$y, xout = data_to_filter$rt.2, rule = 2)$y
+  )
+  residuals_val <- data_to_filter$rt.1 - predicted
+  mad_val <- stats::mad(residuals_val, na.rm = TRUE)
+  
+  if (!is.finite(mad_val) || mad_val == 0) {
+    message("--- Robust ridge filter : MAD nul/non calculable, filtre d'intensité utilisé en repli ---")
+    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
+  }
+  
+  threshold <- suppressWarnings(as.numeric(robust_threshold)) * mad_val
+  keep <- !is.na(residuals_val) & abs(residuals_val) <= threshold
+  data_to_filter[keep, ]
+}
+
+
 
 
 ##~~~~~~~~~~~~ Kernel density filter ~~~~~~~~~#
@@ -4846,10 +11359,12 @@ observeEvent(ignoreNULL = TRUE,
                  RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$maxo.2 <-
                    log2(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$maxo.2)
                  
-                 ## Filter intensity (ou filtre robuste optionnel, voir ci-dessous)
+                 ## Filter intensity
                  observe({
                    if (!is.null(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter)) {
                      RvarsCorrectionTime$Data_Plot.after_xcms <-
+                       # RvarsCorrectionTime$Data_Plot.after_xcms_to_filter %>%
+                       # dplyr::filter(maxo.2 >= req(input$intensityFilter))
                        filter_points_for_correction(
                          RvarsCorrectionTime$Data_Plot.after_xcms_to_filter,
                          use_robust = isTRUE(input$useRobustLineFilter),
@@ -4923,7 +11438,10 @@ observeEvent(ignoreNULL = TRUE,
                          ggplot() +
                          aes(x = rt.2, y = rt.1) +
                          geom_point(aes(color = maxo.2), size = 0.8) +
-                         scale_color_viridis_c(option = "H", direction = -1) +
+                         # scale_color_viridis_c(option = "H", direction = 1) +
+                         scale_colour_continuous(
+                           palette = c("#ffce4d","red","#9E0B0B", "#450A0A" )
+                         )+
                          geom_density_2d(h = input$bandwidth_Filter,
                                          n = input$gridSize) +
                          scale_x_continuous(n.breaks = 14) +
@@ -4942,10 +11460,10 @@ observeEvent(ignoreNULL = TRUE,
                            range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.2)[1],
                            range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.1)[1]
                          ),
-                         max(
+                         min(
                            range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.2)[2],
                            range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.1)[2]
-                         ))) +
+                         )+100)) +
                          
                          
                          xlab(
@@ -4959,30 +11477,50 @@ observeEvent(ignoreNULL = TRUE,
                          #labs(colour ="log2 Intensity")+
                          theme_ben() +
                          labs(colour = "log2 Intensity") 
-                       
+
+
+                      
                        p2 <-
                          ggplot(data_dens_filter(), aes(x = rt.2, y = rt.1)) +
                          geom_point(aes(color = density)) +
+                         # scale_color_continuous(name = "Density",
+                         #                        colours = c("blue", "cyan", "yellow", "orange", "red"),
+                         #                        breaks = seq(0, 1, by = 0.1),
+                         #                        limits = c(0, 1)) +
+                         scale_color_gradientn(
+                           name = "Density",
+                           colours = c("#2487FF",
+                                       "#4FE8FF",
+                                       "#A8FFFF",
+                                       "#FFE600",
+                                       "#FFB300",
+                                       "#FF7A00",
+                                       "#FF4500",
+                                       "#FF1A00"),
+                           breaks = seq(round(min(data_dens_filter()$density), 2), 
+                                               round(max(data_dens_filter()$density), 2), by = 0.1),
+                           limits = c(0, 1)
+                         )+
                          
                          scale_x_continuous(n.breaks = 14) +
                          scale_y_continuous(n.breaks = 14) +
                          
                          coord_cartesian(xlim = c(min(
-                           range(data_dens_filter()$rt.2)[1],
-                           range(data_dens_filter()$rt.1)[1]
+                           range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.2)[1],
+                           range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.1)[1]
                          ),
                          max(
-                           range(data_dens_filter()$rt.2)[2],
-                           range(data_dens_filter()$rt.1)[2]
+                           range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.2)[2],
+                           range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.1)[2]
                          )),
                          
                          ylim = c(min(
-                           range(data_dens_filter()$rt.2)[1],
-                           range(data_dens_filter()$rt.1)[1]
+                           range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.2)[1],
+                           range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.1)[1]
                          ),
-                         max(
-                           range(data_dens_filter()$rt.2)[2],
-                           range(data_dens_filter()$rt.1)[2]
+                         min(
+                           range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.2)[2],
+                           range(RvarsCorrectionTime$Data_Plot.after_xcms$rt.1)[2]
                          ))) +
                          
                          xlab(
@@ -4997,14 +11535,21 @@ observeEvent(ignoreNULL = TRUE,
                          theme_ben() +
                          theme(
                            legend.title = element_text(
-                             size = rel(0.95),
+                             size = rel(0.85),
                              face = "bold.italic",
                              hjust = 0.5
                            ),
-                           legend.text = element_text(size = rel(0.85), face = "bold.italic")
+                           legend.text = element_text(size = rel(0.70), face = "bold.italic"), 
+                           legend.key.height = unit(1.2, "cm"),
+                           legend.key.width = unit(0.7, "cm")
                          )
                        
-                       grid.arrange(p1, p2, nrow = 2)
+                       g1 <- ggplotGrob(p1)
+                       g2 <- ggplotGrob(p2)
+                       maxWidth <- grid::unit.pmax(g1$widths, g2$widths)
+                       g1$widths <- maxWidth
+                       g2$widths <- maxWidth
+                       grid.arrange(g1, g2, nrow = 2)
                        
                      }
                    }
@@ -5017,67 +11562,6 @@ observeEvent(ignoreNULL = TRUE,
                }
                
              })
-
-##~~~~~~~~~~~~~~~~~~~~ Robust line filter (alternative au filtre d'intensité) #
-## Suit la CRÊTE de densité 2D (déjà calculée pour le filtre de densité
-## existant) plutôt que d'ajuster une régression globale. Pour chaque
-## tranche verticale (valeur de rt.2), on prend le rt.1 où la densité kde2d
-## est maximale — ça trace une courbe locale, tranche par tranche, qui n'est
-## jamais tirée par une zone globalement plus dense qu'une autre. On garde
-## ensuite les points proches de cette crête (résidu < seuil x MAD).
-## Réplique exactement filter_newSample_points_for_correction côté ANS.
-filter_points_for_correction <- function(data_to_filter,
-                                         use_robust,
-                                         intensity_filter,
-                                         robust_threshold = 3,
-                                         bandwidth_filter = 20,
-                                         grid_size = 500) {
-  if (!isTRUE(use_robust)) {
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-
-  if (nrow(data_to_filter) < 10) {
-    message("--- Robust ridge filter : pas assez de points (<10), filtre d'intensité utilisé en repli ---")
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-
-  dens <- tryCatch(
-    MASS::kde2d(data_to_filter$rt.2, data_to_filter$rt.1,
-                h = bandwidth_filter, n = grid_size),
-    error = function(e) NULL
-  )
-  if (is.null(dens)) {
-    message("--- Robust ridge filter : échec du calcul de densité, filtre d'intensité utilisé en repli ---")
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-
-  ridge_y <- apply(dens$z, 1, function(col) {
-    if (all(col == 0)) return(NA_real_)
-    dens$y[which.max(col)]
-  })
-  ridge <- data.frame(x = dens$x, y = ridge_y)
-  ridge <- ridge[!is.na(ridge$y), ]
-  if (nrow(ridge) < 2) {
-    message("--- Robust ridge filter : crête de densité non calculable, filtre d'intensité utilisé en repli ---")
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-
-  predicted <- suppressWarnings(
-    stats::approx(ridge$x, ridge$y, xout = data_to_filter$rt.2, rule = 2)$y
-  )
-  residuals_val <- data_to_filter$rt.1 - predicted
-  mad_val <- stats::mad(residuals_val, na.rm = TRUE)
-
-  if (!is.finite(mad_val) || mad_val == 0) {
-    message("--- Robust ridge filter : MAD nul/non calculable, filtre d'intensité utilisé en repli ---")
-    return(data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter))
-  }
-
-  threshold <- suppressWarnings(as.numeric(robust_threshold)) * mad_val
-  keep <- !is.na(residuals_val) & abs(residuals_val) <= threshold
-  data_to_filter[keep, ]
-}
-
 
 ##~~~~~~~~~~~~~~~~~~~~ Fit model kernel density estimation ~~~~~~~~~~~~~~~~~#
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -5158,7 +11642,7 @@ observeEvent(ignoreNULL = TRUE,
                                  newdata = data.frame(rt.2 = RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample ==
                                                                                                    input$SelectSample_KernelDensity,]$rt)
                                )
-
+                             
                              ## Log parameters for this sample (update if already exists)
                              new_row <- data.frame(
                                Sample           = input$SelectSample_KernelDensity,
@@ -5167,8 +11651,8 @@ observeEvent(ignoreNULL = TRUE,
                                Bandwidth_Filter = input$bandwidth_Filter,
                                Intensity_Filter = input$intensityFilter,
                                Min_Density      = input$minDensity,
-                               Use_Robust_Filter   = isTRUE(input$useRobustLineFilter),
-                               Robust_Threshold    = if (isTRUE(input$useRobustLineFilter)) input$robustLineThreshold else NA_real_,
+                               use_robust = FALSE,
+                               robust_threshold = 3,
                                stringsAsFactors = FALSE
                              )
                              existing_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
@@ -5179,7 +11663,7 @@ observeEvent(ignoreNULL = TRUE,
                                RvarsCorrectionTime$kernelDensity_params_log <- rbind(existing_log, new_row)
                              }
                              enable("validateCETimeCorrection")
-
+                             
                              ### Delete negative correction rt
                              
                              # RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity==input$SelectSample_KernelDensity,]$rt<-
@@ -5319,16 +11803,16 @@ observeEvent(ignoreNULL = TRUE,
                                    ) +
                                    #geom_smooth(method ="loess", color="blue", fill="#69b3a2", se=TRUE, span = input$span) +
                                    # geom_abline(yintercept = 0, lwd = 1, color = "green")+
-                                   geom_line(
-                                     data = median_line_data,
-                                     aes(
-                                       x = x,
-                                       y = x,
-                                       color = "Median"
-                                     ),
-                                     lwd = 1,
-                                     size = 1.5
-                                   ) +
+                                   # geom_line(
+                                   #   data = median_line_data,
+                                   #   aes(
+                                   #     x = x,
+                                   #     y = x,
+                                   #     color = "Median"
+                                   #   ),
+                                   #   lwd = 1,
+                                   #   size = 1.5
+                                   # ) +
                                    ggtitle("Correction with xcms") +
                                    
                                    labs(
@@ -5511,22 +11995,22 @@ observeEvent(ignoreNULL = TRUE,
                                      
                                      coord_cartesian(xlim = c(
                                        min(
-                                         range(Data_Plot.after$rt.2)[1],
-                                         range(Data_Plot.after$rt.1)[1]
+                                         range(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2)[1],
+                                         range(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1)[1]
                                        ),
                                        max(
-                                         range(Data_Plot.after$rt.2)[2],
-                                         range(Data_Plot.after$rt.1)[2]
+                                         range(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2)[2],
+                                         range(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1)[2]
                                        )
                                      ),
                                      ylim = c(
                                        min(
-                                         range(Data_Plot.after$rt.2)[1],
-                                         range(Data_Plot.after$rt.1)[1]
+                                         range(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2)[1],
+                                         range(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1)[1]
                                        ),
                                        max(
-                                         range(Data_Plot.after$rt.2)[2],
-                                         range(Data_Plot.after$rt.1)[2]
+                                         range(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2)[2],
+                                         range(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1)[2]
                                        )
                                      )) +
                                      
@@ -5880,264 +12364,6 @@ observeEvent(ignoreNULL = TRUE,
                
                
              })
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-##~~~~ Batch import kernel density parameters (reuse of fitModel logic) ~~~~~~~~~##
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
-## Reprend exactement les mêmes étapes que l'observer "fitModel"
-## (matchMz -> filtre intensité -> kde2d -> filtre densité -> npreg -> predict -> log),
-## mais paramétrées explicitement au lieu de lire input$..., pour pouvoir être
-## rejouées en boucle sur une liste de runs sans dépendre des widgets Shiny.
-apply_kernel_density_correction <- function(sample_sel,
-                                            kernel_type,
-                                            bandwidth_model,
-                                            bandwidth_filter,
-                                            intensity_filter,
-                                            min_density,
-                                            use_robust = FALSE,
-                                            robust_threshold = 3,
-                                            grid_size = 500) {
-
-  if (is.null(RvarsCorrectionTime$peakListAligned) ||
-      is.null(RvarsCorrectionTime$ref_sample_samplePeaks) ||
-      !(sample_sel %in% RvarsCorrectionTime$peakListAligned$sample)) {
-    return(list(success = FALSE, reason = "run introuvable ou données manquantes"))
-  }
-
-  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
-
-  ref <- RvarsCorrectionTime$ref_sample_samplePeaks
-  table.after <- RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample == sample_sel, ]
-
-  resMatch.after_xcms <- matchMz(x = ref, table = table.after, ppm_tolereance = 1000,
-                                 mzcol = "mz", rtcol = "rt", session = session)
-
-  data_to_filter <- resMatch.after_xcms$MatchTable[!is.na(resMatch.after_xcms$MatchTable$rt.2),
-                                                   c("mz.1", "rt.1", "maxo.1",
-                                                     "mz.2", "rt.2", "maxo.2", "sample.2")]
-  if (nrow(data_to_filter) == 0)
-    return(list(success = FALSE, reason = "aucune correspondance avec le sample de référence"))
-
-  data_to_filter$maxo.2 <- log2(data_to_filter$maxo.2)
-
-  data_filtered <- filter_points_for_correction(
-    data_to_filter,
-    use_robust = isTRUE(use_robust),
-    intensity_filter = intensity_filter,
-    robust_threshold = robust_threshold,
-    bandwidth_filter = bandwidth_filter,
-    grid_size = grid_size
-  )
-  if (nrow(data_filtered) == 0)
-    return(list(success = FALSE, reason = sprintf(
-      "filtre d'intensité trop restrictif (log2 intensité max disponible : %.2f, seuil demandé : %.2f)",
-      max(data_to_filter$maxo.2, na.rm = TRUE), intensity_filter
-    )))
-
-  dens <- MASS::kde2d(data_filtered$rt.2, data_filtered$rt.1,
-                      h = bandwidth_filter, n = grid_size)
-  df <- expand.grid(x = dens$x, y = dens$y)
-  df$density <- as.vector(dens$z)
-  df$density <- df$density / max(df$density)
-  colnames(df)[1:2] <- c("rt.2", "rt.1")
-  dataDensity <- df %>% dplyr::filter(density >= min_density)
-  if (nrow(dataDensity) == 0)
-    return(list(success = FALSE, reason = sprintf(
-      "min density trop restrictif (densité max disponible : %.3f, seuil demandé : %.3f)",
-      max(df$density, na.rm = TRUE), min_density
-    )))
-
-  model <- tryCatch(
-    npreg(
-      rt.1 ~ rt.2,
-      bws = bandwidth_model,
-      bwtype = "fixed",
-      regtype = "ll",
-      ckertype = kernel_type,
-      gradients = TRUE,
-      data = dataDensity
-    ),
-    error = function(e) NULL
-  )
-  if (is.null(model))
-    return(list(success = FALSE, reason = "échec de l'ajustement npreg"))
-
-  RvarsCorrectionTime$modelKernelDensity <- model
-  RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity$sample == sample_sel, ]$rt <-
-    predict(
-      model,
-      newdata = data.frame(rt.2 = RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample == sample_sel, ]$rt)
-    )
-
-  new_row <- data.frame(
-    Sample           = sample_sel,
-    Kernel_Type      = kernel_type,
-    Bandwidth_Model  = bandwidth_model,
-    Bandwidth_Filter = bandwidth_filter,
-    Intensity_Filter = intensity_filter,
-    Min_Density      = min_density,
-    Use_Robust_Filter   = isTRUE(use_robust),
-    Robust_Threshold    = if (isTRUE(use_robust)) robust_threshold else NA_real_,
-    stringsAsFactors = FALSE
-  )
-  existing_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
-  if (is.null(existing_log)) {
-    RvarsCorrectionTime$kernelDensity_params_log <- new_row
-  } else {
-    existing_log <- existing_log[existing_log$Sample != sample_sel, ]
-    RvarsCorrectionTime$kernelDensity_params_log <- rbind(existing_log, new_row)
-  }
-
-  list(success = TRUE, reason = NULL)
-}
-
-## Normalise un nom de run pour comparaison robuste aux variations de format
-## (séparateurs "_"/" - "/"-" et zero-padding différent du numéro de run,
-## ex: "..._Run-00008" (Excel) vs "...Run000008" (nom interne de l'app)).
-normalize_run_key <- function(x) {
-  x <- tolower(trimws(as.character(x)))
-  x <- gsub("[-_]+", " ", x)
-  x <- gsub("\\s+", " ", x)
-  x <- sub("run\\s*0*([0-9]+)\\s*$", "run\\1", x)
-  x
-}
-
-observeEvent(input$applyBatchKernelParams, ignoreNULL = TRUE, {
-  req(input$batchKernelParamsFile)
-
-  df <- tryCatch(
-    openxlsx::read.xlsx(input$batchKernelParamsFile$datapath, sheet = 1),
-    error = function(e) NULL
-  )
-  if (is.null(df)) {
-    showNotification("Impossible de lire le fichier Excel.", type = "error", duration = 8)
-    return()
-  }
-
-  loaded_samples <- if (!is.null(RvarsCorrectionTime$peakListAligned)) {
-    unique(as.character(RvarsCorrectionTime$peakListAligned$sample))
-  } else character(0)
-  loaded_key_lookup <- stats::setNames(loaded_samples, normalize_run_key(loaded_samples))
-
-  col_names <- colnames(df)
-  datafile_col <- col_names[grepl("^Datafile", col_names, ignore.case = TRUE)][1]
-  bandwith_col <- col_names[grepl("^Bandwith$|^Bandwidth$", col_names, ignore.case = TRUE)][1]
-  intfilter_col <- col_names[grepl("^Int.?filter$", col_names, ignore.case = TRUE)][1]
-  minden_col <- col_names[grepl("^min.?den", col_names, ignore.case = TRUE)][1]
-  corrkernel_col <- col_names[grepl("^Corr.?Kernel$", col_names, ignore.case = TRUE)][1]
-  # Colonnes optionnelles : absentes du fichier -> filtre robuste désactivé (comportement inchangé)
-  userobust_col <- col_names[grepl("^Use.?Robust.?Filter$", col_names, ignore.case = TRUE)][1]
-  robustthresh_col <- col_names[grepl("^Robust.?Threshold$", col_names, ignore.case = TRUE)][1]
-
-  missing_cols <- c("Datafile", "Bandwith", "Int filter", "min den", "Corr Kernel")[
-    is.na(c(datafile_col, bandwith_col, intfilter_col, minden_col, corrkernel_col))
-  ]
-  if (length(missing_cols) > 0) {
-    showNotification(
-      paste("Colonnes manquantes dans le fichier :", paste(missing_cols, collapse = ", ")),
-      type = "error", duration = 10
-    )
-    return()
-  }
-
-  n <- nrow(df)
-  results <- data.frame(Sample = character(0), Status = character(0), stringsAsFactors = FALSE)
-
-  withProgress(message = "Import batch des corrections kernel density...", value = 0, {
-    for (i in seq_len(n)) {
-      incProgress(1 / n, detail = sprintf("%d/%d", i, n))
-
-      sample_raw <- trimws(as.character(df[[datafile_col]][i]))
-      bw_filter  <- suppressWarnings(as.numeric(df[[bandwith_col]][i]))
-      int_filter <- suppressWarnings(as.numeric(df[[intfilter_col]][i]))
-      min_dens   <- suppressWarnings(as.numeric(df[[minden_col]][i]))
-      bw_model   <- suppressWarnings(as.numeric(df[[corrkernel_col]][i]))
-      use_robust_raw <- if (!is.na(userobust_col)) trimws(as.character(df[[userobust_col]][i])) else NA_character_
-      use_robust_val <- !is.na(use_robust_raw) && tolower(use_robust_raw) %in% c("true", "1", "yes", "oui")
-      robust_thresh_val <- if (!is.na(robustthresh_col)) {
-        suppressWarnings(as.numeric(df[[robustthresh_col]][i]))
-      } else {
-        NA_real_
-      }
-      if (use_robust_val && is.na(robust_thresh_val)) robust_thresh_val <- 3
-
-      if (!nzchar(sample_raw) || is.na(bw_filter) || is.na(int_filter) ||
-          is.na(min_dens) || is.na(bw_model)) {
-        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (valeurs manquantes)"))
-        next
-      }
-
-      sample_sel <- unname(loaded_key_lookup[normalize_run_key(sample_raw)])
-      if (is.na(sample_sel)) {
-        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (run non chargé)"))
-        next
-      }
-
-      res <- apply_kernel_density_correction(
-        sample_sel       = sample_sel,
-        kernel_type      = "gaussian",
-        bandwidth_model  = bw_model,
-        bandwidth_filter = bw_filter,
-        intensity_filter = int_filter,
-        min_density      = min_dens,
-        use_robust       = use_robust_val,
-        robust_threshold = robust_thresh_val
-      )
-
-      results <- rbind(results, data.frame(
-        Sample = sample_sel,
-        Status = if (isTRUE(res$success)) "OK" else paste("Échec :", res$reason)
-      ))
-    }
-  })
-
-  n_ok <- sum(results$Status == "OK")
-  n_other <- nrow(results) - n_ok
-
-  cat("--- Batch import kernel density (NRM) : résultats ---\n")
-  print(results)
-
-  showNotification(
-    sprintf("Import batch terminé : %d run(s) corrigé(s), %d ignoré(s)/échoué(s).", n_ok, n_other),
-    type = if (n_other == 0) "message" else "warning",
-    duration = 10
-  )
-
-  ## Conserve les résultats pour pouvoir les rouvrir plus tard via le bouton "View results"
-  RvarsCorrectionTime$batchKernelParamsResults <- results
-
-  show_batch_kernel_results_modal(results)
-})
-
-## Affiche (ou réaffiche) le tableau des résultats du dernier import batch
-show_batch_kernel_results_modal <- function(results) {
-  output$batchKernelParamsResultTable <- DT::renderDataTable({
-    DT::datatable(
-      results,
-      rownames = FALSE,
-      options = list(pageLength = 15, scrollX = TRUE)
-    )
-  })
-  showModal(
-    modalDialog(
-      title = "Résultats de l'import batch — kernel density",
-      size = "l",
-      easyClose = TRUE,
-      footer = modalButton("Close"),
-      DT::dataTableOutput("batchKernelParamsResultTable")
-    )
-  )
-}
-
-observeEvent(input$viewBatchKernelParamsResults, ignoreNULL = TRUE, {
-  results <- isolate(RvarsCorrectionTime$batchKernelParamsResults)
-  if (is.null(results) || nrow(results) == 0) {
-    showNotification("Aucun résultat d'import batch disponible pour l'instant.",
-                     type = "message", duration = 6)
-    return()
-  }
-  show_batch_kernel_results_modal(results)
-})
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -6900,208 +13126,6 @@ observeEvent(ignoreNULL = TRUE,
 
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-##~~~~ Modal: RT distribution viewer (eye button) — New Reference Map ~~~~~~~~~~~#
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
-## Calcule une seule fois les données Before/After et une plage d'axes COMMUNE
-## aux deux graphiques, pour qu'ils soient alignés et comparables visuellement.
-modal_rt_data <- reactive({
-  sample_sel <- req(input$SelectSample_KernelDensity)
-  req(RvarsCorrectionTime$peakListAligned)
-  req(RvarsCorrectionTime$peakListAligned_KernelDensity)
-  req(RvarsCorrectionTime$ref_sample_samplePeaks)
-
-  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
-
-  ref <- RvarsCorrectionTime$ref_sample_samplePeaks
-
-  table.before <- RvarsCorrectionTime$peakListAligned[
-    RvarsCorrectionTime$peakListAligned$sample == sample_sel, ]
-  resMatch.before <- matchMz(x = ref, table = table.before,
-                             ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
-                             session = session)
-  data_before <- resMatch.before$MatchTable[
-    !is.na(resMatch.before$MatchTable$rt.2),
-    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
-  ]
-
-  table.after <- RvarsCorrectionTime$peakListAligned_KernelDensity[
-    RvarsCorrectionTime$peakListAligned_KernelDensity$sample == sample_sel, ]
-  resMatch.after <- matchMz(x = ref, table = table.after,
-                            ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
-                            session = session)
-  data_after <- resMatch.after$MatchTable[
-    !is.na(resMatch.after$MatchTable$rt.2),
-    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
-  ]
-
-  rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1],
-               range(data_after$rt.2)[1], range(data_after$rt.1)[1])
-  rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2],
-               range(data_after$rt.2)[2], range(data_after$rt.1)[2])
-
-  list(data_before = data_before, data_after = data_after,
-      rt_min = rt_min, rt_max = rt_max)
-})
-
-output$modal_rt_dist_before <- renderPlot({
-  rt_data <- modal_rt_data()
-  data_before <- rt_data$data_before
-  rt_min <- rt_data$rt_min
-  rt_max <- rt_data$rt_max
-
-  median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
-                                 y = seq(rt_min, rt_max, by = 50))
-
-  ggplot(data_before, aes(x = rt.2, y = rt.1)) +
-    geom_point(size = 0.5) +
-    coord_cartesian(xlim = c(rt_min, rt_max), ylim = c(rt_min, rt_max)) +
-    scale_x_continuous(n.breaks = 14) +
-    scale_y_continuous(n.breaks = 14) +
-    geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
-              lwd = 1, size = 1.5) +
-    ggtitle("Before CE-time correction (Kernel Density)") +
-    labs(x = paste("CE-time (", data_before$sample.2[1], ")"),
-         y = "CE-time (Reference sample)", color = "Legend") +
-    scale_color_manual(values = c("Median" = "green")) +
-    theme_ben() +
-    theme(
-      plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
-                                margin = margin(0, 0, 5, 0), hjust = 0.5),
-      plot.background = element_rect(fill = "aliceblue"),
-      legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
-      legend.text = element_text(size = rel(0.85), face = "bold.italic")
-    )
-})
-
-output$modal_rt_dist_after <- renderPlot({
-  rt_data <- modal_rt_data()
-  data_after <- rt_data$data_after
-  rt_min <- rt_data$rt_min
-  rt_max <- rt_data$rt_max
-
-  median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
-                                 y = seq(rt_min, rt_max, by = 50))
-
-  ggplot(data_after, aes(x = rt.2, y = rt.1)) +
-    geom_point(size = 0.5) +
-    coord_cartesian(xlim = c(rt_min, rt_max), ylim = c(rt_min, rt_max)) +
-    scale_x_continuous(n.breaks = 14) +
-    scale_y_continuous(n.breaks = 14) +
-    geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
-              lwd = 1, size = 1.5) +
-    ggtitle("After CE-time correction (Kernel Density)") +
-    labs(x = paste("CE-time (", data_after$sample.2[1], ")"),
-         y = "CE-time (Reference sample)", color = "Legend") +
-    scale_color_manual(values = c("Median" = "green")) +
-    theme_ben() +
-    theme(
-      plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
-                                margin = margin(0, 0, 5, 0), hjust = 0.5),
-      plot.background = element_rect(fill = "aliceblue"),
-      legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
-      legend.text = element_text(size = rel(0.85), face = "bold.italic")
-    )
-})
-
-output$modal_rt_params_info <- renderUI({
-  sample_sel <- req(input$SelectSample_KernelDensity)
-  log <- RvarsCorrectionTime$kernelDensity_params_log
-  if (is.null(log)) return(NULL)
-  row <- log[log$Sample == sample_sel, ]
-  if (nrow(row) == 0) return(NULL)
-
-  tags$div(
-    style = paste0(
-      "background:#f0f4f8; border:1px solid #c8d8e8; border-radius:6px;",
-      "padding:10px 16px; margin-top:12px; font-size:0.9em;"
-    ),
-    tags$b("Parameters used for: ", style = "color:#760001;"),
-    tags$span(sample_sel),
-    tags$br(),
-    tags$span(tags$b("Kernel type: "), row$Kernel_Type),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Bandwidth (filter): "), row$Bandwidth_Filter),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Intensity filter: "), row$Intensity_Filter),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Min density: "), row$Min_Density)
-  )
-})
-
-observeEvent(input$btn_view_rt_dist, ignoreNULL = TRUE, {
-  req(RvarsCorrectionTime$peakListAligned)
-
-  showModal(
-    modalDialog(
-      title = "RT distribution — CE-time Kernel Density correction",
-      size = "l",
-      easyClose = TRUE,
-      footer = modalButton("Close"),
-      fluidRow(
-        column(
-          6,
-          shinycssloaders::withSpinner(
-            plotOutput("modal_rt_dist_before", width = "100%", height = "400px"),
-            type = 1, size = 0.8
-          )
-        ),
-        column(
-          6,
-          shinycssloaders::withSpinner(
-            plotOutput("modal_rt_dist_after", width = "100%", height = "400px"),
-            type = 1, size = 0.8
-          )
-        )
-      ),
-      uiOutput("modal_rt_params_info")
-    )
-  )
-})
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-##~~~~~~~~~~~~~~~~~~ Validate all CE-time corrections ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
-observeEvent(input$validateCETimeCorrection, ignoreNULL = TRUE, {
-  ask_confirmation(
-    inputId = "Confirm_validateCETimeCorrection",
-    title = NULL,
-    text = tags$b(
-      "Are you sure you're finished correcting CE-time?",
-      style = "color: #FA5858;"
-    ),
-    btn_labels = c("Cancel", "OK"),
-    btn_colors = c("#00BFFF", "#FE2E2E"),
-    html = TRUE
-  )
-})
-
-observeEvent(input$Confirm_validateCETimeCorrection, ignoreNULL = TRUE, {
-  if (isTRUE(input$Confirm_validateCETimeCorrection)) {
-    shinyjs::enable(id = "SaveKernelAjust")
-
-    ## Export kernel density parameters to Excel
-    params_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
-    if (!is.null(params_log) && nrow(params_log) > 0) {
-      export_dir <- tryCatch(directoryInput$directory, error = function(e) tempdir())
-      if (length(export_dir) == 0 || !nzchar(export_dir)) export_dir <- tempdir()
-      xlsx_path <- file.path(export_dir, "KernelDensity_Correction_Parameters.xlsx")
-      tryCatch({
-        openxlsx::write.xlsx(params_log, file = xlsx_path, rowNames = FALSE)
-        showNotification(paste("Parameters saved:", xlsx_path),
-                         type = "message", duration = 6)
-      }, error = function(e) {
-        showNotification(paste("Failed to save parameters:", e$message),
-                         type = "error", duration = 6)
-      })
-    }
-  }
-})
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~ Save CE-time Corrected Data with shinyFiles ~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
@@ -7202,8 +13226,310 @@ observeEvent(ignoreNULL = TRUE,
                  }
                }
                
+             })
+
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~ Modal: RT distribution viewer (eye button) — New Reference Map ~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+## Calcule une seule fois les données Before/After et une plage d'axes COMMUNE
+## aux deux graphiques, pour qu'ils soient alignés et comparables visuellement.
+modal_rt_data <- reactive({
+  sample_sel <- req(input$SelectSample_KernelDensity)
+  req(RvarsCorrectionTime$peakListAligned)
+  req(RvarsCorrectionTime$peakListAligned_KernelDensity)
+  req(RvarsCorrectionTime$ref_sample_samplePeaks)
+  
+  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
+  
+  ref <- RvarsCorrectionTime$ref_sample_samplePeaks
+  
+  table.before <- RvarsCorrectionTime$peakListAligned[
+    RvarsCorrectionTime$peakListAligned$sample == sample_sel, ]
+  resMatch.before <- matchMz(x = ref, table = table.before,
+                             ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
+                             session = session)
+  data_before <- resMatch.before$MatchTable[
+    !is.na(resMatch.before$MatchTable$rt.2),
+    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
+  ]
+  
+  table.after <- RvarsCorrectionTime$peakListAligned_KernelDensity[
+    RvarsCorrectionTime$peakListAligned_KernelDensity$sample == sample_sel, ]
+  resMatch.after <- matchMz(x = ref, table = table.after,
+                            ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
+                            session = session)
+  data_after <- resMatch.after$MatchTable[
+    !is.na(resMatch.after$MatchTable$rt.2),
+    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
+  ]
+  
+  rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1],
+                range(data_after$rt.2)[1], range(data_after$rt.1)[1])
+  rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2],
+                range(data_after$rt.2)[2], range(data_after$rt.1)[2])
+  
+  list(data_before = data_before, data_after = data_after,
+       rt_min = rt_min, rt_max = rt_max)
 })
 
+output$modal_rt_dist_before <- renderPlot({
+  rt_data <- modal_rt_data()
+  data_before <- rt_data$data_before
+  rt_min <- rt_data$rt_min
+  rt_max <- rt_data$rt_max
+  
+  rt_max.x  <- max(data_before$rt.2) + 100
+  rt_max.y <- max(data_before$rt.1) + 100
+  
+  median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
+                                 y = seq(rt_min, rt_max, by = 50))
+  
+  ggplot(data_before, aes(x = rt.2, y = rt.1)) +
+    geom_point(size = 0.5) +
+    coord_cartesian(xlim = c(rt_min, rt_max), ylim = c(rt_min, rt_max.y)) +
+    scale_x_continuous(n.breaks = 14) +
+    scale_y_continuous(n.breaks = 14) +
+    geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
+              lwd = 1, size = 1.5) +
+    ggtitle("Before CE-time correction (Kernel Density)") +
+    labs(x = paste("CE-time (", data_before$sample.2[1], ")"),
+         y = "CE-time (Reference sample)", color = "Legend") +
+    scale_color_manual(values = c("Median" = "green")) +
+    theme_ben() +
+    theme(
+      plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
+                                margin = margin(0, 0, 5, 0), hjust = 0.5),
+      plot.background = element_rect(fill = "aliceblue"),
+      legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
+      legend.text = element_text(size = rel(0.85), face = "bold.italic")
+    )
+})
+
+output$modal_rt_dist_after <- renderPlot({
+  rt_data <- modal_rt_data()
+  data_after <- rt_data$data_after
+  rt_min <- rt_data$rt_min
+  rt_max <- rt_data$rt_max
+  
+  rt_max.x  <- max(data_after$rt.2) + 100
+  rt_max.y <- max(data_after$rt.1) + 100
+  
+  median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
+                                 y = seq(rt_min, rt_max, by = 50))
+  
+  ggplot(data_after, aes(x = rt.2, y = rt.1)) +
+    geom_point(size = 0.5) +
+    coord_cartesian(xlim = c(rt_min, rt_max), 
+                    ylim = c(rt_min, rt_max.y)) +
+    scale_x_continuous(n.breaks = 14) +
+    scale_y_continuous(n.breaks = 14) +
+    geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
+              lwd = 1, size = 1.5) +
+    ggtitle("After CE-time correction (Kernel Density)") +
+    labs(x = paste("CE-time (", data_after$sample.2[1], ")"),
+         y = "CE-time (Reference sample)", color = "Legend") +
+    scale_color_manual(values = c("Median" = "green")) +
+    theme_ben() +
+    theme(
+      plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
+                                margin = margin(0, 0, 5, 0), hjust = 0.5),
+      plot.background = element_rect(fill = "aliceblue"),
+      legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
+      legend.text = element_text(size = rel(0.85), face = "bold.italic")
+    )
+})
+
+
+# output$modal_rt_dist_before <- renderPlot({
+#   sample_sel <- req(input$SelectSample_KernelDensity)
+#   req(RvarsCorrectionTime$peakListAligned)
+#   req(RvarsCorrectionTime$ref_sample_samplePeaks)
+#   
+#   source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
+#   
+#   ref         <- RvarsCorrectionTime$ref_sample_samplePeaks
+#   table.before <- RvarsCorrectionTime$peakListAligned[
+#     RvarsCorrectionTime$peakListAligned$sample == sample_sel, ]
+#   
+#   resMatch.before <- matchMz(x = ref, table = table.before,
+#                              ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
+#                              session = session)
+#   
+#   data_before <- resMatch.before$MatchTable[
+#     !is.na(resMatch.before$MatchTable$rt.2),
+#     c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
+#   ]
+#   
+#   rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1])
+#   rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2])
+#   median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
+#                                  y = seq(rt_min, rt_max, by = 50))
+#   
+#   ggplot(data_before, aes(x = rt.2, y = rt.1)) +
+#     geom_point(size = 0.5) +
+#     coord_cartesian(xlim = c(rt_min, rt_max), ylim = c(rt_min, rt_max)) +
+#     scale_x_continuous(n.breaks = 14) +
+#     scale_y_continuous(n.breaks = 14) +
+#     geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
+#               lwd = 1, size = 1.5) +
+#     ggtitle("Before CE-time correction (Kernel Density)") +
+#     labs(x = paste("CE-time (", data_before$sample.2[1], ")"),
+#          y = "CE-time (Reference sample)", color = "Legend") +
+#     scale_color_manual(values = c("Median" = "green")) +
+#     theme_ben() +
+#     theme(
+#       plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
+#                                 margin = margin(0, 0, 5, 0), hjust = 0.5),
+#       plot.background = element_rect(fill = "aliceblue"),
+#       legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
+#       legend.text = element_text(size = rel(0.85), face = "bold.italic")
+#     )
+# })
+# 
+# output$modal_rt_dist_after <- renderPlot({
+#   sample_sel <- req(input$SelectSample_KernelDensity)
+#   req(RvarsCorrectionTime$peakListAligned_KernelDensity)
+#   req(RvarsCorrectionTime$ref_sample_samplePeaks)
+#   
+#   source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
+#   
+#   ref        <- RvarsCorrectionTime$ref_sample_samplePeaks
+#   table.after <- RvarsCorrectionTime$peakListAligned_KernelDensity[
+#     RvarsCorrectionTime$peakListAligned_KernelDensity$sample == sample_sel, ]
+#   
+#   resMatch.after <- matchMz(x = ref, table = table.after,
+#                             ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
+#                             session = session)
+#   
+#   data_after <- resMatch.after$MatchTable[
+#     !is.na(resMatch.after$MatchTable$rt.2),
+#     c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
+#   ]
+#   
+#   rt_min <- min(range(data_after$rt.2)[1], range(data_after$rt.1)[1])
+#   rt_max <- max(range(data_after$rt.2)[2], range(data_after$rt.1)[2])
+#   median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
+#                                  y = seq(rt_min, rt_max, by = 50))
+#   
+#   ggplot(data_after, aes(x = rt.2, y = rt.1)) +
+#     geom_point(size = 0.5) +
+#     coord_cartesian(xlim = c(rt_min, rt_max), ylim = c(rt_min, rt_max)) +
+#     scale_x_continuous(n.breaks = 14) +
+#     scale_y_continuous(n.breaks = 14) +
+#     geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
+#               lwd = 1, size = 1.5) +
+#     ggtitle("After CE-time correction (Kernel Density)") +
+#     labs(x = paste("CE-time (", data_after$sample.2[1], ")"),
+#          y = "CE-time (Reference sample)", color = "Legend") +
+#     scale_color_manual(values = c("Median" = "green")) +
+#     theme_ben() +
+#     theme(
+#       plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
+#                                 margin = margin(0, 0, 5, 0), hjust = 0.5),
+#       plot.background = element_rect(fill = "aliceblue"),
+#       legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
+#       legend.text = element_text(size = rel(0.85), face = "bold.italic")
+#     )
+# })
+
+output$modal_rt_params_info <- renderUI({
+  sample_sel <- req(input$SelectSample_KernelDensity)
+  log <- RvarsCorrectionTime$kernelDensity_params_log
+  if (is.null(log)) return(NULL)
+  row <- log[log$Sample == sample_sel, ]
+  if (nrow(row) == 0) return(NULL)
+  
+  tags$div(
+    style = paste0(
+      "background:#f0f4f8; border:1px solid #c8d8e8; border-radius:6px;",
+      "padding:10px 16px; margin-top:12px; font-size:0.9em;"
+    ),
+    tags$b("Parameters used for: ", style = "color:#760001;"),
+    tags$span(sample_sel),
+    tags$br(),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Bandwidth (filter): "), row$Bandwidth_Filter),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Intensity filter: "), row$Intensity_Filter),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Min density: "), row$Min_Density),
+    tags$br(),
+    tags$span(tags$b("Kernel type: "), row$Kernel_Type),
+    tags$span(" | ", style = "color:#aaa;"),
+    tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model),
+  )
+})
+
+observeEvent(input$btn_view_rt_dist, ignoreNULL = TRUE, {
+  req(RvarsCorrectionTime$peakListAligned)
+  
+  showModal(
+    modalDialog(
+      title = "RT distribution — CE-time Kernel Density correction",
+      size = "l",
+      easyClose = TRUE,
+      footer = modalButton("Close"),
+      fluidRow(
+        column(
+          6,
+          shinycssloaders::withSpinner(
+            plotOutput("modal_rt_dist_before", width = "100%", height = "400px"),
+            type = 1, size = 0.8
+          )
+        ),
+        column(
+          6,
+          shinycssloaders::withSpinner(
+            plotOutput("modal_rt_dist_after", width = "100%", height = "400px"),
+            type = 1, size = 0.8
+          )
+        )
+      ),
+      uiOutput("modal_rt_params_info")
+    )
+  )
+})
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~ Validate all CE-time corrections ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
+observeEvent(input$validateCETimeCorrection, ignoreNULL = TRUE, {
+  ask_confirmation(
+    inputId = "Confirm_validateCETimeCorrection",
+    title = NULL,
+    text = tags$b(
+      "Are you sure you're finished correcting CE-time?",
+      style = "color: #FA5858;"
+    ),
+    btn_labels = c("Cancel", "OK"),
+    btn_colors = c("#00BFFF", "#FE2E2E"),
+    html = TRUE
+  )
+})
+
+observeEvent(input$Confirm_validateCETimeCorrection, ignoreNULL = TRUE, {
+  if (isTRUE(input$Confirm_validateCETimeCorrection)) {
+    shinyjs::enable(id = "SaveKernelAjust")
+    
+    ## Export kernel density parameters to Excel
+    params_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
+    if (!is.null(params_log) && nrow(params_log) > 0) {
+      export_dir <- tryCatch(directoryInput$directory, error = function(e) tempdir())
+      if (length(export_dir) == 0 || !nzchar(export_dir)) export_dir <- tempdir()
+      xlsx_path <- file.path(export_dir, "KernelDensity_Correction_Parameters.xlsx")
+      tryCatch({
+        openxlsx::write.xlsx(params_log, file = xlsx_path, rowNames = FALSE)
+        showNotification(paste("Parameters saved:", xlsx_path),
+                         type = "message", duration = 6)
+      }, error = function(e) {
+        showNotification(paste("Failed to save parameters:", e$message),
+                         type = "error", duration = 6)
+      })
+    }
+  }
+})
 
 # observeEvent(ignoreNULL = TRUE,
 #              eventExpr = {
@@ -7399,3 +13725,478 @@ observe({
     })
   }
 })
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+##~~~~ Batch import kernel density parameters (reuse of fitModel logic) ~~~~~~~~~##
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
+## Reprend exactement les mêmes étapes que l'observer "fitModel"
+## (matchMz -> filtre intensité -> kde2d -> filtre densité -> npreg -> predict -> log),
+## mais paramétrées explicitement au lieu de lire input$..., pour pouvoir être
+## rejouées en boucle sur une liste de runs sans dépendre des widgets Shiny.
+apply_kernel_density_correction <- function(sample_sel,
+                                            kernel_type,
+                                            bandwidth_model,
+                                            bandwidth_filter,
+                                            intensity_filter,
+                                            min_density,
+                                            grid_size = 500) {
+  
+  if (is.null(RvarsCorrectionTime$peakListAligned) ||
+      is.null(RvarsCorrectionTime$ref_sample_samplePeaks) ||
+      !(sample_sel %in% RvarsCorrectionTime$peakListAligned$sample)) {
+    return(list(success = FALSE, reason = "run introuvable ou données manquantes"))
+  }
+  
+  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
+  
+  ref <- RvarsCorrectionTime$ref_sample_samplePeaks
+  table.after <- RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample == sample_sel, ]
+  
+  resMatch.after_xcms <- matchMz(x = ref, table = table.after, ppm_tolereance = 1000,
+                                 mzcol = "mz", rtcol = "rt", session = session)
+  
+  data_to_filter <- resMatch.after_xcms$MatchTable[!is.na(resMatch.after_xcms$MatchTable$rt.2),
+                                                   c("mz.1", "rt.1", "maxo.1",
+                                                     "mz.2", "rt.2", "maxo.2", "sample.2")]
+  if (nrow(data_to_filter) == 0)
+    return(list(success = FALSE, reason = "aucune correspondance avec le sample de référence"))
+  
+  data_to_filter$maxo.2 <- log2(data_to_filter$maxo.2)
+  
+  # data_filtered <- data_to_filter %>% dplyr::filter(maxo.2 >= intensity_filter)
+  data_filtered <- filter_points_for_correction(
+    data_to_filter,
+    use_robust = isTRUE(use_robust),
+    intensity_filter = intensity_filter,
+    robust_threshold = robust_threshold,
+    bandwidth_filter = bandwidth_filter,
+    grid_size = grid_size
+  )
+  if (nrow(data_filtered) == 0)
+    return(list(success = FALSE, reason = "filtre d'intensité trop restrictif"))
+  
+  dens <- MASS::kde2d(data_filtered$rt.2, data_filtered$rt.1,
+                      h = bandwidth_filter, n = grid_size)
+  df <- expand.grid(x = dens$x, y = dens$y)
+  df$density <- as.vector(dens$z)
+  df$density <- df$density / max(df$density)
+  colnames(df)[1:2] <- c("rt.2", "rt.1")
+  dataDensity <- df %>% dplyr::filter(density >= min_density)
+  if (nrow(dataDensity) == 0)
+    return(list(success = FALSE, reason = "min density trop restrictif"))
+  
+  model <- tryCatch(
+    npreg(
+      rt.1 ~ rt.2,
+      bws = bandwidth_model,
+      bwtype = "fixed",
+      regtype = "ll",
+      ckertype = kernel_type,
+      gradients = TRUE,
+      data = dataDensity
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(model))
+    return(list(success = FALSE, reason = "échec de l'ajustement npreg"))
+  
+  RvarsCorrectionTime$modelKernelDensity <- model
+  RvarsCorrectionTime$peakListAligned_KernelDensity[RvarsCorrectionTime$peakListAligned_KernelDensity$sample == sample_sel, ]$rt <-
+    predict(
+      model,
+      newdata = data.frame(rt.2 = RvarsCorrectionTime$peakListAligned[RvarsCorrectionTime$peakListAligned$sample == sample_sel, ]$rt)
+    )
+  
+  new_row <- data.frame(
+    Sample           = sample_sel,
+    Kernel_Type      = kernel_type,
+    Bandwidth_Model  = bandwidth_model,
+    Bandwidth_Filter = bandwidth_filter,
+    Intensity_Filter = intensity_filter,
+    Min_Density      = min_density,
+    Use_Robust_Filter   = isTRUE(use_robust),
+    Robust_Threshold    = if (isTRUE(use_robust)) robust_threshold else NA_real_,
+    stringsAsFactors = FALSE
+  )
+  existing_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
+  if (is.null(existing_log)) {
+    RvarsCorrectionTime$kernelDensity_params_log <- new_row
+  } else {
+    existing_log <- existing_log[existing_log$Sample != sample_sel, ]
+    RvarsCorrectionTime$kernelDensity_params_log <- rbind(existing_log, new_row)
+  }
+  
+  list(success = TRUE, reason = NULL)
+}
+
+
+## Normalise un nom de run pour comparaison robuste aux variations de format
+## (séparateurs "_"/" - "/"-" et zero-padding différent du numéro de run,
+## ex: "..._Run-00008" (Excel) vs "...Run000008" (nom interne de l'app)).
+normalize_run_key <- function(x) {
+  x <- tolower(trimws(as.character(x)))
+  x <- gsub("[-_]+", " ", x)
+  x <- gsub("\\s+", " ", x)
+  x <- sub("run\\s*0*([0-9]+)\\s*$", "run\\1", x)
+  x
+}
+
+observeEvent(input$applyBatchKernelParams, ignoreNULL = TRUE, {
+  req(input$batchKernelParamsFile)
+  
+  df <- tryCatch(
+    openxlsx::read.xlsx(input$batchKernelParamsFile$datapath, sheet = 1),
+    error = function(e) NULL
+  )
+  if (is.null(df)) {
+    showNotification("Impossible de lire le fichier Excel.", type = "error", duration = 8)
+    return()
+  }
+  
+  loaded_samples <- if (!is.null(RvarsCorrectionTime$peakListAligned)) {
+    unique(as.character(RvarsCorrectionTime$peakListAligned$sample))
+  } else character(0)
+  loaded_key_lookup <- stats::setNames(loaded_samples, normalize_run_key(loaded_samples))
+  
+  # col_names <- colnames(df)
+  # datafile_col <- col_names[grepl("^Datafile", col_names, ignore.case = TRUE)][1]
+  # bandwith_col <- col_names[grepl("^Bandwith$|^Bandwidth$", col_names, ignore.case = TRUE)][1]
+  # intfilter_col <- col_names[grepl("^Int.?filter$", col_names, ignore.case = TRUE)][1]
+  # minden_col <- col_names[grepl("^min.?den", col_names, ignore.case = TRUE)][1]
+  # corrkernel_col <- col_names[grepl("^Corr.?Kernel$", col_names, ignore.case = TRUE)][1]
+  # 
+  # missing_cols <- c("Datafile", "Bandwith", "Int filter", "min den", "Corr Kernel")[
+  #   is.na(c(datafile_col, bandwith_col, intfilter_col, minden_col, corrkernel_col))
+  # ]
+  
+  col_names <- colnames(df)
+  datafile_col <- col_names[grepl(pattern = "^Sample", col_names, ignore.case = TRUE)][1]
+  bandwith_col <- col_names[grepl(pattern = "^Bandwidth_Filter", col_names, ignore.case = TRUE)][1]
+  intfilter_col <- col_names[grepl(pattern = "^Intensity_Filter", col_names, ignore.case = TRUE)][1]
+  minden_col <- col_names[grepl(pattern = "Min_Density", col_names, ignore.case = TRUE)][1]
+  corrkernel_col <- col_names[grepl(pattern = "Bandwidth_Model", col_names, ignore.case = TRUE)][1]
+  # Colonnes optionnelles : absentes du fichier -> filtre robuste désactivé (comportement inchangé)
+  userobust_col <- col_names[grepl("^Use.?Robust.?Filter$", col_names, ignore.case = TRUE)][1]
+  robustthresh_col <- col_names[grepl("^Robust.?Threshold$", col_names, ignore.case = TRUE)][1]
+  cat("datafile_col :  ", datafile_col , '\n')
+  cat("bandwith_col :  ", bandwith_col , '\n')
+  cat("intfilter_col :  ", intfilter_col , '\n')
+  cat("minden_col :  ", minden_col , '\n')
+  cat("corrkernel_col :  ", corrkernel_col , '\n')
+  
+  print(head(df[,c(datafile_col, bandwith_col, intfilter_col,minden_col, corrkernel_col)]))
+  
+  if (length(missing_cols) > 0) {
+    showNotification(
+      paste("Colonnes manquantes dans le fichier :", paste(missing_cols, collapse = ", ")),
+      type = "error", duration = 10
+    )
+    return()
+  }
+  
+  n <- nrow(df)
+  results <- data.frame(Sample = character(0), Status = character(0), stringsAsFactors = FALSE)
+  
+  withProgress(message = "Import batch des corrections kernel density...", value = 0, {
+    for (i in seq_len(n)) {
+      incProgress(1 / n, detail = sprintf("%d/%d", i, n))
+      
+      if (grepl("\\.d$", datafile_col)) {
+        datafile_col <- sub("\\.d$", "", datafile_col)
+      }
+      
+      # sample_sel <- trimws(as.character(df[[datafile_col]][i]))
+      sample_raw <- trimws(as.character(df[[datafile_col]][i]))
+      bw_filter  <- suppressWarnings(as.numeric(df[[bandwith_col]][i]))
+      int_filter <- suppressWarnings(as.numeric(df[[intfilter_col]][i]))
+      min_dens   <- suppressWarnings(as.numeric(df[[minden_col]][i]))
+      bw_model   <- suppressWarnings(as.numeric(df[[corrkernel_col]][i]))
+      
+      use_robust_raw <- if (!is.na(userobust_col)) trimws(as.character(df[[userobust_col]][i])) else NA_character_
+      use_robust_val <- !is.na(use_robust_raw) && tolower(use_robust_raw) %in% c("true", "1", "yes", "oui")
+      robust_thresh_val <- if (!is.na(robustthresh_col)) {
+        suppressWarnings(as.numeric(df[[robustthresh_col]][i]))
+      } else {
+        NA_real_
+      }
+      if (use_robust_val && is.na(robust_thresh_val)) robust_thresh_val <- 3
+      
+      if (!nzchar(sample_raw) || is.na(bw_filter) || is.na(int_filter) ||
+          is.na(min_dens) || is.na(bw_model)) {
+        results <- rbind(results, data.frame(Sample = sample_sel, Status = "Ignoré (valeurs manquantes)"))
+        next
+      }
+      
+      sample_sel <- unname(loaded_key_lookup[normalize_run_key(sample_raw)])
+      if (is.na(sample_sel)) {
+        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (run non chargé)"))
+        next
+      }
+      
+      res <- apply_kernel_density_correction(
+        sample_sel       = sample_sel,
+        kernel_type      = "gaussian",
+        bandwidth_model  = bw_model,
+        bandwidth_filter = bw_filter,
+        intensity_filter = int_filter,
+        min_density      = min_dens,
+        use_robust       = use_robust_val,
+        robust_threshold = robust_thresh_val
+      )
+      
+      results <- rbind(results, data.frame(
+        Sample = sample_sel,
+        Status = if (isTRUE(res$success)) "OK" else paste("Échec :", res$reason)
+      ))
+    }
+  })
+  
+  n_ok <- sum(results$Status == "OK")
+  n_other <- nrow(results) - n_ok
+  
+  cat("--- Batch import kernel density (NRM) : résultats ---\n")
+  print(results)
+  
+  showNotification(
+    sprintf("Import batch terminé : %d run(s) corrigé(s), %d ignoré(s)/échoué(s).", n_ok, n_other),
+    type = if (n_other == 0) "message" else "warning",
+    duration = 10
+  )
+  
+  ## Conserve les résultats pour pouvoir les rouvrir plus tard via le bouton "View results"
+  RvarsCorrectionTime$batchKernelParamsResults <- results
+  
+  show_batch_kernel_results_modal(results)
+  
+  ## Détail par run (dont la raison de chaque échec/ignoré) dans une fenêtre modale
+  # output$batchKernelParamsResultTable <- DT::renderDataTable({
+  #   DT::datatable(
+  #     results,
+  #     rownames = FALSE,
+  #     options = list(pageLength = 15, scrollX = TRUE)
+  #   )
+  # })
+  # showModal(
+  #   modalDialog(
+  #     title = "Résultats de l'import batch — kernel density",
+  #     size = "l",
+  #     easyClose = TRUE,
+  #     footer = modalButton("Close"),
+  #     DT::dataTableOutput("batchKernelParamsResultTable")
+  #   )
+  # )
+  
+})
+
+## Affiche (ou réaffiche) le tableau des résultats du dernier import batch
+show_batch_kernel_results_modal <- function(results) {
+  output$batchKernelParamsResultTable <- DT::renderDataTable({
+    DT::datatable(
+      results,
+      rownames = FALSE,
+      options = list(pageLength = 15, scrollX = TRUE)
+    )
+  })
+  showModal(
+    modalDialog(
+      title = "Résultats de l'import batch — kernel density",
+      size = "l",
+      easyClose = TRUE,
+      footer = modalButton("Close"),
+      DT::dataTableOutput("batchKernelParamsResultTable")
+    )
+  )
+}
+
+observeEvent(input$viewBatchKernelParamsResults, ignoreNULL = TRUE, {
+  results <- isolate(RvarsCorrectionTime$batchKernelParamsResults)
+  if (is.null(results) || nrow(results) == 0) {
+    showNotification("Aucun résultat d'import batch disponible pour l'instant.",
+                     type = "message", duration = 6)
+    return()
+  }
+  show_batch_kernel_results_modal(results)
+})
+
+
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Batch import cut-off (Min/Max en temps) ~~~~~~~~~~~~~~~~~~~~~~#*
+## Permet d'importer un fichier Excel (Sample, Min, Max, Unit optionnel) pour
+## appliquer en masse les bornes de découpage RT, au lieu de les saisir
+## manuellement échantillon par échantillon. Réutilise normalize_run_key
+## (définie plus bas dans ce fichier, mais déjà disponible au moment de
+## l'exécution de cet observer — tout le code top-level du serveur s'exécute
+## une fois à l'initialisation de la session, avant toute interaction) pour
+## tolérer les variations de format de nom de run.
+observeEvent(input$applyBatchCutOff, ignoreNULL = TRUE, {
+  req(input$batchCutOffFile)
+
+  if (is.null(RvarsCorrectionTime$samplesCuttingTable)) {
+    showNotification("Aucun échantillon chargé pour le découpage.", type = "error", duration = 8)
+    return()
+  }
+
+  df <- tryCatch(
+    openxlsx::read.xlsx(input$batchCutOffFile$datapath, sheet = 1),
+    error = function(e) NULL
+  )
+  if (is.null(df)) {
+    showNotification("Impossible de lire le fichier Excel.", type = "error", duration = 8)
+    return()
+  }
+
+  loaded_samples <- rownames(RvarsCorrectionTime$samplesCuttingTable)
+  loaded_key_lookup <- stats::setNames(loaded_samples, normalize_run_key(loaded_samples))
+
+  col_names    <- colnames(df)
+  datafile_col <- col_names[grepl(pattern = "^Datafile$|^Sample$", col_names, ignore.case = TRUE)][1]
+  min_col      <- col_names[grepl(pattern = "^Min$|^RT.?min$|^CE.?time.?min$", col_names, ignore.case = TRUE)][1]
+  max_col      <- col_names[grepl(pattern = "^Max$|^RT.?max$|^CE.?time.?max$", col_names, ignore.case = TRUE)][1]
+  unit_col     <- col_names[grepl(pattern = "^Unit$", col_names, ignore.case = TRUE)][1]
+
+  missing_cols <- c("Sample/Datafile", "Min", "Max")[is.na(c(datafile_col, min_col, max_col))]
+  if (length(missing_cols) > 0) {
+    showNotification(
+      paste("Colonnes manquantes dans le fichier :", paste(missing_cols, collapse = ", ")),
+      type = "error", duration = 10
+    )
+    return()
+  }
+
+  n <- nrow(df)
+  results <- data.frame(Sample = character(0), Status = character(0), stringsAsFactors = FALSE)
+
+  withProgress(message = "Import batch des bornes de découpage...", value = 0, {
+    for (i in seq_len(n)) {
+      incProgress(1 / n, detail = sprintf("%d/%d", i, n))
+
+      sample_raw <- trimws(as.character(df[[datafile_col]][i]))
+      if (grepl("\\.d$", sample_raw, ignore.case = TRUE)) {
+        sample_raw <- sub("\\.d$", "", sample_raw, ignore.case = TRUE)
+      }
+      rt_min <- suppressWarnings(as.numeric(df[[min_col]][i]))
+      rt_max <- suppressWarnings(as.numeric(df[[max_col]][i]))
+      unit_raw <- if (!is.na(unit_col)) trimws(as.character(df[[unit_col]][i])) else NA_character_
+      unit_val <- if (!is.na(unit_raw) && tolower(unit_raw) %in% c("minute", "minutes", "min")) {
+        "Minute"
+      } else {
+        "Second"
+      }
+
+      # Un run peut n'être découpé que d'un seul côté (Min ou Max seul) — comme
+      # pour la saisie manuelle — donc on n'ignore que si les DEUX bornes manquent.
+      if (!nzchar(sample_raw) || (is.na(rt_min) && is.na(rt_max))) {
+        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (valeurs manquantes)"))
+        next
+      }
+
+      sample_sel <- unname(loaded_key_lookup[normalize_run_key(sample_raw)])
+      if (is.na(sample_sel)) {
+        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (run non chargé)"))
+        next
+      }
+
+      RvarsCorrectionTime$samplesCuttingTable[sample_sel, 1:2] <- c(rt_min, rt_max)
+      RvarsCorrectionTime$samplesCuttingTable[sample_sel, 3]   <- unit_val
+
+      results <- rbind(results, data.frame(Sample = sample_sel, Status = "OK"))
+    }
+  })
+
+  n_ok <- sum(results$Status == "OK")
+  n_other <- nrow(results) - n_ok
+
+  showNotification(
+    sprintf("Import batch terminé : %d run(s) découpé(s), %d ignoré(s).", n_ok, n_other),
+    type = if (n_other == 0) "message" else "warning",
+    duration = 10
+  )
+
+  RvarsCorrectionTime$batchCutOffResults <- results
+  # Forcer le rafraîchissement du graphique pour l'échantillon actuellement
+  # affiché : sans ce reset du picker (vider puis re-remplir avec la même
+  # sélection), un import batch laisserait affiché l'ancien graphique (non
+  # coupé) tant que l'utilisateur ne change pas manuellement d'échantillon.
+  current_sample <- isolate(input$sample_selectedCutting)
+  if (!is.null(current_sample) && nzchar(current_sample)) {
+    all_cut_choices <- rownames(RvarsCorrectionTime$samplesCuttingTable)
+    updatePickerInput(session = session,
+                      inputId = "sample_selectedCutting",
+                      choices = character(0))
+    updatePickerInput(session = session,
+                      inputId = "sample_selectedCutting",
+                      choices = all_cut_choices,
+                      selected = current_sample)
+  }
+  show_batch_cutoff_results_modal(results)
+})
+
+## Affiche (ou réaffiche) le tableau des résultats du dernier import batch cut-off
+show_batch_cutoff_results_modal <- function(results) {
+  output$batchCutOffResultTable <- DT::renderDataTable({
+    DT::datatable(
+      results,
+      rownames = FALSE,
+      options = list(pageLength = 15, scrollX = TRUE)
+    )
+  })
+  showModal(
+    modalDialog(
+      title = "Résultats de l'import batch — cut-off",
+      size = "l",
+      easyClose = TRUE,
+      footer = modalButton("Close"),
+      DT::dataTableOutput("batchCutOffResultTable")
+    )
+  )
+}
+
+observeEvent(input$viewBatchCutOffResults, ignoreNULL = TRUE, {
+  results <- isolate(RvarsCorrectionTime$batchCutOffResults)
+  if (is.null(results) || nrow(results) == 0) {
+    showNotification("Aucun résultat d'import batch disponible pour l'instant.",
+                     type = "message", duration = 6)
+    return()
+  }
+  show_batch_cutoff_results_modal(results)
+})
+
+## Export Excel des bornes CE-time (Min/Max/Unit) actuellement définies pour
+## chaque run — au même format de colonnes que l'import, pour pouvoir être
+## réimporté tel quel (aller-retour édition dans Excel facilité).
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$ExportCutOffValues
+             },
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "ExportCutOffValues",
+                             roots = volumes,
+                             session = session)
+
+               path_Save_File <- parseSavePath(volumes, input$ExportCutOffValues)$datapath
+
+               if (length(path_Save_File) > 0) {
+                 cutting_table <- RvarsCorrectionTime$samplesCuttingTable
+                 if (is.null(cutting_table) || nrow(cutting_table) == 0) {
+                   showNotification("Aucune donnée de découpage à exporter.", type = "message", duration = 6)
+                   return()
+                 }
+
+                 export_df <- data.frame(
+                   Sample = rownames(cutting_table),
+                   Min    = cutting_table$rt_min_cut,
+                   Max    = cutting_table$rt_max_cut,
+                   Unit   = cutting_table$Unit,
+                   stringsAsFactors = FALSE
+                 )
+
+                 if (!grepl("\\.xlsx$", path_Save_File, ignore.case = TRUE)) {
+                   path_Save_File <- paste0(path_Save_File, ".xlsx")
+                 }
+
+                 openxlsx::write.xlsx(export_df, file = path_Save_File, rowNames = FALSE)
+                 showNotification("Bornes CE-time exportées.", type = "message", duration = 6)
+               }
+             })
+
+
