@@ -294,6 +294,19 @@ Load the directory containing the files to be analyzed."
                                                          "progressBarFooter_analysis_pre", "")
                                                  )),
                                                  uiOutput("defectiveRunsPanel_newSample"),
+                                                 div(
+                                                   style = "margin-top:10px;",
+                                                   shinySaveButton(
+                                                     id = "ExportPeaksPerRun_newSample",
+                                                     label = "Export nombre de pics par run",
+                                                     title = "Save file as...",
+                                                     filename = "Nombre-pics-par-run",
+                                                     filetype = list(CSV = "csv"),
+                                                     viewtype = "icon",
+                                                     icon = icon("file-csv"),
+                                                     class = "btn-info btn-sm"
+                                                   )
+                                                 ),
                                                  class =
                                                    "well-panel"
                                                )
