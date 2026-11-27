@@ -9720,42 +9720,46 @@ observeEvent(ignoreNULL = TRUE,
                          #scale_color_viridis_c(option = "inferno", direction = -1) +
                          scale_x_continuous(n.breaks = 14) +
                          scale_y_continuous(n.breaks = 14) +
-                         
+
+                         ## Échelles fixées sur les données ORIGINALES (avant filtre
+                         ## intensité/robuste), pas sur Data_Plot.newSample (déjà
+                         ## filtrées) : sinon l'axe se réajuste à chaque changement
+                         ## de filtre, rendant la comparaison visuelle impossible.
                          coord_cartesian(xlim = c(min(
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
                            )[1],
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
                            )[1]
                          ),
                          max(
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
                            )[2],
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
                            )[2]
                          )),
-                         
+
                          ylim = c(min(
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
                            )[1],
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
                            )[1]
                          ),
                          min(
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
                            )[2],
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
                            )[2]
                          )+100)) +
-                         
-                         
+
+
                          xlab(
                            paste(
                              "CE-time (",
@@ -9806,38 +9810,39 @@ observeEvent(ignoreNULL = TRUE,
                          #   range(data_dens_filter.newSample()$rt.2)[2],
                          #   range(data_dens_filter.newSample()$rt.1)[2]
                          # ))) +
-                         # 
+                         #
+                         ## Mêmes échelles fixes que le graphe 1 (voir commentaire ci-dessus).
                          coord_cartesian(xlim = c(min(
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
                            )[1],
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
                            )[1]
                          ),
                          max(
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
                            )[2],
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
                            )[2]
                          )),
-                         
+
                          ylim = c(min(
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
                            )[1],
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
                            )[1]
                          ),
                          min(
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.2
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2
                            )[2],
                            range(
-                             RvarsPeakDetectionNewSample$Data_Plot.newSample$rt.1
+                             RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
                            )[2]
                          )+100)) +
                          xlab(
