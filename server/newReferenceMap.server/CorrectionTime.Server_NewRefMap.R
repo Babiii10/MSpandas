@@ -13319,6 +13319,8 @@ observeEvent(input$validateCETimeCorrection, ignoreNULL = TRUE, {
 
 observeEvent(input$Confirm_validateCETimeCorrection, ignoreNULL = TRUE, {
   if (isTRUE(input$Confirm_validateCETimeCorrection)) {
+    shinyjs::enable(id = "SaveKernelAjust")
+
     ## Export kernel density parameters to Excel
     params_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
     if (!is.null(params_log) && nrow(params_log) > 0) {
@@ -13348,18 +13350,20 @@ observeEvent(input$Confirm_validateCETimeCorrection, ignoreNULL = TRUE, {
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~ Save CE-time Corrected Data as CSV ~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+## Branché sur le bouton "SaveKernelAjust" (seul bouton d'export présent dans
+## l'UI actuelle — disabled() par défaut, activé ci-dessus à la validation).
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$SaveCETimeCorrectedCSV
+               input$SaveKernelAjust
              },
              handlerExpr = {
                shinyFileSave(input,
-                             id = "SaveCETimeCorrectedCSV",
+                             id = "SaveKernelAjust",
                              roots = volumes,
                              session = session)
-               
-               path_Save_File <- parseSavePath(volumes, input$SaveCETimeCorrectedCSV)$datapath
-               
+
+               path_Save_File <- parseSavePath(volumes, input$SaveKernelAjust)$datapath
+
                if (length(path_Save_File) > 0) {
                  if (!is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
                    showNotification(
@@ -13368,20 +13372,20 @@ observeEvent(ignoreNULL = TRUE,
                      duration = NULL,
                      id = "save_csv_progress"
                    )
-                   
+
                    tryCatch({
                      corrected_data <- RvarsCorrectionTime$peakListAligned_KernelDensity
-                     
+
                      if (!grepl("\\.csv$", path_Save_File, ignore.case = TRUE)) {
                        path_Save_File <- paste0(path_Save_File, ".csv")
                      }
-                     
+
                      write.csv(corrected_data,
                                file = path_Save_File,
                                row.names = FALSE,
                                quote = TRUE,
                                na = "")
-                     
+
                      removeNotification(id = "save_csv_progress")
                      showNotification(
                        paste0("CSV file saved successfully to:\n", basename(path_Save_File)),
@@ -13392,88 +13396,6 @@ observeEvent(ignoreNULL = TRUE,
                      removeNotification(id = "save_csv_progress")
                      showNotification(
                        paste0("Error saving CSV file: ", e$message),
-                       type = "error",
-                       duration = 10
-                     )
-                   })
-                 } else {
-                   showNotification(
-                     "No corrected data available. Please apply Kernel Density correction first.",
-                     type = "warning",
-                     duration = 5
-                   )
-                 }
-               }
-             })
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-##~~~~~~~~~~~~~~~~~~ Save CE-time Corrected Data as Excel ~~~~~~~~~~~~~~~~~~~~~~~#
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-observeEvent(ignoreNULL = TRUE,
-             eventExpr = {
-               input$SaveCETimeCorrected
-             },
-             handlerExpr = {
-               shinyFileSave(input,
-                             id = "SaveCETimeCorrected",
-                             roots = volumes,
-                             session = session)
-               
-               path_Save_File <- parseSavePath(volumes, input$SaveCETimeCorrected)$datapath
-               
-               if (length(path_Save_File) > 0) {
-                 if (!is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
-                   showNotification(
-                     "Creating Excel file with corrected data...",
-                     type = "message",
-                     duration = NULL,
-                     id = "save_xlsx_progress"
-                   )
-                   
-                   tryCatch({
-                     corrected_data <- RvarsCorrectionTime$peakListAligned_KernelDensity
-                     
-                     if (!grepl("\\.xlsx$", path_Save_File, ignore.case = TRUE)) {
-                       path_Save_File <- paste0(path_Save_File, ".xlsx")
-                     }
-                     
-                     wb <- openxlsx::createWorkbook()
-                     
-                     openxlsx::addWorksheet(wb, "Corrected_Peaks")
-                     openxlsx::writeData(wb, "Corrected_Peaks", corrected_data,
-                                         startRow = 1, startCol = 1, rowNames = FALSE)
-                     
-                     header_style <- openxlsx::createStyle(
-                       fontSize = 12, fontColour = "#FFFFFF", fgFill = "#4F81BD",
-                       halign = "center", valign = "center",
-                       textDecoration = "bold", border = "TopBottomLeftRight"
-                     )
-                     openxlsx::addStyle(wb, "Corrected_Peaks", style = header_style,
-                                        rows = 1, cols = 1:ncol(corrected_data), gridExpand = TRUE)
-                     openxlsx::freezePane(wb, "Corrected_Peaks", firstRow = TRUE)
-                     openxlsx::setColWidths(wb, "Corrected_Peaks", cols = 1:ncol(corrected_data), widths = "auto")
-                     
-                     params_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
-                     if (!is.null(params_log) && nrow(params_log) > 0) {
-                       openxlsx::addWorksheet(wb, "Correction_Parameters")
-                       openxlsx::writeData(wb, "Correction_Parameters", params_log, rowNames = FALSE)
-                       openxlsx::addStyle(wb, "Correction_Parameters", style = header_style,
-                                          rows = 1, cols = 1:ncol(params_log), gridExpand = TRUE)
-                       openxlsx::freezePane(wb, "Correction_Parameters", firstRow = TRUE)
-                     }
-                     
-                     openxlsx::saveWorkbook(wb, path_Save_File, overwrite = TRUE)
-                     
-                     removeNotification(id = "save_xlsx_progress")
-                     showNotification(
-                       paste0("Excel file saved successfully to:\n", basename(path_Save_File)),
-                       type = "message",
-                       duration = 5
-                     )
-                   }, error = function(e) {
-                     removeNotification(id = "save_xlsx_progress")
-                     showNotification(
-                       paste0("Error saving Excel file: ", e$message),
                        type = "error",
                        duration = 10
                      )
