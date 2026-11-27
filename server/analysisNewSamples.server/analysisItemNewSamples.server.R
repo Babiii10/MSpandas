@@ -12381,9 +12381,18 @@ output$showKernel_param  =  renderUI({
     tags$br(),
     tags$span(tags$b("Kernel type: "), row$Kernel_Type),
     tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model)
+    tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model),
+    tags$br(),
+    tags$span(
+      tags$b("Robust filter: "),
+      if (isTRUE(row$Use_Robust_Filter)) {
+        paste0("Yes (threshold: ", row$Robust_Threshold, " x MAD)")
+      } else {
+        "No (intensity filter)"
+      }
+    )
   )
-  
+
 })
 
 # observeEvent(input$btn_view_rt_dist_newSample, ignoreNULL = TRUE, {
