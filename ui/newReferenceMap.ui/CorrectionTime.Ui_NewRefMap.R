@@ -1054,7 +1054,7 @@ CorrectionTime_KernelDensity_Ui <- function() {
             "bandwidth_Model",
             "Bandwidth:",
             min = 1,
-            max = 300,
+            max = 1000,
             value = 100
           ),
           fluidRow(
