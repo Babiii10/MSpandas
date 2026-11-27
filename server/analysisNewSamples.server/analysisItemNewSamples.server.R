@@ -9630,6 +9630,14 @@ observeEvent(ignoreNULL = TRUE,
                input$SelectSample_KernelDensity_newSample
              },
              handlerExpr = {
+               ## Changer d'échantillon invalide la courbe "modèle précédent"
+               ## affichée (elle appartenait à un autre run) ; elle sera
+               ## recalculée au prochain clic sur "Adjust CE-time".
+               if (!identical(isolate(RvarsPeakDetectionNewSample$current_model_sample_newSample),
+                              input$SelectSample_KernelDensity_newSample)) {
+                 RvarsPeakDetectionNewSample$previous_model_curve_newSample <- NULL
+               }
+
                if (!is.null(input$SelectSample_KernelDensity_newSample) &
                    !is.null(RvarsPeakDetectionNewSample$peaks_mono_iso_newSample_list) &
                    !is.null(RvarsPeakDetectionNewSample$map_ref)) {
@@ -10087,9 +10095,32 @@ observeEvent(ignoreNULL = TRUE,
                
              },
              handlerExpr = {
-               
+
+               ## Avant d'écraser le modèle courant par le nouveau fit, garde la
+               ## courbe de l'ancien modèle (pour ce même échantillon) afin de
+               ## l'afficher en superposition (rouge = ancien, bleu = nouveau) et
+               ## visualiser si le nouveau réglage améliore ou dégrade le fit.
+               if (!is.null(RvarsPeakDetectionNewSample$modelKernelDensity) &&
+                   !is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter) &&
+                   identical(isolate(RvarsPeakDetectionNewSample$current_model_sample_newSample),
+                             input$SelectSample_KernelDensity_newSample)) {
+                 old_rng <- range(
+                   RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.2,
+                   RvarsPeakDetectionNewSample$Data_Plot.newSample_to_filter$rt.1
+                 )
+                 old_rt2_seq <- seq(old_rng[1], old_rng[2], by = 50)
+                 RvarsPeakDetectionNewSample$previous_model_curve_newSample <- data.frame(
+                   rt.2 = old_rt2_seq,
+                   rt.1 = predict(RvarsPeakDetectionNewSample$modelKernelDensity,
+                                 newdata = data.frame(rt.2 = old_rt2_seq))
+                 )
+               } else {
+                 RvarsPeakDetectionNewSample$previous_model_curve_newSample <- NULL
+               }
+               RvarsPeakDetectionNewSample$current_model_sample_newSample <- input$SelectSample_KernelDensity_newSample
+
                if (!is.null(RvarsPeakDetectionNewSample$Data_Plot.newSample)) {
-                 
+
                  if(nrow(RvarsPeakDetectionNewSample$Data_Plot.newSample)!=0){
                    #~~~~~~~~~~~~~~~~~~~~ Density filter ~~~~~~~~~~~~~~~~~~#
                    data_dens_filter.newSample <-
@@ -10318,7 +10349,15 @@ observeEvent(ignoreNULL = TRUE,
                                    
                                    # xlab("CE-time (sample to align)")+
                                    # ylab("CE-time (reference sample)")+
-                                   
+
+                                   {
+                                     if (!is.null(RvarsPeakDetectionNewSample$previous_model_curve_newSample))
+                                       geom_line(
+                                         data = RvarsPeakDetectionNewSample$previous_model_curve_newSample,
+                                         aes(x = rt.2, y = rt.1, color = "Previous model"),
+                                         lwd = 1, size = 1.5, linetype = "dashed"
+                                       )
+                                   } +
                                    geom_line(
                                      data = predict_data_model.np,
                                      aes(
@@ -10342,7 +10381,7 @@ observeEvent(ignoreNULL = TRUE,
                                    #   size = 1.5
                                    # ) +
                                    ggtitle("Before CE-time correction") +
-                                   
+
                                    labs(
                                      x = paste(
                                        "CE-time (",
@@ -10352,9 +10391,10 @@ observeEvent(ignoreNULL = TRUE,
                                      y = "CE-time (Reference map)",
                                      color = "Legend"
                                    ) +
-                                   
+
                                    scale_color_manual(values = c(
-                                     "Model" = "red",
+                                     "Model" = "blue",
+                                     "Previous model" = "red",
                                      "Median" = "green"
                                    )) +
                                    

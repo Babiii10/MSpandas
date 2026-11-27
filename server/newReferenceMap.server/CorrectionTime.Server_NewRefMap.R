@@ -11332,6 +11332,14 @@ observeEvent(ignoreNULL = TRUE,
                input$SelectSample_KernelDensity
              },
              handlerExpr = {
+               ## Changer d'échantillon invalide la courbe "modèle précédent"
+               ## affichée (elle appartenait à un autre run) ; elle sera
+               ## recalculée au prochain clic sur "Adjust CE-time".
+               if (!identical(isolate(RvarsCorrectionTime$current_model_sample),
+                              input$SelectSample_KernelDensity)) {
+                 RvarsCorrectionTime$previous_model_curve <- NULL
+               }
+
                if (!is.null(input$SelectSample_KernelDensity) &
                    !is.null(RvarsCorrectionTime$peakListAligned) &
                    !is.null(RvarsCorrectionTime$ref_sample_samplePeaks)) {
@@ -11587,7 +11595,30 @@ observeEvent(ignoreNULL = TRUE,
                input$fitModel
              },
              handlerExpr = {
-               
+
+               ## Avant d'écraser le modèle courant par le nouveau fit, garde la
+               ## courbe de l'ancien modèle (pour ce même échantillon) afin de
+               ## l'afficher en superposition (rouge = ancien, bleu = nouveau) et
+               ## visualiser si le nouveau réglage améliore ou dégrade le fit.
+               if (!is.null(RvarsCorrectionTime$modelKernelDensity) &&
+                   !is.null(RvarsCorrectionTime$Data_Plot.after_xcms_to_filter) &&
+                   identical(isolate(RvarsCorrectionTime$current_model_sample),
+                             input$SelectSample_KernelDensity)) {
+                 old_rng <- range(
+                   RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.2,
+                   RvarsCorrectionTime$Data_Plot.after_xcms_to_filter$rt.1
+                 )
+                 old_rt2_seq <- seq(old_rng[1], old_rng[2], by = 50)
+                 RvarsCorrectionTime$previous_model_curve <- data.frame(
+                   rt.2 = old_rt2_seq,
+                   rt.1 = predict(RvarsCorrectionTime$modelKernelDensity,
+                                 newdata = data.frame(rt.2 = old_rt2_seq))
+                 )
+               } else {
+                 RvarsCorrectionTime$previous_model_curve <- NULL
+               }
+               RvarsCorrectionTime$current_model_sample <- input$SelectSample_KernelDensity
+
                if (!is.null(RvarsCorrectionTime$Data_Plot.after_xcms)) {
                  
                  
@@ -11807,7 +11838,15 @@ observeEvent(ignoreNULL = TRUE,
                                    
                                    # xlab("CE-time (sample to align)")+
                                    # ylab("CE-time (reference sample)")+
-                                   
+
+                                   {
+                                     if (!is.null(RvarsCorrectionTime$previous_model_curve))
+                                       geom_line(
+                                         data = RvarsCorrectionTime$previous_model_curve,
+                                         aes(x = rt.2, y = rt.1, color = "Previous model"),
+                                         lwd = 1, size = 1.5, linetype = "dashed"
+                                       )
+                                   } +
                                    geom_line(
                                      data = predict_data_model.np,
                                      aes(
@@ -11831,7 +11870,7 @@ observeEvent(ignoreNULL = TRUE,
                                    #   size = 1.5
                                    # ) +
                                    ggtitle("Correction with xcms") +
-                                   
+
                                    labs(
                                      x = paste(
                                        "CE-time (",
@@ -11841,9 +11880,10 @@ observeEvent(ignoreNULL = TRUE,
                                      y = "CE-time (reference sample)",
                                      color = "Legend"
                                    ) +
-                                   
+
                                    scale_color_manual(values = c(
-                                     "Model" = "red",
+                                     "Model" = "blue",
+                                     "Previous model" = "red",
                                      "Median" = "green"
                                    )) +
                                    
@@ -12574,7 +12614,15 @@ observeEvent(ignoreNULL = TRUE,
                                  
                                  # xlab("CE-time (sample to align)")+
                                  # ylab("CE-time (reference sample)")+
-                                 
+
+                                 {
+                                   if (!is.null(RvarsCorrectionTime$previous_model_curve))
+                                     geom_line(
+                                       data = RvarsCorrectionTime$previous_model_curve,
+                                       aes(x = rt.2, y = rt.1, color = "Previous model"),
+                                       lwd = 1, size = 1.5, linetype = "dashed"
+                                     )
+                                 } +
                                  geom_line(
                                    data = predict_data_model.np,
                                    aes(
@@ -12598,7 +12646,7 @@ observeEvent(ignoreNULL = TRUE,
                                    size = 1.5
                                  ) +
                                  ggtitle("Correction with xcms") +
-                                 
+
                                  labs(
                                    x = paste(
                                      "CE-time (",
@@ -12608,9 +12656,10 @@ observeEvent(ignoreNULL = TRUE,
                                    y = "CE-time (reference sample)",
                                    color = "Legend"
                                  ) +
-                                 
+
                                  scale_color_manual(values = c(
-                                   "Model" = "red",
+                                   "Model" = "blue",
+                                   "Previous model" = "red",
                                    "Median" = "green"
                                  )) +
                                  
