@@ -13310,8 +13310,6 @@ observeEvent(input$validateCETimeCorrection, ignoreNULL = TRUE, {
 
 observeEvent(input$Confirm_validateCETimeCorrection, ignoreNULL = TRUE, {
   if (isTRUE(input$Confirm_validateCETimeCorrection)) {
-    shinyjs::enable(id = "SaveKernelAjust")
-
     ## Export kernel density parameters to Excel
     params_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
     if (!is.null(params_log) && nrow(params_log) > 0) {
@@ -13331,37 +13329,22 @@ observeEvent(input$Confirm_validateCETimeCorrection, ignoreNULL = TRUE, {
 })
 
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-##~~~~~~~~~~~~~~~~~~ Save CE-time Corrected Data with shinyFiles ~~~~~~~~~~~~~~~~#
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
-observeEvent(input$valideAllKernel, {
-  shinyjs::enable(id = "SaveKernelAjust")
-})
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~ Save CE-time Corrected Data as CSV ~~~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 observeEvent(ignoreNULL = TRUE,
              eventExpr = {
-               input$SaveKernelAjust
+               input$SaveCETimeCorrectedCSV
              },
              handlerExpr = {
-               # Open file save dialog
                shinyFileSave(input,
-                             id = "SaveKernelAjust",
+                             id = "SaveCETimeCorrectedCSV",
                              roots = volumes,
                              session = session)
                
-               # Get the selected file path
-               path_Save_File <- parseSavePath(volumes, input$SaveKernelAjust)$datapath
+               path_Save_File <- parseSavePath(volumes, input$SaveCETimeCorrectedCSV)$datapath
                
-               # Only proceed if user selected a valid path
                if (length(path_Save_File) > 0) {
-                 
-                 # Check if data exists
                  if (!is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
-                   
-                   # Show progress notification
                    showNotification(
                      "Creating CSV file with corrected data...",
                      type = "message",
@@ -13370,59 +13353,33 @@ observeEvent(ignoreNULL = TRUE,
                    )
                    
                    tryCatch({
-                     # Get corrected data
                      corrected_data <- RvarsCorrectionTime$peakListAligned_KernelDensity
                      
-                     # Ensure the file has .csv extension
                      if (!grepl("\\.csv$", path_Save_File, ignore.case = TRUE)) {
                        path_Save_File <- paste0(path_Save_File, ".csv")
                      }
                      
-                     # Save as CSV
                      write.csv(corrected_data,
                                file = path_Save_File,
                                row.names = FALSE,
                                quote = TRUE,
                                na = "")
                      
-                     # Remove progress notification
                      removeNotification(id = "save_csv_progress")
-                     
-                     # Show success notification
                      showNotification(
                        paste0("CSV file saved successfully to:\n", basename(path_Save_File)),
                        type = "message",
                        duration = 5
                      )
-                     
-                     # Log save event
-                     cat(paste0(
-                       "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
-                       "CE-Time corrected data saved as CSV to: ", path_Save_File,
-                       " (", nrow(corrected_data), " peaks, ",
-                       length(unique(corrected_data$sample)), " samples)\n"
-                     ))
-                     
                    }, error = function(e) {
-                     # Remove progress notification
                      removeNotification(id = "save_csv_progress")
-                     
-                     # Show error notification
                      showNotification(
                        paste0("Error saving CSV file: ", e$message),
                        type = "error",
                        duration = 10
                      )
-                     
-                     # Log error
-                     cat(paste0(
-                       "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
-                       "ERROR saving CE-Time data as CSV: ", e$message, "\n"
-                     ))
                    })
-                   
                  } else {
-                   # No data available
                    showNotification(
                      "No corrected data available. Please apply Kernel Density correction first.",
                      type = "warning",
@@ -13430,484 +13387,89 @@ observeEvent(ignoreNULL = TRUE,
                    )
                  }
                }
-               
              })
 
-
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-##~~~~ Modal: RT distribution viewer (eye button) — New Reference Map ~~~~~~~~~~~#
+##~~~~~~~~~~~~~~~~~~ Save CE-time Corrected Data as Excel ~~~~~~~~~~~~~~~~~~~~~~~#
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-## Calcule une seule fois les données Before/After et une plage d'axes COMMUNE
-## aux deux graphiques, pour qu'ils soient alignés et comparables visuellement.
-modal_rt_data <- reactive({
-  sample_sel <- req(input$SelectSample_KernelDensity)
-  req(RvarsCorrectionTime$peakListAligned)
-  req(RvarsCorrectionTime$peakListAligned_KernelDensity)
-  req(RvarsCorrectionTime$ref_sample_samplePeaks)
-  
-  source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
-  
-  ref <- RvarsCorrectionTime$ref_sample_samplePeaks
-  
-  table.before <- RvarsCorrectionTime$peakListAligned[
-    RvarsCorrectionTime$peakListAligned$sample == sample_sel, ]
-  resMatch.before <- matchMz(x = ref, table = table.before,
-                             ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
+observeEvent(ignoreNULL = TRUE,
+             eventExpr = {
+               input$SaveCETimeCorrected
+             },
+             handlerExpr = {
+               shinyFileSave(input,
+                             id = "SaveCETimeCorrected",
+                             roots = volumes,
                              session = session)
-  data_before <- resMatch.before$MatchTable[
-    !is.na(resMatch.before$MatchTable$rt.2),
-    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
-  ]
-  
-  table.after <- RvarsCorrectionTime$peakListAligned_KernelDensity[
-    RvarsCorrectionTime$peakListAligned_KernelDensity$sample == sample_sel, ]
-  resMatch.after <- matchMz(x = ref, table = table.after,
-                            ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
-                            session = session)
-  data_after <- resMatch.after$MatchTable[
-    !is.na(resMatch.after$MatchTable$rt.2),
-    c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
-  ]
-  
-  rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1],
-                range(data_after$rt.2)[1], range(data_after$rt.1)[1])
-  rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2],
-                range(data_after$rt.2)[2], range(data_after$rt.1)[2])
-  
-  list(data_before = data_before, data_after = data_after,
-       rt_min = rt_min, rt_max = rt_max)
-})
-
-output$modal_rt_dist_before <- renderPlot({
-  rt_data <- modal_rt_data()
-  data_before <- rt_data$data_before
-  rt_min <- rt_data$rt_min
-  rt_max <- rt_data$rt_max
-  
-  rt_max.x  <- max(data_before$rt.2) + 100
-  rt_max.y <- max(data_before$rt.1) + 100
-  
-  median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
-                                 y = seq(rt_min, rt_max, by = 50))
-  
-  ggplot(data_before, aes(x = rt.2, y = rt.1)) +
-    geom_point(size = 0.5) +
-    coord_cartesian(xlim = c(rt_min, rt_max), ylim = c(rt_min, rt_max.y)) +
-    scale_x_continuous(n.breaks = 14) +
-    scale_y_continuous(n.breaks = 14) +
-    geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
-              lwd = 1, size = 1.5) +
-    ggtitle("Before CE-time correction (Kernel Density)") +
-    labs(x = paste("CE-time (", data_before$sample.2[1], ")"),
-         y = "CE-time (Reference sample)", color = "Legend") +
-    scale_color_manual(values = c("Median" = "green")) +
-    theme_ben() +
-    theme(
-      plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
-                                margin = margin(0, 0, 5, 0), hjust = 0.5),
-      plot.background = element_rect(fill = "aliceblue"),
-      legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
-      legend.text = element_text(size = rel(0.85), face = "bold.italic")
-    )
-})
-
-output$modal_rt_dist_after <- renderPlot({
-  rt_data <- modal_rt_data()
-  data_after <- rt_data$data_after
-  rt_min <- rt_data$rt_min
-  rt_max <- rt_data$rt_max
-  
-  rt_max.x  <- max(data_after$rt.2) + 100
-  rt_max.y <- max(data_after$rt.1) + 100
-  
-  median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
-                                 y = seq(rt_min, rt_max, by = 50))
-  
-  ggplot(data_after, aes(x = rt.2, y = rt.1)) +
-    geom_point(size = 0.5) +
-    coord_cartesian(xlim = c(rt_min, rt_max), 
-                    ylim = c(rt_min, rt_max.y)) +
-    scale_x_continuous(n.breaks = 14) +
-    scale_y_continuous(n.breaks = 14) +
-    geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
-              lwd = 1, size = 1.5) +
-    ggtitle("After CE-time correction (Kernel Density)") +
-    labs(x = paste("CE-time (", data_after$sample.2[1], ")"),
-         y = "CE-time (Reference sample)", color = "Legend") +
-    scale_color_manual(values = c("Median" = "green")) +
-    theme_ben() +
-    theme(
-      plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
-                                margin = margin(0, 0, 5, 0), hjust = 0.5),
-      plot.background = element_rect(fill = "aliceblue"),
-      legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
-      legend.text = element_text(size = rel(0.85), face = "bold.italic")
-    )
-})
-
-
-# output$modal_rt_dist_before <- renderPlot({
-#   sample_sel <- req(input$SelectSample_KernelDensity)
-#   req(RvarsCorrectionTime$peakListAligned)
-#   req(RvarsCorrectionTime$ref_sample_samplePeaks)
-#   
-#   source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
-#   
-#   ref         <- RvarsCorrectionTime$ref_sample_samplePeaks
-#   table.before <- RvarsCorrectionTime$peakListAligned[
-#     RvarsCorrectionTime$peakListAligned$sample == sample_sel, ]
-#   
-#   resMatch.before <- matchMz(x = ref, table = table.before,
-#                              ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
-#                              session = session)
-#   
-#   data_before <- resMatch.before$MatchTable[
-#     !is.na(resMatch.before$MatchTable$rt.2),
-#     c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
-#   ]
-#   
-#   rt_min <- min(range(data_before$rt.2)[1], range(data_before$rt.1)[1])
-#   rt_max <- max(range(data_before$rt.2)[2], range(data_before$rt.1)[2])
-#   median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
-#                                  y = seq(rt_min, rt_max, by = 50))
-#   
-#   ggplot(data_before, aes(x = rt.2, y = rt.1)) +
-#     geom_point(size = 0.5) +
-#     coord_cartesian(xlim = c(rt_min, rt_max), ylim = c(rt_min, rt_max)) +
-#     scale_x_continuous(n.breaks = 14) +
-#     scale_y_continuous(n.breaks = 14) +
-#     geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
-#               lwd = 1, size = 1.5) +
-#     ggtitle("Before CE-time correction (Kernel Density)") +
-#     labs(x = paste("CE-time (", data_before$sample.2[1], ")"),
-#          y = "CE-time (Reference sample)", color = "Legend") +
-#     scale_color_manual(values = c("Median" = "green")) +
-#     theme_ben() +
-#     theme(
-#       plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
-#                                 margin = margin(0, 0, 5, 0), hjust = 0.5),
-#       plot.background = element_rect(fill = "aliceblue"),
-#       legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
-#       legend.text = element_text(size = rel(0.85), face = "bold.italic")
-#     )
-# })
-# 
-# output$modal_rt_dist_after <- renderPlot({
-#   sample_sel <- req(input$SelectSample_KernelDensity)
-#   req(RvarsCorrectionTime$peakListAligned_KernelDensity)
-#   req(RvarsCorrectionTime$ref_sample_samplePeaks)
-#   
-#   source("lib/NewReferenceMap/R_files/CE_time_Correction.lib.R", local = TRUE)
-#   
-#   ref        <- RvarsCorrectionTime$ref_sample_samplePeaks
-#   table.after <- RvarsCorrectionTime$peakListAligned_KernelDensity[
-#     RvarsCorrectionTime$peakListAligned_KernelDensity$sample == sample_sel, ]
-#   
-#   resMatch.after <- matchMz(x = ref, table = table.after,
-#                             ppm_tolereance = 1000, mzcol = "mz", rtcol = "rt",
-#                             session = session)
-#   
-#   data_after <- resMatch.after$MatchTable[
-#     !is.na(resMatch.after$MatchTable$rt.2),
-#     c("mz.1", "rt.1", "maxo.1", "mz.2", "rt.2", "maxo.2", "sample.2")
-#   ]
-#   
-#   rt_min <- min(range(data_after$rt.2)[1], range(data_after$rt.1)[1])
-#   rt_max <- max(range(data_after$rt.2)[2], range(data_after$rt.1)[2])
-#   median_line_data <- data.frame(x = seq(rt_min, rt_max, by = 50),
-#                                  y = seq(rt_min, rt_max, by = 50))
-#   
-#   ggplot(data_after, aes(x = rt.2, y = rt.1)) +
-#     geom_point(size = 0.5) +
-#     coord_cartesian(xlim = c(rt_min, rt_max), ylim = c(rt_min, rt_max)) +
-#     scale_x_continuous(n.breaks = 14) +
-#     scale_y_continuous(n.breaks = 14) +
-#     geom_line(data = median_line_data, aes(x = x, y = x, color = "Median"),
-#               lwd = 1, size = 1.5) +
-#     ggtitle("After CE-time correction (Kernel Density)") +
-#     labs(x = paste("CE-time (", data_after$sample.2[1], ")"),
-#          y = "CE-time (Reference sample)", color = "Legend") +
-#     scale_color_manual(values = c("Median" = "green")) +
-#     theme_ben() +
-#     theme(
-#       plot.title = element_text(size = rel(1), face = "bold", color = "#760001",
-#                                 margin = margin(0, 0, 5, 0), hjust = 0.5),
-#       plot.background = element_rect(fill = "aliceblue"),
-#       legend.title = element_text(size = rel(0.95), face = "bold.italic", hjust = 0.5),
-#       legend.text = element_text(size = rel(0.85), face = "bold.italic")
-#     )
-# })
-
-output$modal_rt_params_info <- renderUI({
-  sample_sel <- req(input$SelectSample_KernelDensity)
-  log <- RvarsCorrectionTime$kernelDensity_params_log
-  if (is.null(log)) return(NULL)
-  row <- log[log$Sample == sample_sel, ]
-  if (nrow(row) == 0) return(NULL)
-  
-  tags$div(
-    style = paste0(
-      "background:#f0f4f8; border:1px solid #c8d8e8; border-radius:6px;",
-      "padding:10px 16px; margin-top:12px; font-size:0.9em;"
-    ),
-    tags$b("Parameters used for: ", style = "color:#760001;"),
-    tags$span(sample_sel),
-    tags$br(),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Bandwidth (filter): "), row$Bandwidth_Filter),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Intensity filter: "), row$Intensity_Filter),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Min density: "), row$Min_Density),
-    tags$br(),
-    tags$span(tags$b("Kernel type: "), row$Kernel_Type),
-    tags$span(" | ", style = "color:#aaa;"),
-    tags$span(tags$b("Bandwidth (model): "), row$Bandwidth_Model),
-  )
-})
-
-observeEvent(input$btn_view_rt_dist, ignoreNULL = TRUE, {
-  req(RvarsCorrectionTime$peakListAligned)
-  
-  showModal(
-    modalDialog(
-      title = "RT distribution — CE-time Kernel Density correction",
-      size = "l",
-      easyClose = TRUE,
-      footer = modalButton("Close"),
-      fluidRow(
-        column(
-          6,
-          shinycssloaders::withSpinner(
-            plotOutput("modal_rt_dist_before", width = "100%", height = "400px"),
-            type = 1, size = 0.8
-          )
-        ),
-        column(
-          6,
-          shinycssloaders::withSpinner(
-            plotOutput("modal_rt_dist_after", width = "100%", height = "400px"),
-            type = 1, size = 0.8
-          )
-        )
-      ),
-      uiOutput("modal_rt_params_info")
-    )
-  )
-})
-
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-##~~~~~~~~~~~~~~~~~~ Validate all CE-time corrections ~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
-observeEvent(input$validateCETimeCorrection, ignoreNULL = TRUE, {
-  ask_confirmation(
-    inputId = "Confirm_validateCETimeCorrection",
-    title = NULL,
-    text = tags$b(
-      "Are you sure you're finished correcting CE-time?",
-      style = "color: #FA5858;"
-    ),
-    btn_labels = c("Cancel", "OK"),
-    btn_colors = c("#00BFFF", "#FE2E2E"),
-    html = TRUE
-  )
-})
-
-observeEvent(input$Confirm_validateCETimeCorrection, ignoreNULL = TRUE, {
-  if (isTRUE(input$Confirm_validateCETimeCorrection)) {
-    shinyjs::enable(id = "SaveKernelAjust")
-    
-    ## Export kernel density parameters to Excel
-    params_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
-    if (!is.null(params_log) && nrow(params_log) > 0) {
-      export_dir <- tryCatch(directoryInput$directory, error = function(e) tempdir())
-      if (length(export_dir) == 0 || !nzchar(export_dir)) export_dir <- tempdir()
-      xlsx_path <- file.path(export_dir, "KernelDensity_Correction_Parameters.xlsx")
-      tryCatch({
-        openxlsx::write.xlsx(params_log, file = xlsx_path, rowNames = FALSE)
-        showNotification(paste("Parameters saved:", xlsx_path),
-                         type = "message", duration = 6)
-      }, error = function(e) {
-        showNotification(paste("Failed to save parameters:", e$message),
-                         type = "error", duration = 6)
-      })
-    }
-  }
-})
-
-# observeEvent(ignoreNULL = TRUE,
-#              eventExpr = {
-#                input$SaveKernelAjust
-#              },
-#              handlerExpr = {
-#                # Open file save dialog
-#                shinyFileSave(input,
-#                              id = "SaveKernelAjust",
-#                              roots = volumes,
-#                              session = session)
-#                
-#                # Get the selected file path
-#                path_Save_File <- parseSavePath(volumes, input$SaveKernelAjust)$datapath
-#                
-#                # Only proceed if user selected a valid path
-#                if (length(path_Save_File) > 0) {
-#                  
-#                  # Check if data exists
-#                  if (!is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
-#                    
-#                    # Show progress notification
-#                    showNotification(
-#                      "Creating csv file with corrected data...",
-#                      type = "message",
-#                      duration = 5,
-#                      id = "save_progress"
-#                    )
-#                    
-#                    tryCatch({
-#                      # Get corrected data
-#                      corrected_data <- RvarsCorrectionTime$peakListAligned_KernelDensity
-#                      #export des données en format csv
-#                      #write.csv(corrected_data, file = "Correction CE-Time - xcms and kernel density.csv")
-#                      
-#                      # Create workbook with multiple sheets
-#                      wb <- openxlsx::createWorkbook()
-# 
-#                      # Sheet 1: Corrected peaks data
-#                      openxlsx::addWorksheet(wb, "Corrected_Peaks")
-#                      openxlsx::writeData(wb, "Corrected_Peaks", corrected_data,
-#                                          startRow = 1, startCol = 1,
-#                                          rowNames = FALSE)
-# 
-#                      # Add header styling
-#                      header_style <- openxlsx::createStyle(
-#                        fontSize = 12,
-#                        fontColour = "#FFFFFF",
-#                        fgFill = "#4F81BD",
-#                        halign = "center",
-#                        valign = "center",
-#                        textDecoration = "bold",
-#                        border = "TopBottomLeftRight"
-#                      )
-# 
-#                      openxlsx::addStyle(wb, "Corrected_Peaks",
-#                                         style = header_style,
-#                                         rows = 1,
-#                                         cols = 1:ncol(corrected_data),
-#                                         gridExpand = TRUE)
-# 
-#                      # Freeze first row
-#                      openxlsx::freezePane(wb, "Corrected_Peaks", firstRow = TRUE)
-# 
-#                      # Auto-size columns
-#                      openxlsx::setColWidths(wb, "Corrected_Peaks",
-#                                             cols = 1:ncol(corrected_data),
-#                                             widths = "auto")
-# 
-#                      # Sheet 2: Metadata/Parameters (if available)
-#                      if (!is.null(RvarsCorrectionTime$pheno_Data_mzML)) {
-#                        openxlsx::addWorksheet(wb, "Sample_Info")
-#                        openxlsx::writeData(wb, "Sample_Info",
-#                                            RvarsCorrectionTime$pheno_Data_mzML,
-#                                            rowNames = FALSE)
-# 
-#                        openxlsx::addStyle(wb, "Sample_Info",
-#                                           style = header_style,
-#                                           rows = 1,
-#                                           cols = 1:ncol(RvarsCorrectionTime$pheno_Data_mzML),
-#                                           gridExpand = TRUE)
-# 
-#                        openxlsx::freezePane(wb, "Sample_Info", firstRow = TRUE)
-#                      }
-# 
-#                      # Sheet 3: Correction summary
-#                      openxlsx::addWorksheet(wb, "Correction_Summary")
-# 
-#                      summary_info <- data.frame(
-#                        Parameter = c("Correction Method",
-#                                      "Kernel Type",
-#                                      "Bandwidth (Model)",
-#                                      "Bandwidth (Filter)",
-#                                      "Min Density",
-#                                      "Intensity Filter",
-#                                      "Export Date",
-#                                      "Number of Peaks",
-#                                      "Number of Samples"),
-#                        Value = c("Kernel Density",
-#                                  ifelse(!is.null(input$KernelType), input$KernelType, "N/A"),
-#                                  ifelse(!is.null(input$bandwidth_Model), input$bandwidth_Model, "N/A"),
-#                                  ifelse(!is.null(input$bandwidth_Filter), input$bandwidth_Filter, "N/A"),
-#                                  ifelse(!is.null(input$minDensity), input$minDensity, "N/A"),
-#                                  ifelse(!is.null(input$intensityFilter), input$intensityFilter, "N/A"),
-#                                  format(Sys.time(), "%Y-%m-%d %H:%M:%S"),
-#                                  nrow(corrected_data),
-#                                  length(unique(corrected_data$sample)))
-#                      )
-# 
-#                      openxlsx::writeData(wb, "Correction_Summary", summary_info, rowNames = FALSE)
-# 
-#                      openxlsx::addStyle(wb, "Correction_Summary",
-#                                         style = header_style,
-#                                         rows = 1,
-#                                         cols = 1:2,
-#                                         gridExpand = TRUE)
-# 
-#                      # Ensure the file has .xlsx extension
-#                      if (!grepl("\\.xlsx$", path_Save_File, ignore.case = TRUE)) {
-#                        path_Save_File <- paste0(path_Save_File, ".xlsx")
-#                      }
-# 
-#                      # Save workbook to selected path
-#                      openxlsx::saveWorkbook(wb, path_Save_File, overwrite = TRUE)
-#                      # 
-#                      # Remove progress notification
-#                      removeNotification(id = "save_progress")
-#                      # 
-#                      # # Show success notification
-#                      showNotification(
-#                        paste0("File saved successfully to:\n", basename(path_Save_File)),
-#                        type = "message",
-#                        duration = 5
-#                      )
-#                      # 
-#                      # Log save event
-#                      cat(paste0(
-#                        "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
-#                        "CE-Time corrected data saved to: ", path_Save_File,
-#                        " (", nrow(corrected_data), " peaks, ",
-#                        length(unique(corrected_data$sample)), " samples)\n"
-#                      ))
-#                      
-#                    }, error = function(e) {
-#                      # Remove progress notification
-#                      removeNotification(id = "save_progress")
-#                      
-#                      # Show error notification
-#                      showNotification(
-#                        paste0("Error saving file: ", e$message),
-#                        type = "error",
-#                        duration = 10
-#                      )
-#                      
-#                      # Log error
-#                      cat(paste0(
-#                        "\n[", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "] ",
-#                        "ERROR saving CE-Time data: ", e$message, "\n"
-#                      ))
-#                    })
-#                    
-#                  } else {
-#                    # No data available
-#                    showNotification(
-#                      "No corrected data available. Please apply Kernel Density correction first.",
-#                      type = "warning",
-#                      duration = 5
-#                    )
-#                  }
-#                }
-# })
-
-
+               
+               path_Save_File <- parseSavePath(volumes, input$SaveCETimeCorrected)$datapath
+               
+               if (length(path_Save_File) > 0) {
+                 if (!is.null(RvarsCorrectionTime$peakListAligned_KernelDensity)) {
+                   showNotification(
+                     "Creating Excel file with corrected data...",
+                     type = "message",
+                     duration = NULL,
+                     id = "save_xlsx_progress"
+                   )
+                   
+                   tryCatch({
+                     corrected_data <- RvarsCorrectionTime$peakListAligned_KernelDensity
+                     
+                     if (!grepl("\\.xlsx$", path_Save_File, ignore.case = TRUE)) {
+                       path_Save_File <- paste0(path_Save_File, ".xlsx")
+                     }
+                     
+                     wb <- openxlsx::createWorkbook()
+                     
+                     openxlsx::addWorksheet(wb, "Corrected_Peaks")
+                     openxlsx::writeData(wb, "Corrected_Peaks", corrected_data,
+                                         startRow = 1, startCol = 1, rowNames = FALSE)
+                     
+                     header_style <- openxlsx::createStyle(
+                       fontSize = 12, fontColour = "#FFFFFF", fgFill = "#4F81BD",
+                       halign = "center", valign = "center",
+                       textDecoration = "bold", border = "TopBottomLeftRight"
+                     )
+                     openxlsx::addStyle(wb, "Corrected_Peaks", style = header_style,
+                                        rows = 1, cols = 1:ncol(corrected_data), gridExpand = TRUE)
+                     openxlsx::freezePane(wb, "Corrected_Peaks", firstRow = TRUE)
+                     openxlsx::setColWidths(wb, "Corrected_Peaks", cols = 1:ncol(corrected_data), widths = "auto")
+                     
+                     params_log <- isolate(RvarsCorrectionTime$kernelDensity_params_log)
+                     if (!is.null(params_log) && nrow(params_log) > 0) {
+                       openxlsx::addWorksheet(wb, "Correction_Parameters")
+                       openxlsx::writeData(wb, "Correction_Parameters", params_log, rowNames = FALSE)
+                       openxlsx::addStyle(wb, "Correction_Parameters", style = header_style,
+                                          rows = 1, cols = 1:ncol(params_log), gridExpand = TRUE)
+                       openxlsx::freezePane(wb, "Correction_Parameters", firstRow = TRUE)
+                     }
+                     
+                     openxlsx::saveWorkbook(wb, path_Save_File, overwrite = TRUE)
+                     
+                     removeNotification(id = "save_xlsx_progress")
+                     showNotification(
+                       paste0("Excel file saved successfully to:\n", basename(path_Save_File)),
+                       type = "message",
+                       duration = 5
+                     )
+                   }, error = function(e) {
+                     removeNotification(id = "save_xlsx_progress")
+                     showNotification(
+                       paste0("Error saving Excel file: ", e$message),
+                       type = "error",
+                       duration = 10
+                     )
+                   })
+                 } else {
+                   showNotification(
+                     "No corrected data available. Please apply Kernel Density correction first.",
+                     type = "warning",
+                     duration = 5
+                   )
+                 }
+               }
+             })
 
 observe({
   if (is.null(RvarsCorrectionTime$modelKernelDensity)) {
@@ -13944,6 +13506,8 @@ apply_kernel_density_correction <- function(sample_sel,
                                             bandwidth_filter,
                                             intensity_filter,
                                             min_density,
+                                            use_robust = FALSE,
+                                            robust_threshold = 3,
                                             grid_size = 500) {
   
   if (is.null(RvarsCorrectionTime$peakListAligned) ||
@@ -14083,6 +13647,11 @@ observeEvent(input$applyBatchKernelParams, ignoreNULL = TRUE, {
   # Colonnes optionnelles : absentes du fichier -> filtre robuste désactivé (comportement inchangé)
   userobust_col <- col_names[grepl("^Use.?Robust.?Filter$", col_names, ignore.case = TRUE)][1]
   robustthresh_col <- col_names[grepl("^Robust.?Threshold$", col_names, ignore.case = TRUE)][1]
+
+  missing_cols <- c("Sample", "Bandwidth_Filter", "Intensity_Filter", "Min_Density", "Bandwidth_Model")[
+    is.na(c(datafile_col, bandwith_col, intfilter_col, minden_col, corrkernel_col))
+  ]
+
   cat("datafile_col :  ", datafile_col , '\n')
   cat("bandwith_col :  ", bandwith_col , '\n')
   cat("intfilter_col :  ", intfilter_col , '\n')
@@ -14128,7 +13697,7 @@ observeEvent(input$applyBatchKernelParams, ignoreNULL = TRUE, {
       
       if (!nzchar(sample_raw) || is.na(bw_filter) || is.na(int_filter) ||
           is.na(min_dens) || is.na(bw_model)) {
-        results <- rbind(results, data.frame(Sample = sample_sel, Status = "Ignoré (valeurs manquantes)"))
+        results <- rbind(results, data.frame(Sample = sample_raw, Status = "Ignoré (valeurs manquantes)"))
         next
       }
       
